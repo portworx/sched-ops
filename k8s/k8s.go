@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/portworx/torpedo/pkg/task"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/typed/apps/v1beta1"
@@ -20,9 +19,24 @@ import (
 
 const (
 	masterLabelKey        = "node-role.kubernetes.io/master"
+	hostnameKey           = "kubernetes.io/hostname"
 	pvcStorageClassKey    = "volume.beta.kubernetes.io/storage-class"
 	labelUpdateMaxRetries = 5
 )
+
+// RetryFn function is used locally to retry certain calls.
+// For better control, consider assigning it to github.com/portworx/torpedo/pkg/task.DoRetryWithTimeout.
+var RetryFn = func(t func() (interface{}, error), tmout, sleep4 time.Duration) (interface{}, error) {
+	expireAt := time.Now().Add(tmout)
+	for {
+		if out, err := t(); err == nil {
+			return out, err
+		} else if time.Now().Sub(expireAt) > 0 {
+			return nil, fmt.Errorf("timed out performing task")
+		}
+		time.Sleep(sleep4)
+	}
+}
 
 // Ops is an interface to perform any kubernetes related operations
 type Ops interface {
@@ -62,6 +76,8 @@ type NodeOps interface {
 	AddLabelOnNode(string, string, string) error
 	// RemoveLabelOnNode removes the label with key on given node
 	RemoveLabelOnNode(string, string) error
+	// WatchNode sets up a watcher that listens for the changes on Node.
+	WatchNode(node *v1.Node, fn NodeWatchFunc) error
 }
 
 // ServiceOps is an interface to perform k8s service operations
@@ -174,6 +190,13 @@ func (k *k8sOps) initK8sClient() error {
 		if err != nil {
 			return err
 		}
+
+		// Quick validation if client connection works
+		_, err = k8sClient.ServerVersion()
+		if err != nil {
+			return fmt.Errorf("failed to connect to k8s server: %s", err)
+		}
+
 		k.client = k8sClient
 	}
 	return nil
@@ -268,31 +291,56 @@ func (k *k8sOps) GetLabelsOnNode(name string) (map[string]string, error) {
 	return node.Labels, nil
 }
 
+// SearchNodeByAddresses searches the node based on the IP addresses, then it falls back to a
+// search by hostname, and finally by the labels
 func (k *k8sOps) SearchNodeByAddresses(addresses []string) (*v1.Node, error) {
 	nodes, err := k.GetNodes()
 	if err != nil {
 		return nil, err
 	}
 
+	// sweep #1 - locating based on IP address
 	for _, node := range nodes.Items {
-		for _, addr := range addresses {
-			if matchAddress(addr, node.Status.Addresses) {
-				return &node, nil
+		for _, addr := range node.Status.Addresses {
+			switch addr.Type {
+			case v1.NodeExternalIP:
+				fallthrough
+			case v1.NodeInternalIP:
+				for _, ip := range addresses {
+					if addr.Address == ip {
+						return &node, nil
+					}
+				}
+			}
+		}
+	}
+
+	// sweep #2 - locating based on Hostname
+	for _, node := range nodes.Items {
+		for _, addr := range node.Status.Addresses {
+			switch addr.Type {
+			case v1.NodeHostName:
+				for _, ip := range addresses {
+					if addr.Address == ip {
+						return &node, nil
+					}
+				}
+			}
+		}
+	}
+
+	// sweep #3 - locating based on labels
+	for _, node := range nodes.Items {
+		if hn, has := node.GetLabels()[hostnameKey]; has {
+			for _, ip := range addresses {
+				if hn == ip {
+					return &node, nil
+				}
 			}
 		}
 	}
 
 	return nil, fmt.Errorf("failed to find k8s node for given addresses: %v", addresses)
-}
-
-// matchAddress returns true if given address is present in nodeAddresses
-func matchAddress(address string, nodeAddresses []v1.NodeAddress) bool {
-	for _, n := range nodeAddresses {
-		if n.Address == address {
-			return true
-		}
-	}
-	return false
 }
 
 func (k *k8sOps) AddLabelOnNode(name, key, value string) error {
@@ -347,6 +395,53 @@ func (k *k8sOps) RemoveLabelOnNode(name, key string) error {
 	}
 
 	return err
+}
+
+// NodeWatchFunc is a callback provided to the WatchNode function
+// which is invoked when the v1.Node object is changed.
+type NodeWatchFunc func(node *v1.Node) error
+
+func (k *k8sOps) WatchNode(node *v1.Node, watchNodeFn NodeWatchFunc) error {
+	if node == nil {
+		return fmt.Errorf("no node given to watch")
+	}
+
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	nodeHostname, has := node.GetLabels()[hostnameKey]
+	if !has || nodeHostname == "" {
+		return fmt.Errorf("no hostname label")
+	}
+
+	selector := hostnameKey + "==" + nodeHostname
+	listOptions := meta_v1.ListOptions{
+		Watch:         true,
+		LabelSelector: selector,
+	}
+	watchInterface, err := k.client.Core().Nodes().Watch(listOptions)
+	if err != nil {
+		return err
+	}
+
+	// fire off watch function
+	go func() {
+		for {
+			select {
+			case event, more := <-watchInterface.ResultChan():
+				if !more {
+					// log.Warn("Kubernetes node watch channel closed")
+					return
+				}
+				if k8sNode, ok := event.Object.(*v1.Node); ok {
+					// CHECKME: handle errors?
+					watchNodeFn(k8sNode)
+				}
+			}
+		}
+	}()
+	return nil
 }
 
 // Service APIs - BEGIN
@@ -548,7 +643,7 @@ func (k *k8sOps) ValidateDeployment(deployment *apps_api.Deployment) error {
 		}
 	}
 
-	if _, err := task.DoRetryWithTimeout(t, 10*time.Minute, 10*time.Second); err != nil {
+	if _, err := RetryFn(t, 10*time.Minute, 10*time.Second); err != nil {
 		return err
 	}
 	return nil
@@ -586,7 +681,7 @@ func (k *k8sOps) ValidateTerminatedDeployment(deployment *apps_api.Deployment) e
 		return "", nil
 	}
 
-	if _, err := task.DoRetryWithTimeout(t, 10*time.Minute, 10*time.Second); err != nil {
+	if _, err := RetryFn(t, 10*time.Minute, 10*time.Second); err != nil {
 		return err
 	}
 	return nil
@@ -697,7 +792,7 @@ func (k *k8sOps) ValidateStatefulSet(statefulset *apps_api.StatefulSet) error {
 		return "", nil
 	}
 
-	if _, err := task.DoRetryWithTimeout(t, 10*time.Minute, 10*time.Second); err != nil {
+	if _, err := RetryFn(t, 10*time.Minute, 10*time.Second); err != nil {
 		return err
 	}
 	return nil
@@ -740,7 +835,7 @@ func (k *k8sOps) ValidateTerminatedStatefulSet(statefulset *apps_api.StatefulSet
 		return "", nil
 	}
 
-	if _, err := task.DoRetryWithTimeout(t, 10*time.Minute, 10*time.Second); err != nil {
+	if _, err := RetryFn(t, 10*time.Minute, 10*time.Second); err != nil {
 		return err
 	}
 	return nil
@@ -900,7 +995,7 @@ func (k *k8sOps) ValidatePersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) er
 		}
 	}
 
-	if _, err := task.DoRetryWithTimeout(t, 5*time.Minute, 10*time.Second); err != nil {
+	if _, err := RetryFn(t, 5*time.Minute, 10*time.Second); err != nil {
 		return err
 	}
 	return nil

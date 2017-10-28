@@ -410,16 +410,8 @@ func (k *k8sOps) WatchNode(node *v1.Node, watchNodeFn NodeWatchFunc) error {
 		return err
 	}
 
-	nodeHostname, has := node.GetLabels()[hostnameKey]
-	if !has || nodeHostname == "" {
-		return fmt.Errorf("no hostname label")
-	}
-
-	selector := hostnameKey + "==" + nodeHostname
-	listOptions := meta_v1.ListOptions{
-		Watch:         true,
-		LabelSelector: selector,
-	}
+	// let's use internal FieldsSelector, instead of LabelsSelector (labels are volatile)
+	listOptions := meta_v1.SingleObject(node.meta)
 	watchInterface, err := k.client.Core().Nodes().Watch(listOptions)
 	if err != nil {
 		return err

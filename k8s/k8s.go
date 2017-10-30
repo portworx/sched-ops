@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/portworx/sched-ops/task"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/typed/apps/v1beta1"
@@ -23,20 +24,6 @@ const (
 	pvcStorageClassKey    = "volume.beta.kubernetes.io/storage-class"
 	labelUpdateMaxRetries = 5
 )
-
-// RetryFn function is used locally to retry certain calls.
-// For better control, consider assigning it to github.com/portworx/torpedo/pkg/task.DoRetryWithTimeout.
-var RetryFn = func(t func() (interface{}, error), tmout, sleep4 time.Duration) (interface{}, error) {
-	expireAt := time.Now().Add(tmout)
-	for {
-		if out, err := t(); err == nil {
-			return out, err
-		} else if time.Now().Sub(expireAt) > 0 {
-			return nil, fmt.Errorf("timed out performing task")
-		}
-		time.Sleep(sleep4)
-	}
-}
 
 // Ops is an interface to perform any kubernetes related operations
 type Ops interface {
@@ -411,7 +398,7 @@ func (k *k8sOps) WatchNode(node *v1.Node, watchNodeFn NodeWatchFunc) error {
 	}
 
 	// let's use internal FieldsSelector, instead of LabelsSelector (labels are volatile)
-	listOptions := meta_v1.SingleObject(node.meta)
+	listOptions := meta_v1.SingleObject(node.ObjectMeta)
 	watchInterface, err := k.client.Core().Nodes().Watch(listOptions)
 	if err != nil {
 		return err
@@ -635,7 +622,7 @@ func (k *k8sOps) ValidateDeployment(deployment *apps_api.Deployment) error {
 		}
 	}
 
-	if _, err := RetryFn(t, 10*time.Minute, 10*time.Second); err != nil {
+	if _, err := task.DoRetryWithTimeout(t, 10*time.Minute, 10*time.Second); err != nil {
 		return err
 	}
 	return nil
@@ -673,7 +660,7 @@ func (k *k8sOps) ValidateTerminatedDeployment(deployment *apps_api.Deployment) e
 		return "", nil
 	}
 
-	if _, err := RetryFn(t, 10*time.Minute, 10*time.Second); err != nil {
+	if _, err := task.DoRetryWithTimeout(t, 10*time.Minute, 10*time.Second); err != nil {
 		return err
 	}
 	return nil
@@ -784,7 +771,7 @@ func (k *k8sOps) ValidateStatefulSet(statefulset *apps_api.StatefulSet) error {
 		return "", nil
 	}
 
-	if _, err := RetryFn(t, 10*time.Minute, 10*time.Second); err != nil {
+	if _, err := task.DoRetryWithTimeout(t, 10*time.Minute, 10*time.Second); err != nil {
 		return err
 	}
 	return nil
@@ -827,7 +814,7 @@ func (k *k8sOps) ValidateTerminatedStatefulSet(statefulset *apps_api.StatefulSet
 		return "", nil
 	}
 
-	if _, err := RetryFn(t, 10*time.Minute, 10*time.Second); err != nil {
+	if _, err := task.DoRetryWithTimeout(t, 10*time.Minute, 10*time.Second); err != nil {
 		return err
 	}
 	return nil
@@ -987,7 +974,7 @@ func (k *k8sOps) ValidatePersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) er
 		}
 	}
 
-	if _, err := RetryFn(t, 5*time.Minute, 10*time.Second); err != nil {
+	if _, err := task.DoRetryWithTimeout(t, 5*time.Minute, 10*time.Second); err != nil {
 		return err
 	}
 	return nil

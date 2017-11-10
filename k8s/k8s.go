@@ -1023,9 +1023,9 @@ func (k *k8sOps) GetPersistentVolumeClaimParams(pvc *v1.PersistentVolumeClaim) (
 		return nil, fmt.Errorf("failed to get storage resource for pvc: %v", result.Name)
 	}
 
-	requestGB := int(roundUpSize(capacity.Value(), 1024*1024*1024))
-	requestSizeInBytes := uint64(requestGB * 1024 * 1024 * 1024)
-	params["size"] = fmt.Sprintf("%d", requestSizeInBytes)
+	// We explicitly send the unit with so the client can compare it with correct units
+	requestGB := uint64(roundUpSize(capacity.Value(), 1024*1024*1024))
+	params["size"] = fmt.Sprintf("%dG", requestGB)
 
 	scName := k8shelper.GetPersistentVolumeClaimClass(pvc)
 	if scName == "" {

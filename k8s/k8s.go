@@ -16,12 +16,12 @@ import (
 	storage_api "k8s.io/client-go/pkg/apis/storage/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	k8shelper "k8s.io/kubernetes/pkg/api/v1/helper"
 )
 
 const (
 	masterLabelKey        = "node-role.kubernetes.io/master"
 	hostnameKey           = "kubernetes.io/hostname"
-	pvcStorageClassKey    = "volume.beta.kubernetes.io/storage-class"
 	labelUpdateMaxRetries = 5
 )
 
@@ -1027,8 +1027,8 @@ func (k *k8sOps) GetPersistentVolumeClaimParams(pvc *v1.PersistentVolumeClaim) (
 	requestSizeInBytes := uint64(requestGB * 1024 * 1024 * 1024)
 	params["size"] = fmt.Sprintf("%d", requestSizeInBytes)
 
-	scName, ok := result.Annotations[pvcStorageClassKey]
-	if !ok {
+	scName := k8shelper.GetPersistentVolumeClaimClass(pvc)
+	if scName == "" {
 		return nil, fmt.Errorf("failed to get storage class for pvc: %v", result.Name)
 	}
 

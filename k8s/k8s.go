@@ -8,10 +8,14 @@ import (
 	"time"
 
 	"github.com/portworx/sched-ops/task"
+	"github.com/sirupsen/logrus"
 	apps_api "k8s.io/api/apps/v1beta2"
 	"k8s.io/api/core/v1"
 	storage_api "k8s.io/api/storage/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/typed/apps/v1beta2"
 	"k8s.io/client-go/rest"
@@ -396,6 +400,34 @@ func (k *k8sOps) RemoveLabelOnNode(name, key string) error {
 // which is invoked when the v1.Node object is changed.
 type NodeWatchFunc func(node *v1.Node) error
 
+// handleWatch is internal function that handles the Node-watch.  On channel shutdown (ie. stop watch),
+// it'll attempt to reestablish its watch function.
+func (k *k8sOps) handleWatch(watchInterface watch.Interface, node *v1.Node, watchNodeFn NodeWatchFunc) {
+	for {
+		select {
+		case event, more := <-watchInterface.ResultChan():
+			if !more {
+				logrus.Debug("Kubernetes NodeWatch closed (attempting to reestablish)")
+
+				t := func() (interface{}, error) {
+					err := k.WatchNode(node, watchNodeFn)
+					return "", err
+				}
+				if _, err := task.DoRetryWithTimeout(t, 10*time.Minute, 10*time.Second); err != nil {
+					logrus.WithError(err).Error("Could not reestablish the NodeWatch")
+				} else {
+					logrus.Debug("NodeWatch reestablished")
+				}
+				return
+			}
+			if k8sNode, ok := event.Object.(*v1.Node); ok {
+				// CHECKME: handle errors?
+				watchNodeFn(k8sNode)
+			}
+		}
+	}
+}
+
 func (k *k8sOps) WatchNode(node *v1.Node, watchNodeFn NodeWatchFunc) error {
 	if node == nil {
 		return fmt.Errorf("no node given to watch")
@@ -405,29 +437,32 @@ func (k *k8sOps) WatchNode(node *v1.Node, watchNodeFn NodeWatchFunc) error {
 		return err
 	}
 
-	// let's use internal FieldsSelector, instead of LabelsSelector (labels are volatile)
-	listOptions := meta_v1.SingleObject(node.ObjectMeta)
+	nodeHostname, has := node.GetLabels()[hostnameKey]
+	if !has || nodeHostname == "" {
+		return fmt.Errorf("no hostname label")
+	}
+
+	requirement, err := labels.NewRequirement(
+		hostnameKey,
+		selection.DoubleEquals,
+		[]string{nodeHostname},
+	)
+	if err != nil {
+		return fmt.Errorf("Could not create Label requirement: %s", err)
+	}
+
+	listOptions := meta_v1.ListOptions{
+		LabelSelector: requirement.String(),
+		Watch:         true,
+	}
+
 	watchInterface, err := k.client.Core().Nodes().Watch(listOptions)
 	if err != nil {
 		return err
 	}
 
 	// fire off watch function
-	go func() {
-		for {
-			select {
-			case event, more := <-watchInterface.ResultChan():
-				if !more {
-					// log.Warn("Kubernetes node watch channel closed")
-					return
-				}
-				if k8sNode, ok := event.Object.(*v1.Node); ok {
-					// CHECKME: handle errors?
-					watchNodeFn(k8sNode)
-				}
-			}
-		}
-	}()
+	go k.handleWatch(watchInterface, node, watchNodeFn)
 	return nil
 }
 

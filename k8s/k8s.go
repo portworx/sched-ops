@@ -401,23 +401,22 @@ func (k *k8sOps) RemoveLabelOnNode(name, key string) error {
 type NodeWatchFunc func(node *v1.Node) error
 
 // handleWatch is internal function that handles the Node-watch.  On channel shutdown (ie. stop watch),
-// it'll attempt to re-establish the its watch function.
+// it'll attempt to reestablish its watch function.
 func (k *k8sOps) handleWatch(watchInterface watch.Interface, node *v1.Node, watchNodeFn NodeWatchFunc) {
 	for {
 		select {
 		case event, more := <-watchInterface.ResultChan():
 			if !more {
-				logrus.Warn("Kubernetes NodeWatch closed (attempting to reestablish)")
+				logrus.Debug("Kubernetes NodeWatch closed (attempting to reestablish)")
 
 				t := func() (interface{}, error) {
 					err := k.WatchNode(node, watchNodeFn)
 					return "", err
 				}
-				_, err := task.DoRetryWithTimeout(t, 10*time.Minute, 10*time.Second)
-				if err != nil {
+				if _, err := task.DoRetryWithTimeout(t, 10*time.Minute, 10*time.Second); err != nil {
 					logrus.WithError(err).Error("Could not reestablish the NodeWatch")
 				} else {
-					logrus.Info("NodeWatch reestablished")
+					logrus.Debug("NodeWatch reestablished")
 				}
 				return
 			}

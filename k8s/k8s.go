@@ -34,6 +34,11 @@ const (
 	labelUpdateMaxRetries = 5
 )
 
+var (
+	// ErrPodsNotFound error returned when pod or pods could not be found
+	ErrPodsNotFound = fmt.Errorf("Pod(s) not found")
+)
+
 // Ops is an interface to perform any kubernetes related operations
 type Ops interface {
 	NamespaceOps
@@ -989,7 +994,7 @@ func (k *k8sOps) GetPodByUID(uid string, namespace string) (*v1.Pod, error) {
 		}
 	}
 
-	return nil, nil
+	return nil, ErrPodsNotFound
 }
 
 func (k *k8sOps) IsPodRunning(pod v1.Pod) bool {

@@ -140,8 +140,8 @@ type PodOps interface {
 	GetPods(string) (*v1.PodList, error)
 	// GetPodsByOwner returns pods for the given owner and namespace
 	GetPodsByOwner(string, string) ([]v1.Pod, error)
-	// SearchPodsByUID returns pod with the given UID, or NIL if nothing found
-	SearchPodsByUID(string, string) (*v1.Pod, error)
+	// GetPodByUID returns pod with the given UID, or error if nothing found
+	GetPodByUID(string, string) (*v1.Pod, error)
 	// DeletePods deletes the given pods
 	DeletePods([]v1.Pod) error
 	// IsPodRunning checks if all containers in a pod are in running state
@@ -369,7 +369,7 @@ func (k *k8sOps) SearchNodeByAddresses(addresses []string) (*v1.Node, error) {
 
 // FindMyNode finds LOCAL Node in Kubernetes cluster.
 func (k *k8sOps) FindMyNode() (*v1.Node, error) {
-	ipList, err := GetLocalIPList(true)
+	ipList, err := getLocalIPList(true)
 	if err != nil {
 		return nil, fmt.Errorf("Could not find my IPs/Hostname: %s", err)
 	}
@@ -976,7 +976,7 @@ func (k *k8sOps) GetPodsByOwner(ownerName string, namespace string) ([]v1.Pod, e
 	return result, nil
 }
 
-func (k *k8sOps) SearchPodsByUID(uid string, namespace string) (*v1.Pod, error) {
+func (k *k8sOps) GetPodByUID(uid string, namespace string) (*v1.Pod, error) {
 	pods, err := k.GetPods(namespace)
 	if err != nil {
 		return nil, err
@@ -1354,8 +1354,8 @@ func roundUpSize(volumeSizeBytes int64, allocationUnitBytes int64) int64 {
 	return (volumeSizeBytes + allocationUnitBytes - 1) / allocationUnitBytes
 }
 
-// GetLocalIPList returns the list of local IP addresses, and optionally includes local hostname.
-func GetLocalIPList(includeHostname bool) ([]string, error) {
+// getLocalIPList returns the list of local IP addresses, and optionally includes local hostname.
+func getLocalIPList(includeHostname bool) ([]string, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return nil, err
@@ -1364,7 +1364,8 @@ func GetLocalIPList(includeHostname bool) ([]string, error) {
 	for _, i := range ifaces {
 		addrs, err := i.Addrs()
 		if err != nil {
-			return ipList, fmt.Errorf("Error listing addresses for %s: %s", i.Name, err)
+			logrus.WithError(err).Warnf("Error listing address for %s (cont.)", i.Name)
+			continue
 		}
 		for _, addr := range addrs {
 			var ip net.IP

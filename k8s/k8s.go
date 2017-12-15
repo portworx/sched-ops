@@ -2,8 +2,10 @@ package k8s
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,6 +19,7 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/typed/apps/v1beta2"
@@ -29,6 +32,11 @@ const (
 	hostnameKey           = "kubernetes.io/hostname"
 	pvcStorageClassKey    = "volume.beta.kubernetes.io/storage-class"
 	labelUpdateMaxRetries = 5
+)
+
+var (
+	// ErrPodsNotFound error returned when pod or pods could not be found
+	ErrPodsNotFound = fmt.Errorf("Pod(s) not found")
 )
 
 // Ops is an interface to perform any kubernetes related operations
@@ -61,6 +69,8 @@ type NodeOps interface {
 	GetNodeByName(string) (*v1.Node, error)
 	// SearchNodeByAddresses searches corresponding k8s node match any of the given address
 	SearchNodeByAddresses(addresses []string) (*v1.Node, error)
+	// FindMyNode finds LOCAL Node in Kubernetes cluster
+	FindMyNode() (*v1.Node, error)
 	// IsNodeReady checks if node with given name is ready. Returns nil is ready.
 	IsNodeReady(string) error
 	// IsNodeMaster returns true if given node is a kubernetes master node
@@ -135,6 +145,8 @@ type PodOps interface {
 	GetPods(string) (*v1.PodList, error)
 	// GetPodsByOwner returns pods for the given owner and namespace
 	GetPodsByOwner(string, string) ([]v1.Pod, error)
+	// GetPodByUID returns pod with the given UID, or error if nothing found
+	GetPodByUID(string, string) (*v1.Pod, error)
 	// DeletePods deletes the given pods
 	DeletePods([]v1.Pod) error
 	// IsPodRunning checks if all containers in a pod are in running state
@@ -358,6 +370,15 @@ func (k *k8sOps) SearchNodeByAddresses(addresses []string) (*v1.Node, error) {
 	}
 
 	return nil, fmt.Errorf("failed to find k8s node for given addresses: %v", addresses)
+}
+
+// FindMyNode finds LOCAL Node in Kubernetes cluster.
+func (k *k8sOps) FindMyNode() (*v1.Node, error) {
+	ipList, err := getLocalIPList(true)
+	if err != nil {
+		return nil, fmt.Errorf("Could not find my IPs/Hostname: %s", err)
+	}
+	return k.SearchNodeByAddresses(ipList)
 }
 
 func (k *k8sOps) AddLabelOnNode(name, key, value string) error {
@@ -960,6 +981,22 @@ func (k *k8sOps) GetPodsByOwner(ownerName string, namespace string) ([]v1.Pod, e
 	return result, nil
 }
 
+func (k *k8sOps) GetPodByUID(uid string, namespace string) (*v1.Pod, error) {
+	pods, err := k.GetPods(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	pUID := types.UID(uid)
+	for _, pod := range pods.Items {
+		if pod.UID == pUID {
+			return &pod, nil
+		}
+	}
+
+	return nil, ErrPodsNotFound
+}
+
 func (k *k8sOps) IsPodRunning(pod v1.Pod) bool {
 	// If init containers are running, return false since the actual container would not have started yet
 	for _, c := range pod.Status.InitContainerStatuses {
@@ -1320,4 +1357,42 @@ func loadClientFor(config *rest.Config) (*kubernetes.Clientset, *rest.RESTClient
 
 func roundUpSize(volumeSizeBytes int64, allocationUnitBytes int64) int64 {
 	return (volumeSizeBytes + allocationUnitBytes - 1) / allocationUnitBytes
+}
+
+// getLocalIPList returns the list of local IP addresses, and optionally includes local hostname.
+func getLocalIPList(includeHostname bool) ([]string, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+	ipList := make([]string, 0, len(ifaces))
+	for _, i := range ifaces {
+		addrs, err := i.Addrs()
+		if err != nil {
+			logrus.WithError(err).Warnf("Error listing address for %s (cont.)", i.Name)
+			continue
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			// process IP address
+			if ip != nil && !ip.IsLoopback() && !ip.IsUnspecified() {
+				ipList = append(ipList, ip.String())
+			}
+		}
+	}
+
+	if includeHostname {
+		hn, err := os.Hostname()
+		if err == nil && hn != "" && !strings.HasPrefix(hn, "localhost") {
+			ipList = append(ipList, hn)
+		}
+	}
+
+	return ipList, nil
 }

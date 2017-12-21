@@ -173,6 +173,8 @@ type PersistentVolumeClaimOps interface {
 	DeletePersistentVolumeClaim(*v1.PersistentVolumeClaim) error
 	// ValidatePersistentVolumeClaim validates the given pvc
 	ValidatePersistentVolumeClaim(*v1.PersistentVolumeClaim) error
+	// GetPersistentVolumeClaim returns the PVC for given name and namespace
+	GetPersistentVolumeClaim(pvcName string, namespace string) (*v1.PersistentVolumeClaim, error)
 	// GetVolumeForPersistentVolumeClaim returns the volumeID for the given PVC
 	GetVolumeForPersistentVolumeClaim(*v1.PersistentVolumeClaim) (string, error)
 	// GetPersistentVolumeClaimParams fetches custom parameters for the given PVC
@@ -978,6 +980,10 @@ func (k *k8sOps) GetPodsByOwner(ownerName string, namespace string) ([]v1.Pod, e
 		}
 	}
 
+	if len(result) == 0 {
+		return nil, ErrPodsNotFound
+	}
+
 	return result, nil
 }
 
@@ -1110,6 +1116,15 @@ func (k *k8sOps) ValidatePersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) er
 		return err
 	}
 	return nil
+}
+
+func (k *k8sOps) GetPersistentVolumeClaim(pvcName string, namespace string) (*v1.PersistentVolumeClaim, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.CoreV1().PersistentVolumeClaims(namespace).
+		Get(pvcName, meta_v1.GetOptions{})
 }
 
 func (k *k8sOps) GetVolumeForPersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) (string, error) {

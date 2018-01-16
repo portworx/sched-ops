@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"regexp"
@@ -28,10 +29,12 @@ import (
 )
 
 const (
-	masterLabelKey        = "node-role.kubernetes.io/master"
-	hostnameKey           = "kubernetes.io/hostname"
-	pvcStorageClassKey    = "volume.beta.kubernetes.io/storage-class"
-	labelUpdateMaxRetries = 5
+	masterLabelKey          = "node-role.kubernetes.io/master"
+	hostnameKey             = "kubernetes.io/hostname"
+	pvcStorageClassKey      = "volume.beta.kubernetes.io/storage-class"
+	labelUpdateMaxRetries   = 5
+	nodeUpdateTimeout       = 1 * time.Minute
+	nodeUpdateRetryInterval = 2 * time.Second
 )
 
 var (
@@ -83,6 +86,12 @@ type NodeOps interface {
 	RemoveLabelOnNode(string, string) error
 	// WatchNode sets up a watcher that listens for the changes on Node.
 	WatchNode(node *v1.Node, fn NodeWatchFunc) error
+	// CordonNode cordons the given node
+	CordonNode(nodeName string) error
+	// UnCordonNode uncordons the given node
+	UnCordonNode(nodeName string) error
+	// DrainPodsFromNode drains given pods from given node
+	DrainPodsFromNode(nodeName string, pods []v1.Pod) error
 }
 
 // ServiceOps is an interface to perform k8s service operations
@@ -145,6 +154,8 @@ type PodOps interface {
 	GetPods(string) (*v1.PodList, error)
 	// GetPodsByOwner returns pods for the given owner and namespace
 	GetPodsByOwner(string, string) ([]v1.Pod, error)
+	// GetPodsUsingVolumePluginByNodeName returns all pods who use PVCs provided by the given volume plugin
+	GetPodsUsingVolumePluginByNodeName(nodeName, plugin string) ([]v1.Pod, error)
 	// GetPodByUID returns pod with the given UID, or error if nothing found
 	GetPodByUID(string, string) (*v1.Pod, error)
 	// DeletePods deletes the given pods
@@ -504,6 +515,82 @@ func (k *k8sOps) WatchNode(node *v1.Node, watchNodeFn NodeWatchFunc) error {
 
 	// fire off watch function
 	go k.handleWatch(watchInterface, node, watchNodeFn)
+	return nil
+}
+
+func (k *k8sOps) CordonNode(nodeName string) error {
+	t := func() (interface{}, bool, error) {
+		if err := k.initK8sClient(); err != nil {
+			return nil, true, err
+		}
+
+		n, err := k.GetNodeByName(nodeName)
+		if err != nil {
+			return nil, true, err
+		}
+
+		nCopy := n.DeepCopy()
+		nCopy.Spec.Unschedulable = true
+		n, err = k.client.CoreV1().Nodes().Update(nCopy)
+		if err != nil {
+			return nil, true, err
+		}
+
+		return nil, false, nil
+
+	}
+
+	if _, err := task.DoRetryWithTimeout(t, nodeUpdateTimeout, nodeUpdateRetryInterval); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (k *k8sOps) UnCordonNode(nodeName string) error {
+	t := func() (interface{}, bool, error) {
+		if err := k.initK8sClient(); err != nil {
+			return nil, true, err
+		}
+
+		n, err := k.GetNodeByName(nodeName)
+		if err != nil {
+			return nil, true, err
+		}
+
+		nCopy := n.DeepCopy()
+		nCopy.Spec.Unschedulable = false
+		n, err = k.client.CoreV1().Nodes().Update(nCopy)
+		if err != nil {
+			return nil, true, err
+		}
+
+		return nil, false, nil
+
+	}
+
+	if _, err := task.DoRetryWithTimeout(t, nodeUpdateTimeout, nodeUpdateRetryInterval); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (k *k8sOps) DrainPodsFromNode(nodeName string, pods []v1.Pod) error {
+	err := k.CordonNode(nodeName)
+	if err != nil {
+		return err
+	}
+
+	err = k.DeletePods(pods)
+	if err != nil {
+		e := k.UnCordonNode(nodeName) // rollback cordon
+		if e != nil {
+			log.Printf("failed to uncordon node: %s", nodeName)
+		}
+		return err
+	}
+
 	return nil
 }
 
@@ -987,6 +1074,40 @@ func (k *k8sOps) GetPodsByOwner(ownerName string, namespace string) ([]v1.Pod, e
 	return result, nil
 }
 
+func (k *k8sOps) GetPodsUsingVolumePluginByNodeName(nodeName, plugin string) ([]v1.Pod, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	listOptions := meta_v1.ListOptions{
+		FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
+	}
+
+	nodePods, err := k.client.CoreV1().Pods("").List(listOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	var retList []v1.Pod
+	for _, p := range nodePods.Items {
+		for _, v := range p.Spec.Volumes {
+			if v.PersistentVolumeClaim != nil {
+				pvc, err := k.GetPersistentVolumeClaim(v.PersistentVolumeClaim.ClaimName, p.Namespace)
+				if err == nil && pvc != nil {
+					sc, err := k.getStorageClassForPVC(pvc)
+					if err == nil && sc != nil {
+						if sc.Provisioner == plugin {
+							retList = append(retList, p)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return retList, nil
+}
+
 func (k *k8sOps) GetPodByUID(uid string, namespace string) (*v1.Pod, error) {
 	pods, err := k.GetPods(namespace)
 	if err != nil {
@@ -1410,4 +1531,25 @@ func getLocalIPList(includeHostname bool) ([]string, error) {
 	}
 
 	return ipList, nil
+}
+
+// getStorageClassForPVC returns storage class for given PVC if it exists
+func (k *k8sOps) getStorageClassForPVC(pvc *v1.PersistentVolumeClaim) (*storage_api.StorageClass, error) {
+	var scName string
+	if pvc.Spec.StorageClassName != nil {
+		scName = *pvc.Spec.StorageClassName
+	} else {
+		scName, _ = pvc.ObjectMeta.Annotations[pvcStorageClassKey]
+	}
+
+	if len(scName) == 0 {
+		return nil, fmt.Errorf("pvc %s does not have a storage class", pvc.Name)
+	}
+
+	sc, err := k.ValidateStorageClass(scName)
+	if err != nil {
+		return nil, err
+	}
+
+	return sc, nil
 }

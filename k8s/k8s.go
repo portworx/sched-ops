@@ -54,6 +54,7 @@ type Ops interface {
 	StorageClassOps
 	PersistentVolumeClaimOps
 	SnapshotOps
+	SecretOps
 }
 
 // NamespaceOps is an interface to perform namespace operations
@@ -205,6 +206,11 @@ type SnapshotOps interface {
 	GetVolumeForSnapshot(name string, namespace string) (string, error)
 	// GetSnapshotStatus returns the status of the given snapshot
 	GetSnapshotStatus(name string, namespace string) (*snap_v1.VolumeSnapshotStatus, error)
+}
+
+type SecretOps interface {
+	// GetSecret gets the secrets object given its name and namespace
+	GetSecret(name string, namespace string) (*v1.Secret, error)
 }
 
 var (
@@ -1429,6 +1435,18 @@ func (k *k8sOps) GetSnapshotStatus(name string, namespace string) (*snap_v1.Volu
 }
 
 // Snapshot APIs - END
+
+// Secret APIs - BEGIN
+
+func (k *k8sOps) GetSecret(name string, namespace string) (*v1.Secret, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.CoreV1().Secrets(namespace).Get(name, meta_v1.GetOptions{})
+}
+
+// Secret APIs - END
 
 func (k *k8sOps) appsClient() v1beta2.AppsV1beta2Interface {
 	return k.client.AppsV1beta2()

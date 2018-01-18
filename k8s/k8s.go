@@ -29,12 +29,13 @@ import (
 )
 
 const (
-	masterLabelKey          = "node-role.kubernetes.io/master"
-	hostnameKey             = "kubernetes.io/hostname"
-	pvcStorageClassKey      = "volume.beta.kubernetes.io/storage-class"
-	labelUpdateMaxRetries   = 5
-	nodeUpdateTimeout       = 1 * time.Minute
-	nodeUpdateRetryInterval = 2 * time.Second
+	masterLabelKey           = "node-role.kubernetes.io/master"
+	hostnameKey              = "kubernetes.io/hostname"
+	pvcStorageClassKey       = "volume.beta.kubernetes.io/storage-class"
+	pvcStorageProvisionerKey = "volume.beta.kubernetes.io/storage-provisioner"
+	labelUpdateMaxRetries    = 5
+	nodeUpdateTimeout        = 1 * time.Minute
+	nodeUpdateRetryInterval  = 2 * time.Second
 )
 
 var (
@@ -1100,9 +1101,9 @@ func (k *k8sOps) GetPodsUsingVolumePluginByNodeName(nodeName, plugin string) ([]
 			if v.PersistentVolumeClaim != nil {
 				pvc, err := k.GetPersistentVolumeClaim(v.PersistentVolumeClaim.ClaimName, p.Namespace)
 				if err == nil && pvc != nil {
-					sc, err := k.getStorageClassForPVC(pvc)
-					if err == nil && sc != nil {
-						if sc.Provisioner == plugin {
+					provisioner, err := k.getStorageProvisionerForPVC(pvc)
+					if err == nil {
+						if provisioner == plugin {
 							retList = append(retList, p)
 						}
 					}
@@ -1551,23 +1552,12 @@ func getLocalIPList(includeHostname bool) ([]string, error) {
 	return ipList, nil
 }
 
-// getStorageClassForPVC returns storage class for given PVC if it exists
-func (k *k8sOps) getStorageClassForPVC(pvc *v1.PersistentVolumeClaim) (*storage_api.StorageClass, error) {
-	var scName string
-	if pvc.Spec.StorageClassName != nil {
-		scName = *pvc.Spec.StorageClassName
-	} else {
-		scName, _ = pvc.ObjectMeta.Annotations[pvcStorageClassKey]
+// getStorageProvisionerForPVC returns storage provisioner for given PVC if it exists
+func (k *k8sOps) getStorageProvisionerForPVC(pvc *v1.PersistentVolumeClaim) (string, error) {
+	provisionerName, ok := pvc.ObjectMeta.Annotations[pvcStorageProvisionerKey]
+	if !ok || len(provisionerName) == 0 {
+		return "", fmt.Errorf("pvc %s does not have a storage provisioner", pvc.Name)
 	}
 
-	if len(scName) == 0 {
-		return nil, fmt.Errorf("pvc %s does not have a storage class", pvc.Name)
-	}
-
-	sc, err := k.ValidateStorageClass(scName)
-	if err != nil {
-		return nil, err
-	}
-
-	return sc, nil
+	return provisionerName, nil
 }

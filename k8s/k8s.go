@@ -164,6 +164,8 @@ type PodOps interface {
 	DeletePods([]v1.Pod) error
 	// IsPodRunning checks if all containers in a pod are in running state
 	IsPodRunning(v1.Pod) bool
+	// IsPodBeingManaged returns true if the pod is being managed by a controller
+	IsPodBeingManaged(v1.Pod) bool
 }
 
 // StorageClassOps is an interface to perform k8s storage class operations
@@ -1146,6 +1148,26 @@ func (k *k8sOps) IsPodRunning(pod v1.Pod) bool {
 	}
 
 	return true
+}
+
+func (k *k8sOps) IsPodBeingManaged(pod v1.Pod) bool {
+	if len(pod.OwnerReferences) == 0 {
+		return false
+	}
+
+	for _, owner := range pod.OwnerReferences {
+		if *owner.Controller {
+			// We are assuming that if a pod has a owner who has set itself as
+			// a controller, the pod is managed. We are not checking for specific
+			// contollers like ReplicaSet, StatefulSet as that is
+			// 1) requires changes when new controllers get added
+			// 2) not handle customer controllers like operators who create pods
+			//    directly
+			return true
+		}
+	}
+
+	return false
 }
 
 // StorageClass APIs - BEGIN

@@ -217,6 +217,12 @@ type SnapshotOps interface {
 type SecretOps interface {
 	// GetSecret gets the secrets object given its name and namespace
 	GetSecret(name string, namespace string) (*v1.Secret, error)
+	// CreateSecret creates the given secret
+	CreateSecret(*v1.Secret) (*v1.Secret, error)
+	// UpdateSecret updates the gives secret
+	UpdateSecret(*v1.Secret) (*v1.Secret, error)
+	// UpdateSecretData updates or creates a new secret with the given data
+	UpdateSecretData(string, string, map[string][]byte) (*v1.Secret, error)
 }
 
 var (
@@ -1508,6 +1514,49 @@ func (k *k8sOps) GetSecret(name string, namespace string) (*v1.Secret, error) {
 	return k.client.CoreV1().Secrets(namespace).Get(name, meta_v1.GetOptions{})
 }
 
+func (k *k8sOps) CreateSecret(secret *v1.Secret) (*v1.Secret, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.CoreV1().Secrets(secret.Namespace).Create(secret)
+}
+
+func (k *k8sOps) UpdateSecret(secret *v1.Secret) (*v1.Secret, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.CoreV1().Secrets(secret.Namespace).Update(secret)
+}
+
+func (k *k8sOps) UpdateSecretData(name string, ns string, data map[string][]byte) (*v1.Secret, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	secret, err := k.GetSecret(name, ns)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return k.CreateSecret(
+				&v1.Secret{
+					ObjectMeta: meta_v1.ObjectMeta{
+						Name:      name,
+						Namespace: ns,
+					},
+					Data: data,
+				})
+		}
+		return nil, err
+	}
+
+	// This only adds/updates the key value pairs; does not remove the existing.
+	for k, v := range data {
+		secret.Data[k] = v
+	}
+	return k.UpdateSecret(secret)
+}
+
 // Secret APIs - END
 
 func (k *k8sOps) appsClient() v1beta2.AppsV1beta2Interface {
@@ -1615,7 +1664,7 @@ func getLocalIPList(includeHostname bool) ([]string, error) {
 
 // getStorageProvisionerForPVC returns storage provisioner for given PVC if it exists
 func (k *k8sOps) getStorageProvisionerForPVC(pvc *v1.PersistentVolumeClaim) (string, error) {
-	provisionerName, ok := pvc.ObjectMeta.Annotations[pvcStorageProvisionerKey]
+	provisionerName, ok := pvc.Annotations[pvcStorageProvisionerKey]
 	if !ok || len(provisionerName) == 0 {
 		return "", fmt.Errorf("pvc %s does not have a storage provisioner", pvc.Name)
 	}

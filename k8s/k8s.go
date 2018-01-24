@@ -92,8 +92,9 @@ type NodeOps interface {
 	CordonNode(nodeName string) error
 	// UnCordonNode uncordons the given node
 	UnCordonNode(nodeName string) error
-	// DrainPodsFromNode drains given pods from given node
-	DrainPodsFromNode(nodeName string, pods []v1.Pod) error
+	// DrainPodsFromNode drains given pods from given node. If timeout is set to
+	// a non-zero value, it waits for timeout duration for each pod to get deleted
+	DrainPodsFromNode(nodeName string, pods []v1.Pod, timeout time.Duration) error
 }
 
 // ServiceOps is an interface to perform k8s service operations
@@ -587,7 +588,7 @@ func (k *k8sOps) UnCordonNode(nodeName string) error {
 	return nil
 }
 
-func (k *k8sOps) DrainPodsFromNode(nodeName string, pods []v1.Pod) error {
+func (k *k8sOps) DrainPodsFromNode(nodeName string, pods []v1.Pod, timeout time.Duration) error {
 	err := k.CordonNode(nodeName)
 	if err != nil {
 		return err
@@ -600,6 +601,15 @@ func (k *k8sOps) DrainPodsFromNode(nodeName string, pods []v1.Pod) error {
 			log.Printf("failed to uncordon node: %s", nodeName)
 		}
 		return err
+	}
+
+	if timeout != 0 {
+		for _, p := range pods {
+			err = k.WaitForPodDeletion(p.Name, p.Namespace, timeout)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil

@@ -603,7 +603,7 @@ func (k *k8sOps) DrainPodsFromNode(nodeName string, pods []v1.Pod, timeout time.
 		return err
 	}
 
-	if timeout != 0 {
+	if timeout > 0 {
 		for _, p := range pods {
 			err = k.WaitForPodDeletion(p.Name, p.Namespace, timeout)
 			if err != nil {

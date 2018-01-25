@@ -56,6 +56,7 @@ type Ops interface {
 	PersistentVolumeClaimOps
 	SnapshotOps
 	SecretOps
+	ConfigMapOps
 }
 
 // NamespaceOps is an interface to perform namespace operations
@@ -223,6 +224,15 @@ type SecretOps interface {
 	UpdateSecret(*v1.Secret) (*v1.Secret, error)
 	// UpdateSecretData updates or creates a new secret with the given data
 	UpdateSecretData(string, string, map[string][]byte) (*v1.Secret, error)
+}
+
+type ConfigMapOps interface {
+	// GetConfigMap gets the config map object for the given name and namespace
+	GetConfigMap(name string, namespace string) (*v1.ConfigMap, error)
+	// CreateConfigMap creates a new config map object if it does not already exist.
+	CreateConfigMap(configMap *v1.ConfigMap) (*v1.ConfigMap, error)
+	// UpdateConfigMap updates the given config map object
+	UpdateConfigMap(configMap *v1.ConfigMap) (*v1.ConfigMap, error)
 }
 
 var (
@@ -1558,6 +1568,44 @@ func (k *k8sOps) UpdateSecretData(name string, ns string, data map[string][]byte
 }
 
 // Secret APIs - END
+
+// ConfigMap APIs - BEGIN
+
+func (k *k8sOps) GetConfigMap(name string, namespace string) (*v1.ConfigMap, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.CoreV1().ConfigMaps(namespace).Get(name, meta_v1.GetOptions{})
+}
+
+func (k *k8sOps) CreateConfigMap(configMap *v1.ConfigMap) (*v1.ConfigMap, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	ns := configMap.Namespace
+	if len(ns) == 0 {
+		ns = v1.NamespaceDefault
+	}
+
+	return k.client.CoreV1().ConfigMaps(ns).Create(configMap)
+}
+
+func (k *k8sOps) UpdateConfigMap(configMap *v1.ConfigMap) (*v1.ConfigMap, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	ns := configMap.Namespace
+	if len(ns) == 0 {
+		ns = v1.NamespaceDefault
+	}
+
+	return k.client.CoreV1().ConfigMaps(ns).Update(configMap)
+}
+
+// ConfigMap APIs - END
 
 func (k *k8sOps) appsClient() v1beta2.AppsV1beta2Interface {
 	return k.client.AppsV1beta2()

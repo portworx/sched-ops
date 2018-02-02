@@ -128,7 +128,7 @@ type StatefulSetOps interface {
 	GetStatefulSetPods(*apps_api.StatefulSet) ([]v1.Pod, error)
 	// DescribeStatefulSet gets status of the statefulset
 	DescribeStatefulSet(string, string) (*apps_api.StatefulSetStatus, error)
-	// GetStatefulSetsUsingVolumePlugin returns all statefulsets using given storage class
+	// GetStatefulSetsUsingStorageClass returns all statefulsets using given storage class
 	GetStatefulSetsUsingStorageClass(scName string) ([]apps_api.StatefulSet, error)
 }
 
@@ -146,7 +146,7 @@ type DeploymentOps interface {
 	GetDeploymentPods(*apps_api.Deployment) ([]v1.Pod, error)
 	// DescribeDeployment gets the deployment status
 	DescribeDeployment(string, string) (*apps_api.DeploymentStatus, error)
-	// GetDeploymentsUsingVolumePlugin returns all deployments using the given storage class
+	// GetDeploymentsUsingStorageClass returns all deployments using the given storage class
 	GetDeploymentsUsingStorageClass(scName string) ([]apps_api.Deployment, error)
 }
 
@@ -960,6 +960,7 @@ func (k *k8sOps) GetDeploymentsUsingStorageClass(scName string) ([]apps_api.Depl
 			sc, err := k.getStorageClassForPVC(pvc)
 			if err == nil && sc.Name == scName {
 				retList = append(retList, dep)
+				break
 			}
 		}
 	}
@@ -1211,10 +1212,15 @@ func (k *k8sOps) GetStatefulSetsUsingStorageClass(scName string) ([]apps_api.Sta
 
 	var retList []apps_api.StatefulSet
 	for _, s := range ss.Items {
+		if s.Spec.VolumeClaimTemplates == nil {
+			continue
+		}
+
 		for _, template := range s.Spec.VolumeClaimTemplates {
 			sc, err := k.getStorageClassForPVC(&template)
 			if err == nil && sc.Name == scName {
 				retList = append(retList, s)
+				break
 			}
 		}
 	}
@@ -1841,7 +1847,7 @@ func (k *k8sOps) getStorageProvisionerForPVC(pvc *v1.PersistentVolumeClaim) (str
 // isAnyVolumeUsingVolumePlugin returns true if any of the given volumes is using a storage class for the given plugin
 //	In case errors are found while looking up a particular volume, the function ignores the errors as the goal is to
 //	find if there is any match or not
-func (k *k8sOps) isAnyVolumeUsingVolumePlugin(volumes []v1.Volume, volumeNamespace, plugin string) (bool, error) {
+func (k *k8sOps) isAnyVolumeUsingVolumePlugin(volumes []v1.Volume, volumeNamespace, plugin string) bool {
 	for _, v := range volumes {
 		if v.PersistentVolumeClaim != nil {
 			pvc, err := k.GetPersistentVolumeClaim(v.PersistentVolumeClaim.ClaimName, volumeNamespace)
@@ -1849,14 +1855,14 @@ func (k *k8sOps) isAnyVolumeUsingVolumePlugin(volumes []v1.Volume, volumeNamespa
 				provisioner, err := k.getStorageProvisionerForPVC(pvc)
 				if err == nil {
 					if provisioner == plugin {
-						return true, nil
+						return true
 					}
 				}
 			}
 		}
 	}
 
-	return false, nil
+	return false
 }
 
 func (k *k8sOps) getStorageClassForPVC(pvc *v1.PersistentVolumeClaim) (*storage_api.StorageClass, error) {

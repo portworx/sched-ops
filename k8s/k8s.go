@@ -128,6 +128,8 @@ type StatefulSetOps interface {
 	GetStatefulSetPods(*apps_api.StatefulSet) ([]v1.Pod, error)
 	// DescribeStatefulSet gets status of the statefulset
 	DescribeStatefulSet(string, string) (*apps_api.StatefulSetStatus, error)
+	// GetStatefulSetsUsingStorageClass returns all statefulsets using given storage class
+	GetStatefulSetsUsingStorageClass(scName string) ([]apps_api.StatefulSet, error)
 }
 
 // DeploymentOps is an interface to perform k8s deployment operations
@@ -144,6 +146,8 @@ type DeploymentOps interface {
 	GetDeploymentPods(*apps_api.Deployment) ([]v1.Pod, error)
 	// DescribeDeployment gets the deployment status
 	DescribeDeployment(string, string) (*apps_api.DeploymentStatus, error)
+	// GetDeploymentsUsingStorageClass returns all deployments using the given storage class
+	GetDeploymentsUsingStorageClass(scName string) ([]apps_api.Deployment, error)
 }
 
 // DaemonSetOps is an interface to perform k8s daemon set operations
@@ -931,6 +935,39 @@ func (k *k8sOps) GetDeploymentPods(deployment *apps_api.Deployment) ([]v1.Pod, e
 	return nil, nil
 }
 
+func (k *k8sOps) GetDeploymentsUsingStorageClass(scName string) ([]apps_api.Deployment, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	deps, err := k.appsClient().Deployments("").List(meta_v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var retList []apps_api.Deployment
+	for _, dep := range deps.Items {
+		for _, v := range dep.Spec.Template.Spec.Volumes {
+			if v.PersistentVolumeClaim == nil {
+				continue
+			}
+
+			pvc, err := k.GetPersistentVolumeClaim(v.PersistentVolumeClaim.ClaimName, dep.Namespace)
+			if err != nil {
+				continue // don't let one bad pvc stop processing
+			}
+
+			sc, err := k.getStorageClassForPVC(pvc)
+			if err == nil && sc.Name == scName {
+				retList = append(retList, dep)
+				break
+			}
+		}
+	}
+
+	return retList, nil
+}
+
 // Deployment APIs - END
 
 // DaemonSet APIs - BEGIN
@@ -1163,6 +1200,34 @@ func (k *k8sOps) ValidateTerminatedStatefulSet(statefulset *apps_api.StatefulSet
 	return nil
 }
 
+func (k *k8sOps) GetStatefulSetsUsingStorageClass(scName string) ([]apps_api.StatefulSet, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	ss, err := k.appsClient().StatefulSets("").List(meta_v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var retList []apps_api.StatefulSet
+	for _, s := range ss.Items {
+		if s.Spec.VolumeClaimTemplates == nil {
+			continue
+		}
+
+		for _, template := range s.Spec.VolumeClaimTemplates {
+			sc, err := k.getStorageClassForPVC(&template)
+			if err == nil && sc.Name == scName {
+				retList = append(retList, s)
+				break
+			}
+		}
+	}
+
+	return retList, nil
+}
+
 // StatefulSet APIs - END
 
 func (k *k8sOps) DeletePods(pods []v1.Pod) error {
@@ -1228,18 +1293,8 @@ func (k *k8sOps) GetPodsUsingVolumePluginByNodeName(nodeName, plugin string) ([]
 
 	var retList []v1.Pod
 	for _, p := range nodePods.Items {
-		for _, v := range p.Spec.Volumes {
-			if v.PersistentVolumeClaim != nil {
-				pvc, err := k.GetPersistentVolumeClaim(v.PersistentVolumeClaim.ClaimName, p.Namespace)
-				if err == nil && pvc != nil {
-					provisioner, err := k.getStorageProvisionerForPVC(pvc)
-					if err == nil {
-						if provisioner == plugin {
-							retList = append(retList, p)
-						}
-					}
-				}
-			}
+		if ok := k.isAnyVolumeUsingVolumePlugin(p.Spec.Volumes, p.Namespace, plugin); ok {
+			retList = append(retList, p)
 		}
 	}
 
@@ -1455,19 +1510,9 @@ func (k *k8sOps) GetPersistentVolumeClaimParams(pvc *v1.PersistentVolumeClaim) (
 	requestGB := uint64(roundUpSize(capacity.Value(), 1024*1024*1024))
 	params["size"] = fmt.Sprintf("%dG", requestGB)
 
-	var scName string
-	if pvc.Spec.StorageClassName == nil {
-		scName, ok = result.Annotations[pvcStorageClassKey]
-		if !ok {
-			return nil, fmt.Errorf("failed to get storage class for pvc: %v", result.Name)
-		}
-	} else {
-		scName = *pvc.Spec.StorageClassName
-	}
-
-	sc, err := k.client.StorageV1().StorageClasses().Get(scName, meta_v1.GetOptions{})
+	sc, err := k.getStorageClassForPVC(result)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get storage class for pvc: %v", result.Name)
 	}
 
 	for key, value := range sc.Parameters {
@@ -1786,10 +1831,46 @@ func getLocalIPList(includeHostname bool) ([]string, error) {
 
 // getStorageProvisionerForPVC returns storage provisioner for given PVC if it exists
 func (k *k8sOps) getStorageProvisionerForPVC(pvc *v1.PersistentVolumeClaim) (string, error) {
-	provisionerName, ok := pvc.Annotations[pvcStorageProvisionerKey]
-	if !ok || len(provisionerName) == 0 {
-		return "", fmt.Errorf("pvc %s does not have a storage provisioner", pvc.Name)
+	sc, err := k.getStorageClassForPVC(pvc)
+	if err != nil {
+		return "", err
 	}
 
-	return provisionerName, nil
+	return sc.Provisioner, nil
+}
+
+// isAnyVolumeUsingVolumePlugin returns true if any of the given volumes is using a storage class for the given plugin
+//	In case errors are found while looking up a particular volume, the function ignores the errors as the goal is to
+//	find if there is any match or not
+func (k *k8sOps) isAnyVolumeUsingVolumePlugin(volumes []v1.Volume, volumeNamespace, plugin string) bool {
+	for _, v := range volumes {
+		if v.PersistentVolumeClaim != nil {
+			pvc, err := k.GetPersistentVolumeClaim(v.PersistentVolumeClaim.ClaimName, volumeNamespace)
+			if err == nil && pvc != nil {
+				provisioner, err := k.getStorageProvisionerForPVC(pvc)
+				if err == nil {
+					if provisioner == plugin {
+						return true
+					}
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+func (k *k8sOps) getStorageClassForPVC(pvc *v1.PersistentVolumeClaim) (*storage_api.StorageClass, error) {
+	var scName string
+	if pvc.Spec.StorageClassName != nil && len(*pvc.Spec.StorageClassName) > 0 {
+		scName = *pvc.Spec.StorageClassName
+	} else {
+		scName = pvc.Annotations[pvcStorageClassKey]
+	}
+
+	if len(scName) == 0 {
+		return nil, fmt.Errorf("PVC: %s does not have a storage class", pvc.Name)
+	}
+
+	return k.client.StorageV1().StorageClasses().Get(scName, meta_v1.GetOptions{})
 }

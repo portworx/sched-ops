@@ -1293,12 +1293,7 @@ func (k *k8sOps) GetPodsUsingVolumePluginByNodeName(nodeName, plugin string) ([]
 
 	var retList []v1.Pod
 	for _, p := range nodePods.Items {
-		ok, err := k.isAnyVolumeUsingVolumePlugin(p.Spec.Volumes, p.Namespace, plugin)
-		if err != nil {
-			return nil, err
-		}
-
-		if ok {
+		if ok := k.isAnyVolumeUsingVolumePlugin(p.Spec.Volumes, p.Namespace, plugin); ok {
 			retList = append(retList, p)
 		}
 	}

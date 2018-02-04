@@ -210,6 +210,8 @@ type PersistentVolumeClaimOps interface {
 	GetPersistentVolumeClaimParams(*v1.PersistentVolumeClaim) (map[string]string, error)
 	// GetPersistentVolumeClaimStatus returns the status of the given pvc
 	GetPersistentVolumeClaimStatus(*v1.PersistentVolumeClaim) (*v1.PersistentVolumeClaimStatus, error)
+	// GetPVCsUsingStorageClass returns all PVCs that use the given storage class
+	GetPVCsUsingStorageClass(scName string) ([]v1.PersistentVolumeClaim, error)
 }
 
 type SnapshotOps interface {
@@ -1520,6 +1522,23 @@ func (k *k8sOps) GetPersistentVolumeClaimParams(pvc *v1.PersistentVolumeClaim) (
 	}
 
 	return params, nil
+}
+
+func (k *k8sOps) GetPVCsUsingStorageClass(scName string) ([]v1.PersistentVolumeClaim, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	var retList []v1.PersistentVolumeClaim
+	pvcs, err := k.client.Core().PersistentVolumeClaims("").List(meta_v1.ListOptions{})
+	for _, pvc := range pvcs.Items {
+		sc, err := k.getStorageClassForPVC(&pvc)
+		if err == nil && sc.Name == scName {
+			retList = append(retList, pvc)
+		}
+	}
+
+	return retList, nil
 }
 
 // isPVCShared returns true if the PersistentVolumeClaim has been configured for use by multiple clients

@@ -1531,6 +1531,10 @@ func (k *k8sOps) GetPVCsUsingStorageClass(scName string) ([]v1.PersistentVolumeC
 
 	var retList []v1.PersistentVolumeClaim
 	pvcs, err := k.client.Core().PersistentVolumeClaims("").List(meta_v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
 	for _, pvc := range pvcs.Items {
 		sc, err := k.getStorageClassForPVC(&pvc)
 		if err == nil && sc.Name == scName {

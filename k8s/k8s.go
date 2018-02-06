@@ -1017,6 +1017,14 @@ func (k *k8sOps) ValidateDaemonSet(name, namespace string) error {
 			}
 		}
 
+		if ds.Status.DesiredNumberScheduled != ds.Status.UpdatedNumberScheduled {
+			return "", true, &ErrAppNotReady{
+				ID: name,
+				Cause: fmt.Sprintf("Not all pods are updated. Expected: %v Updated replicas: %v",
+					ds.Status.DesiredNumberScheduled, ds.Status.UpdatedNumberScheduled),
+			}
+		}
+
 		pods, err := k.GetDaemonSetPods(ds)
 		if err != nil || pods == nil {
 			return "", true, &ErrAppNotReady{

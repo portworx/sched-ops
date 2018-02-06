@@ -37,7 +37,6 @@ const (
 	nodeUpdateTimeout        = 1 * time.Minute
 	nodeUpdateRetryInterval  = 2 * time.Second
 	deploymentReadyTimeout   = 10 * time.Minute
-	daemonsetReadyTimeout    = 20 * time.Minute
 )
 
 var (
@@ -1060,6 +1059,12 @@ func (k *k8sOps) ValidateDaemonSet(name, namespace string) error {
 		}
 	}
 
+	nodes, err := k.GetNodes()
+	if err != nil {
+		return err
+	}
+
+	daemonsetReadyTimeout := time.Duration(len(nodes.Items)) * 10 * time.Minute
 	if _, err := task.DoRetryWithTimeout(t, daemonsetReadyTimeout, 10*time.Second); err != nil {
 		return err
 	}

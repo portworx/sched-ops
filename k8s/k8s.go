@@ -1148,7 +1148,7 @@ func (k *k8sOps) DeleteJob(name, namespace string) error {
 
 func (k *k8sOps) ValidateJob(name, namespace string, timeout time.Duration) error {
 	t := func() (interface{}, bool, error) {
-		job, err := k.GetJob(namespace, name)
+		job, err := k.GetJob(name, namespace)
 		if err != nil {
 			return nil, true, err
 		}

@@ -160,14 +160,14 @@ type DaemonSetOps interface {
 	// CreateDaemonSet creates the given daemonset
 	CreateDaemonSet(ds *apps_api.DaemonSet) (*apps_api.DaemonSet, error)
 	// ListDaemonSets lists all daemonsets in given namespace
-	ListDaemonSets(namespace string, listOpts meta_v1.ListOptions) (*apps_api.DaemonSetList, error)
+	ListDaemonSets(namespace string, listOpts meta_v1.ListOptions) ([]apps_api.DaemonSet, error)
 	// GetDaemonSet gets the the daemon set with given name
 	GetDaemonSet(string, string) (*apps_api.DaemonSet, error)
 	// ValidateDaemonSet checks if the given daemonset is ready
 	ValidateDaemonSet(string, string) error
 	// GetDaemonSetPods returns list of pods for the daemonset
 	GetDaemonSetPods(*apps_api.DaemonSet) ([]v1.Pod, error)
-	// UpdateDaemonSet updates the given daemon set and returns the update ds
+	// UpdateDaemonSet updates the given daemon set and returns the updated ds
 	UpdateDaemonSet(*apps_api.DaemonSet) (*apps_api.DaemonSet, error)
 	// DeleteDaemonSet deletes the given daemonset
 	DeleteDaemonSet(name, namespace string) error
@@ -1022,12 +1022,17 @@ func (k *k8sOps) CreateDaemonSet(ds *apps_api.DaemonSet) (*apps_api.DaemonSet, e
 	return k.client.Apps().DaemonSets(ds.Namespace).Create(ds)
 }
 
-func (k *k8sOps) ListDaemonSets(namespace string, listOpts meta_v1.ListOptions) (*apps_api.DaemonSetList, error) {
+func (k *k8sOps) ListDaemonSets(namespace string, listOpts meta_v1.ListOptions) ([]apps_api.DaemonSet, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
 
-	return k.client.Apps().DaemonSets(namespace).List(listOpts)
+	dsList, err := k.client.Apps().DaemonSets(namespace).List(listOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	return dsList.Items, nil
 }
 
 func (k *k8sOps) GetDaemonSet(name, namespace string) (*apps_api.DaemonSet, error) {

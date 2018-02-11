@@ -1062,27 +1062,28 @@ func (k *k8sOps) ValidateDaemonSet(name, namespace string) error {
 			return "", true, err
 		}
 
+		if ds.Status.DesiredNumberScheduled != ds.Status.UpdatedNumberScheduled {
+			return "", true, &ErrAppNotReady{
+				ID: name,
+				Cause: fmt.Sprintf("Not all pods are updated. expected: %v updated: %v",
+					ds.Status.DesiredNumberScheduled, ds.Status.UpdatedNumberScheduled),
+			}
+		}
+
 		if ds.Status.NumberUnavailable > 0 {
 			return "", true, &ErrAppNotReady{
 				ID: name,
-				Cause: fmt.Sprintf("%d replicas are not yet available. available replicas: %d",
-					ds.Status.NumberUnavailable, ds.Status.NumberAvailable),
+				Cause: fmt.Sprintf("%d pods are not available. available: %d ready: %d updated: %d",
+					ds.Status.NumberUnavailable, ds.Status.NumberAvailable,
+					ds.Status.NumberReady, ds.Status.UpdatedNumberScheduled),
 			}
 		}
 
 		if ds.Status.DesiredNumberScheduled != ds.Status.NumberReady {
 			return "", true, &ErrAppNotReady{
 				ID: name,
-				Cause: fmt.Sprintf("Expected replicas: %v Ready replicas: %v",
+				Cause: fmt.Sprintf("expected ready: %v actual ready: %v",
 					ds.Status.DesiredNumberScheduled, ds.Status.NumberReady),
-			}
-		}
-
-		if ds.Status.DesiredNumberScheduled != ds.Status.UpdatedNumberScheduled {
-			return "", true, &ErrAppNotReady{
-				ID: name,
-				Cause: fmt.Sprintf("Not all pods are updated. Expected: %v Updated replicas: %v",
-					ds.Status.DesiredNumberScheduled, ds.Status.UpdatedNumberScheduled),
 			}
 		}
 

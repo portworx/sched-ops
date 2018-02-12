@@ -163,8 +163,8 @@ type DaemonSetOps interface {
 	ListDaemonSets(namespace string, listOpts meta_v1.ListOptions) ([]apps_api.DaemonSet, error)
 	// GetDaemonSet gets the the daemon set with given name
 	GetDaemonSet(string, string) (*apps_api.DaemonSet, error)
-	// ValidateDaemonSet checks if the given daemonset is ready
-	ValidateDaemonSet(string, string) error
+	// ValidateDaemonSet checks if the given daemonset is ready within given timeout
+	ValidateDaemonSet(name, namespace string, timeout time.Duration) error
 	// GetDaemonSetPods returns list of pods for the daemonset
 	GetDaemonSetPods(*apps_api.DaemonSet) ([]v1.Pod, error)
 	// UpdateDaemonSet updates the given daemon set and returns the updated ds
@@ -218,6 +218,8 @@ type PodOps interface {
 	DeletePods([]v1.Pod) error
 	// IsPodRunning checks if all containers in a pod are in running state
 	IsPodRunning(v1.Pod) bool
+	// IsPodReady checks if all containers in a pod are ready (passed readiness probe)
+	IsPodReady(v1.Pod) bool
 	// IsPodBeingManaged returns true if the pod is being managed by a controller
 	IsPodBeingManaged(v1.Pod) bool
 	// WaitForPodDeletion waits for given timeout for given pod to be deleted
@@ -891,24 +893,24 @@ func (k *k8sOps) ValidateDeployment(deployment *apps_api.Deployment) error {
 			}
 		}
 
-		// look for "requiredReplicas" number of pods in running state
-		var notRunningPods []string
-		var runningCount int32
+		// look for "requiredReplicas" number of pods in ready state
+		var notReadyPods []string
+		var readyCount int32
 		for _, pod := range pods {
-			if !k.IsPodRunning(pod) {
-				notRunningPods = append(notRunningPods, pod.Name)
+			if !k.IsPodReady(pod) {
+				notReadyPods = append(notReadyPods, pod.Name)
 			} else {
-				runningCount++
+				readyCount++
 			}
 		}
 
-		if runningCount >= requiredReplicas {
+		if readyCount == requiredReplicas {
 			return "", false, nil
 		}
 
 		return "", true, &ErrAppNotReady{
 			ID:    dep.Name,
-			Cause: fmt.Sprintf("pod(s): %#v not yet ready", notRunningPods),
+			Cause: fmt.Sprintf("pod(s): %#v not yet ready", notReadyPods),
 		}
 	}
 
@@ -1055,7 +1057,7 @@ func (k *k8sOps) GetDaemonSetPods(ds *apps_api.DaemonSet) ([]v1.Pod, error) {
 	return k.GetPodsByOwner(ds.UID, ds.Namespace)
 }
 
-func (k *k8sOps) ValidateDaemonSet(name, namespace string) error {
+func (k *k8sOps) ValidateDaemonSet(name, namespace string, timeout time.Duration) error {
 	t := func() (interface{}, bool, error) {
 		ds, err := k.GetDaemonSet(name, namespace)
 		if err != nil {
@@ -1102,33 +1104,27 @@ func (k *k8sOps) ValidateDaemonSet(name, namespace string) error {
 			}
 		}
 
-		var notRunningPods []string
-		var runningCount int32
+		var notReadyPods []string
+		var readyCount int32
 		for _, pod := range pods {
-			if !k.IsPodRunning(pod) {
-				notRunningPods = append(notRunningPods, pod.Name)
+			if !k.IsPodReady(pod) {
+				notReadyPods = append(notReadyPods, pod.Name)
 			} else {
-				runningCount++
+				readyCount++
 			}
 		}
 
-		if runningCount >= ds.Status.DesiredNumberScheduled {
+		if readyCount == ds.Status.DesiredNumberScheduled {
 			return "", false, nil
 		}
 
 		return "", true, &ErrAppNotReady{
 			ID:    ds.Name,
-			Cause: fmt.Sprintf("pod(s): %#v not yet ready", notRunningPods),
+			Cause: fmt.Sprintf("pod(s): %#v not yet ready", notReadyPods),
 		}
 	}
 
-	nodes, err := k.GetNodes()
-	if err != nil {
-		return err
-	}
-
-	daemonsetReadyTimeout := time.Duration(len(nodes.Items)) * 10 * time.Minute
-	if _, err := task.DoRetryWithTimeout(t, daemonsetReadyTimeout, 10*time.Second); err != nil {
+	if _, err := task.DoRetryWithTimeout(t, timeout, 10*time.Second); err != nil {
 		return err
 	}
 	return nil
@@ -1283,7 +1279,7 @@ func (k *k8sOps) ValidateStatefulSet(statefulset *apps_api.StatefulSet) error {
 		}
 
 		for _, pod := range pods {
-			if !k.IsPodRunning(pod) {
+			if !k.IsPodReady(pod) {
 				return "", true, &ErrAppNotReady{
 					ID:    sset.Name,
 					Cause: fmt.Sprintf("pod: %v is not yet ready", pod.Name),
@@ -1531,6 +1527,27 @@ func (k *k8sOps) IsPodRunning(pod v1.Pod) bool {
 
 	for _, c := range pod.Status.ContainerStatuses {
 		if c.State.Running == nil {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (k *k8sOps) IsPodReady(pod v1.Pod) bool {
+	// If init containers are running, return false since the actual container would not have started yet
+	for _, c := range pod.Status.InitContainerStatuses {
+		if c.State.Running != nil {
+			return false
+		}
+	}
+
+	for _, c := range pod.Status.ContainerStatuses {
+		if c.State.Running == nil {
+			return false
+		}
+
+		if !c.Ready {
 			return false
 		}
 	}

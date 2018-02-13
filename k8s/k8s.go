@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/typed/apps/v1beta2"
+	"k8s.io/client-go/kubernetes/typed/apps/v1beta1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -1968,8 +1968,8 @@ func (k *k8sOps) UpdateConfigMap(configMap *v1.ConfigMap) (*v1.ConfigMap, error)
 
 // ConfigMap APIs - END
 
-func (k *k8sOps) appsClient() v1beta2.AppsV1beta2Interface {
-	return k.client.AppsV1beta2()
+func (k *k8sOps) appsClient() v1beta1.AppsV1beta1Interface {
+	return k.client.AppsV1beta1()
 }
 
 // getK8sClient instantiates a k8s client

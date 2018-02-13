@@ -10,22 +10,20 @@ import (
 	"sync"
 	"time"
 
-	snap_v1 "github.com/kubernetes-incubator/external-storage/snapshot/pkg/apis/crd/v1"
-	snap_client "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client"
 	"github.com/portworx/sched-ops/task"
 	"github.com/sirupsen/logrus"
-	apps_api "k8s.io/api/apps/v1beta1"
-	batch_v1 "k8s.io/api/batch/v1"
-	"k8s.io/api/core/v1"
-	rbac_v1 "k8s.io/api/rbac/v1"
-	storage_api "k8s.io/api/storage/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/typed/apps/v1beta1"
+	"k8s.io/client-go/pkg/api/v1"
+	apps_api "k8s.io/client-go/pkg/apis/apps/v1beta1"
+	batch_v1 "k8s.io/client-go/pkg/apis/batch/v1"
+	extensions_api "k8s.io/client-go/pkg/apis/extensions/v1beta1"
+	rbac_v1 "k8s.io/client-go/pkg/apis/rbac/v1beta1"
+	storage_api "k8s.io/client-go/pkg/apis/storage/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -61,7 +59,6 @@ type Ops interface {
 	PodOps
 	StorageClassOps
 	PersistentVolumeClaimOps
-	SnapshotOps
 	SecretOps
 	ConfigMapOps
 }
@@ -158,17 +155,17 @@ type DeploymentOps interface {
 // DaemonSetOps is an interface to perform k8s daemon set operations
 type DaemonSetOps interface {
 	// CreateDaemonSet creates the given daemonset
-	CreateDaemonSet(ds *apps_api.DaemonSet) (*apps_api.DaemonSet, error)
+	CreateDaemonSet(ds *extensions_api.DaemonSet) (*extensions_api.DaemonSet, error)
 	// ListDaemonSets lists all daemonsets in given namespace
-	ListDaemonSets(namespace string, listOpts meta_v1.ListOptions) ([]apps_api.DaemonSet, error)
+	ListDaemonSets(namespace string, listOpts meta_v1.ListOptions) ([]extensions_api.DaemonSet, error)
 	// GetDaemonSet gets the the daemon set with given name
-	GetDaemonSet(string, string) (*apps_api.DaemonSet, error)
+	GetDaemonSet(string, string) (*extensions_api.DaemonSet, error)
 	// ValidateDaemonSet checks if the given daemonset is ready within given timeout
 	ValidateDaemonSet(name, namespace string, timeout time.Duration) error
 	// GetDaemonSetPods returns list of pods for the daemonset
-	GetDaemonSetPods(*apps_api.DaemonSet) ([]v1.Pod, error)
+	GetDaemonSetPods(*extensions_api.DaemonSet) ([]v1.Pod, error)
 	// UpdateDaemonSet updates the given daemon set and returns the updated ds
-	UpdateDaemonSet(*apps_api.DaemonSet) (*apps_api.DaemonSet, error)
+	UpdateDaemonSet(*extensions_api.DaemonSet) (*extensions_api.DaemonSet, error)
 	// DeleteDaemonSet deletes the given daemonset
 	DeleteDaemonSet(name, namespace string) error
 }
@@ -256,19 +253,6 @@ type PersistentVolumeClaimOps interface {
 	GetPersistentVolumeClaimStatus(*v1.PersistentVolumeClaim) (*v1.PersistentVolumeClaimStatus, error)
 	// GetPVCsUsingStorageClass returns all PVCs that use the given storage class
 	GetPVCsUsingStorageClass(scName string) ([]v1.PersistentVolumeClaim, error)
-}
-
-type SnapshotOps interface {
-	// CreateSnapshot creates the given snapshot
-	CreateSnapshot(*snap_v1.VolumeSnapshot) (*snap_v1.VolumeSnapshot, error)
-	// DeleteSnapshot deletes the given snapshot
-	DeleteSnapshot(name string, namespace string) error
-	// ValidateSnapshot validates the given snapshot
-	ValidateSnapshot(name string, namespace string) error
-	// GetVolumeForSnapshot returns the volumeID for the given snapshot
-	GetVolumeForSnapshot(name string, namespace string) (string, error)
-	// GetSnapshotStatus returns the status of the given snapshot
-	GetSnapshotStatus(name string, namespace string) (*snap_v1.VolumeSnapshotStatus, error)
 }
 
 type SecretOps interface {
@@ -613,9 +597,8 @@ func (k *k8sOps) CordonNode(nodeName string) error {
 			return nil, true, err
 		}
 
-		nCopy := n.DeepCopy()
-		nCopy.Spec.Unschedulable = true
-		n, err = k.client.CoreV1().Nodes().Update(nCopy)
+		n.Spec.Unschedulable = true
+		n, err = k.client.CoreV1().Nodes().Update(n)
 		if err != nil {
 			return nil, true, err
 		}
@@ -642,9 +625,8 @@ func (k *k8sOps) UnCordonNode(nodeName string) error {
 			return nil, true, err
 		}
 
-		nCopy := n.DeepCopy()
-		nCopy.Spec.Unschedulable = false
-		n, err = k.client.CoreV1().Nodes().Update(nCopy)
+		n.Spec.Unschedulable = false
+		n, err = k.client.CoreV1().Nodes().Update(n)
 		if err != nil {
 			return nil, true, err
 		}
@@ -799,7 +781,7 @@ func (k *k8sOps) CreateDeployment(deployment *apps_api.Deployment) (*apps_api.De
 		ns = v1.NamespaceDefault
 	}
 
-	return k.appsClient().Deployments(ns).Create(deployment)
+	return k.client.Apps().Deployments(ns).Create(deployment)
 }
 
 func (k *k8sOps) DeleteDeployment(deployment *apps_api.Deployment) error {
@@ -807,7 +789,7 @@ func (k *k8sOps) DeleteDeployment(deployment *apps_api.Deployment) error {
 		return err
 	}
 
-	return k.appsClient().Deployments(deployment.Namespace).Delete(deployment.Name, &meta_v1.DeleteOptions{
+	return k.client.Apps().Deployments(deployment.Namespace).Delete(deployment.Name, &meta_v1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
 }
@@ -816,7 +798,7 @@ func (k *k8sOps) DescribeDeployment(depName string, depNamespace string) (*apps_
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
-	dep, err := k.appsClient().Deployments(depNamespace).Get(depName, meta_v1.GetOptions{})
+	dep, err := k.client.Apps().Deployments(depNamespace).Get(depName, meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -829,7 +811,7 @@ func (k *k8sOps) ValidateDeployment(deployment *apps_api.Deployment) error {
 			return "", true, err
 		}
 
-		dep, err := k.appsClient().Deployments(deployment.Namespace).Get(deployment.Name, meta_v1.GetOptions{})
+		dep, err := k.client.Apps().Deployments(deployment.Namespace).Get(deployment.Name, meta_v1.GetOptions{})
 		if err != nil {
 			return "", true, err
 		}
@@ -926,7 +908,7 @@ func (k *k8sOps) ValidateTerminatedDeployment(deployment *apps_api.Deployment) e
 			return "", true, err
 		}
 
-		dep, err := k.appsClient().Deployments(deployment.Namespace).Get(deployment.Name, meta_v1.GetOptions{})
+		dep, err := k.client.Apps().Deployments(deployment.Namespace).Get(deployment.Name, meta_v1.GetOptions{})
 		if err != nil {
 			if matched, _ := regexp.MatchString(".+ not found", err.Error()); matched {
 				return "", true, nil
@@ -963,7 +945,7 @@ func (k *k8sOps) GetDeploymentPods(deployment *apps_api.Deployment) ([]v1.Pod, e
 		return nil, err
 	}
 
-	rSets, err := k.appsClient().ReplicaSets(deployment.Namespace).List(meta_v1.ListOptions{})
+	rSets, err := k.client.Extensions().ReplicaSets(deployment.Namespace).List(meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -984,7 +966,7 @@ func (k *k8sOps) GetDeploymentsUsingStorageClass(scName string) ([]apps_api.Depl
 		return nil, err
 	}
 
-	deps, err := k.appsClient().Deployments("").List(meta_v1.ListOptions{})
+	deps, err := k.client.Apps().Deployments("").List(meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -1016,20 +998,20 @@ func (k *k8sOps) GetDeploymentsUsingStorageClass(scName string) ([]apps_api.Depl
 
 // DaemonSet APIs - BEGIN
 
-func (k *k8sOps) CreateDaemonSet(ds *apps_api.DaemonSet) (*apps_api.DaemonSet, error) {
+func (k *k8sOps) CreateDaemonSet(ds *extensions_api.DaemonSet) (*extensions_api.DaemonSet, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
 
-	return k.client.Apps().DaemonSets(ds.Namespace).Create(ds)
+	return k.client.Extensions().DaemonSets(ds.Namespace).Create(ds)
 }
 
-func (k *k8sOps) ListDaemonSets(namespace string, listOpts meta_v1.ListOptions) ([]apps_api.DaemonSet, error) {
+func (k *k8sOps) ListDaemonSets(namespace string, listOpts meta_v1.ListOptions) ([]extensions_api.DaemonSet, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
 
-	dsList, err := k.client.Apps().DaemonSets(namespace).List(listOpts)
+	dsList, err := k.client.Extensions().DaemonSets(namespace).List(listOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -1037,7 +1019,7 @@ func (k *k8sOps) ListDaemonSets(namespace string, listOpts meta_v1.ListOptions) 
 	return dsList.Items, nil
 }
 
-func (k *k8sOps) GetDaemonSet(name, namespace string) (*apps_api.DaemonSet, error) {
+func (k *k8sOps) GetDaemonSet(name, namespace string) (*extensions_api.DaemonSet, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
@@ -1046,14 +1028,14 @@ func (k *k8sOps) GetDaemonSet(name, namespace string) (*apps_api.DaemonSet, erro
 		namespace = v1.NamespaceDefault
 	}
 
-	ds, err := k.appsClient().DaemonSets(namespace).Get(name, meta_v1.GetOptions{})
+	ds, err := k.client.Extensions().DaemonSets(namespace).Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 	return ds, nil
 }
 
-func (k *k8sOps) GetDaemonSetPods(ds *apps_api.DaemonSet) ([]v1.Pod, error) {
+func (k *k8sOps) GetDaemonSetPods(ds *extensions_api.DaemonSet) ([]v1.Pod, error) {
 	return k.GetPodsByOwner(ds.UID, ds.Namespace)
 }
 
@@ -1130,12 +1112,12 @@ func (k *k8sOps) ValidateDaemonSet(name, namespace string, timeout time.Duration
 	return nil
 }
 
-func (k *k8sOps) UpdateDaemonSet(ds *apps_api.DaemonSet) (*apps_api.DaemonSet, error) {
+func (k *k8sOps) UpdateDaemonSet(ds *extensions_api.DaemonSet) (*extensions_api.DaemonSet, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
 
-	return k.appsClient().DaemonSets(ds.Namespace).Update(ds)
+	return k.client.Extensions().DaemonSets(ds.Namespace).Update(ds)
 }
 
 func (k *k8sOps) DeleteDaemonSet(name, namespace string) error {
@@ -1144,7 +1126,7 @@ func (k *k8sOps) DeleteDaemonSet(name, namespace string) error {
 	}
 
 	policy := meta_v1.DeletePropagationForeground
-	return k.client.Apps().DaemonSets(namespace).Delete(
+	return k.client.Extensions().DaemonSets(namespace).Delete(
 		name,
 		&meta_v1.DeleteOptions{PropagationPolicy: &policy})
 }
@@ -1221,7 +1203,7 @@ func (k *k8sOps) CreateStatefulSet(statefulset *apps_api.StatefulSet) (*apps_api
 		ns = v1.NamespaceDefault
 	}
 
-	return k.appsClient().StatefulSets(ns).Create(statefulset)
+	return k.client.Apps().StatefulSets(ns).Create(statefulset)
 }
 
 func (k *k8sOps) DeleteStatefulSet(statefulset *apps_api.StatefulSet) error {
@@ -1229,7 +1211,7 @@ func (k *k8sOps) DeleteStatefulSet(statefulset *apps_api.StatefulSet) error {
 		return err
 	}
 
-	return k.appsClient().StatefulSets(statefulset.Namespace).Delete(statefulset.Name, &meta_v1.DeleteOptions{
+	return k.client.Apps().StatefulSets(statefulset.Namespace).Delete(statefulset.Name, &meta_v1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
 }
@@ -1238,7 +1220,7 @@ func (k *k8sOps) DescribeStatefulSet(ssetName string, ssetNamespace string) (*ap
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
-	sset, err := k.appsClient().StatefulSets(ssetNamespace).Get(ssetName, meta_v1.GetOptions{})
+	sset, err := k.client.Apps().StatefulSets(ssetNamespace).Get(ssetName, meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -1250,7 +1232,7 @@ func (k *k8sOps) ValidateStatefulSet(statefulset *apps_api.StatefulSet) error {
 		if err := k.initK8sClient(); err != nil {
 			return "", true, err
 		}
-		sset, err := k.appsClient().StatefulSets(statefulset.Namespace).Get(statefulset.Name, meta_v1.GetOptions{})
+		sset, err := k.client.Apps().StatefulSets(statefulset.Namespace).Get(statefulset.Name, meta_v1.GetOptions{})
 		if err != nil {
 			return "", true, err
 		}
@@ -1306,7 +1288,7 @@ func (k *k8sOps) ValidateTerminatedStatefulSet(statefulset *apps_api.StatefulSet
 			return "", true, err
 		}
 
-		sset, err := k.appsClient().StatefulSets(statefulset.Namespace).Get(statefulset.Name, meta_v1.GetOptions{})
+		sset, err := k.client.Apps().StatefulSets(statefulset.Namespace).Get(statefulset.Name, meta_v1.GetOptions{})
 		if err != nil {
 			if matched, _ := regexp.MatchString(".+ not found", err.Error()); matched {
 				return "", false, nil
@@ -1344,7 +1326,7 @@ func (k *k8sOps) GetStatefulSetsUsingStorageClass(scName string) ([]apps_api.Sta
 		return nil, err
 	}
 
-	ss, err := k.appsClient().StatefulSets("").List(meta_v1.ListOptions{})
+	ss, err := k.client.Apps().StatefulSets("").List(meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -1778,103 +1760,6 @@ func (k *k8sOps) isPVCShared(pvc *v1.PersistentVolumeClaim) bool {
 
 // PVCs APIs - END
 
-// Snapshot APIs - BEGIN
-
-func (k *k8sOps) CreateSnapshot(snap *snap_v1.VolumeSnapshot) (*snap_v1.VolumeSnapshot, error) {
-	if err := k.initK8sClient(); err != nil {
-		return nil, err
-	}
-	var result snap_v1.VolumeSnapshot
-	if err := k.snapClient.Post().
-		Name(snap.Metadata.Name).
-		Resource(snap_v1.VolumeSnapshotResourcePlural).
-		Namespace(snap.Metadata.Namespace).
-		Body(snap).
-		Do().Into(&result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-func (k *k8sOps) DeleteSnapshot(name string, namespace string) error {
-	if err := k.initK8sClient(); err != nil {
-		return err
-	}
-	return k.snapClient.Delete().
-		Name(name).
-		Resource(snap_v1.VolumeSnapshotResourcePlural).
-		Namespace(namespace).
-		Do().Error()
-}
-
-func (k *k8sOps) ValidateSnapshot(name string, namespace string) error {
-	if err := k.initK8sClient(); err != nil {
-		return err
-	}
-	t := func() (interface{}, bool, error) {
-		status, err := k.GetSnapshotStatus(name, namespace)
-		if err != nil {
-			return "", true, err
-		}
-
-		for _, condition := range status.Conditions {
-			if condition.Type == snap_v1.VolumeSnapshotConditionReady && condition.Status == v1.ConditionTrue {
-				return "", true, nil
-			} else if condition.Type == snap_v1.VolumeSnapshotConditionError && condition.Status == v1.ConditionTrue {
-				return "", false, &ErrSnapshotFailed{
-					ID:    name,
-					Cause: fmt.Sprintf("Snapshot Status %v", status),
-				}
-			}
-		}
-
-		return "", true, &ErrSnapshotNotReady{
-			ID:    name,
-			Cause: fmt.Sprintf("Snapshot Status %v", status),
-		}
-	}
-
-	if _, err := task.DoRetryWithTimeout(t, 5*time.Minute, 10*time.Second); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (k *k8sOps) GetVolumeForSnapshot(name string, namespace string) (string, error) {
-	if err := k.initK8sClient(); err != nil {
-		return "", err
-	}
-
-	var result snap_v1.VolumeSnapshot
-	if err := k.snapClient.Get().
-		Name(name).
-		Resource(snap_v1.VolumeSnapshotResourcePlural).
-		Namespace(namespace).
-		Do().Into(&result); err != nil {
-		return "", err
-	}
-	return result.Metadata.Name, nil
-}
-
-func (k *k8sOps) GetSnapshotStatus(name string, namespace string) (*snap_v1.VolumeSnapshotStatus, error) {
-	if err := k.initK8sClient(); err != nil {
-		return nil, err
-	}
-
-	var result snap_v1.VolumeSnapshot
-	if err := k.snapClient.Get().
-		Name(name).
-		Resource(snap_v1.VolumeSnapshotResourcePlural).
-		Namespace(namespace).
-		Do().Into(&result); err != nil {
-		return nil, err
-	}
-	return &result.Status, nil
-}
-
-// Snapshot APIs - END
-
 // Secret APIs - BEGIN
 
 func (k *k8sOps) GetSecret(name string, namespace string) (*v1.Secret, error) {
@@ -1968,10 +1853,6 @@ func (k *k8sOps) UpdateConfigMap(configMap *v1.ConfigMap) (*v1.ConfigMap, error)
 
 // ConfigMap APIs - END
 
-func (k *k8sOps) appsClient() v1beta1.AppsV1beta1Interface {
-	return k.client.AppsV1beta1()
-}
-
 // getK8sClient instantiates a k8s client
 func getK8sClient() (*kubernetes.Clientset, *rest.RESTClient, error) {
 	var k8sClient *kubernetes.Clientset
@@ -2021,12 +1902,7 @@ func loadClientFor(config *rest.Config) (*kubernetes.Clientset, *rest.RESTClient
 		return nil, nil, err
 	}
 
-	snapClient, _, err := snap_client.NewClient(config)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return client, snapClient, nil
+	return client, nil, nil
 }
 
 func roundUpSize(volumeSizeBytes int64, allocationUnitBytes int64) int64 {

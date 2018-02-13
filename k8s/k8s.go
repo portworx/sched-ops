@@ -14,7 +14,7 @@ import (
 	snap_client "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client"
 	"github.com/portworx/sched-ops/task"
 	"github.com/sirupsen/logrus"
-	apps_api "k8s.io/api/apps/v1beta2"
+	apps_api "k8s.io/api/apps/v1beta1"
 	batch_v1 "k8s.io/api/batch/v1"
 	"k8s.io/api/core/v1"
 	rbac_v1 "k8s.io/api/rbac/v1"

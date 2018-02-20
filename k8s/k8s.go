@@ -112,7 +112,7 @@ type ServiceOps interface {
 	// CreateService creates the given service
 	CreateService(*v1.Service) (*v1.Service, error)
 	// DeleteService deletes the given service
-	DeleteService(*v1.Service) error
+	DeleteService(name, namespace string) error
 	// ValidateDeletedService validates if given service is deleted
 	ValidateDeletedService(string, string) error
 	// DescribeService gets the service status
@@ -124,7 +124,7 @@ type StatefulSetOps interface {
 	// CreateStatefulSet creates the given statefulset
 	CreateStatefulSet(*apps_api.StatefulSet) (*apps_api.StatefulSet, error)
 	// DeleteStatefulSet deletes the given statefulset
-	DeleteStatefulSet(*apps_api.StatefulSet) error
+	DeleteStatefulSet(name, namespace string) error
 	// ValidateStatefulSet validates the given statefulset if it's running and healthy
 	ValidateStatefulSet(*apps_api.StatefulSet) error
 	// ValidateTerminatedStatefulSet validates if given deployment is terminated
@@ -142,7 +142,7 @@ type DeploymentOps interface {
 	// CreateDeployment creates the given deployment
 	CreateDeployment(*apps_api.Deployment) (*apps_api.Deployment, error)
 	// DeleteDeployment deletes the given deployment
-	DeleteDeployment(*apps_api.Deployment) error
+	DeleteDeployment(name, namespace string) error
 	// ValidateDeployment validates the given deployment if it's running and healthy
 	ValidateDeployment(*apps_api.Deployment) error
 	// ValidateTerminatedDeployment validates if given deployment is terminated
@@ -243,7 +243,7 @@ type PersistentVolumeClaimOps interface {
 	// CreatePersistentVolumeClaim creates the given persistent volume claim
 	CreatePersistentVolumeClaim(*v1.PersistentVolumeClaim) (*v1.PersistentVolumeClaim, error)
 	// DeletePersistentVolumeClaim deletes the given persistent volume claim
-	DeletePersistentVolumeClaim(*v1.PersistentVolumeClaim) error
+	DeletePersistentVolumeClaim(name, namespace string) error
 	// ValidatePersistentVolumeClaim validates the given pvc
 	ValidatePersistentVolumeClaim(*v1.PersistentVolumeClaim) error
 	// GetPersistentVolumeClaim returns the PVC for given name and namespace
@@ -731,12 +731,12 @@ func (k *k8sOps) CreateService(service *v1.Service) (*v1.Service, error) {
 	return k.client.CoreV1().Services(ns).Create(service)
 }
 
-func (k *k8sOps) DeleteService(service *v1.Service) error {
+func (k *k8sOps) DeleteService(name, namespace string) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
 	}
 
-	return k.client.CoreV1().Services(service.Namespace).Delete(service.Name, &meta_v1.DeleteOptions{
+	return k.client.CoreV1().Services(namespace).Delete(name, &meta_v1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
 }
@@ -802,12 +802,12 @@ func (k *k8sOps) CreateDeployment(deployment *apps_api.Deployment) (*apps_api.De
 	return k.appsClient().Deployments(ns).Create(deployment)
 }
 
-func (k *k8sOps) DeleteDeployment(deployment *apps_api.Deployment) error {
+func (k *k8sOps) DeleteDeployment(name, namespace string) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
 	}
 
-	return k.appsClient().Deployments(deployment.Namespace).Delete(deployment.Name, &meta_v1.DeleteOptions{
+	return k.appsClient().Deployments(namespace).Delete(name, &meta_v1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
 }
@@ -1224,12 +1224,12 @@ func (k *k8sOps) CreateStatefulSet(statefulset *apps_api.StatefulSet) (*apps_api
 	return k.appsClient().StatefulSets(ns).Create(statefulset)
 }
 
-func (k *k8sOps) DeleteStatefulSet(statefulset *apps_api.StatefulSet) error {
+func (k *k8sOps) DeleteStatefulSet(name, namespace string) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
 	}
 
-	return k.appsClient().StatefulSets(statefulset.Namespace).Delete(statefulset.Name, &meta_v1.DeleteOptions{
+	return k.appsClient().StatefulSets(namespace).Delete(name, &meta_v1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
 }
@@ -1636,12 +1636,12 @@ func (k *k8sOps) CreatePersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) (*v1
 	return k.client.CoreV1().PersistentVolumeClaims(ns).Create(pvc)
 }
 
-func (k *k8sOps) DeletePersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) error {
+func (k *k8sOps) DeletePersistentVolumeClaim(name, namespace string) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
 	}
 
-	return k.client.CoreV1().PersistentVolumeClaims(pvc.Namespace).Delete(pvc.Name, &meta_v1.DeleteOptions{})
+	return k.client.CoreV1().PersistentVolumeClaims(namespace).Delete(name, &meta_v1.DeleteOptions{})
 }
 
 func (k *k8sOps) ValidatePersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) error {

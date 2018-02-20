@@ -287,6 +287,8 @@ type ConfigMapOps interface {
 	GetConfigMap(name string, namespace string) (*v1.ConfigMap, error)
 	// CreateConfigMap creates a new config map object if it does not already exist.
 	CreateConfigMap(configMap *v1.ConfigMap) (*v1.ConfigMap, error)
+	// DeleteConfigMap deletes the given config map
+	DeleteConfigMap(name, namespace string) error
 	// UpdateConfigMap updates the given config map object
 	UpdateConfigMap(configMap *v1.ConfigMap) (*v1.ConfigMap, error)
 }
@@ -1951,6 +1953,20 @@ func (k *k8sOps) CreateConfigMap(configMap *v1.ConfigMap) (*v1.ConfigMap, error)
 	}
 
 	return k.client.CoreV1().ConfigMaps(ns).Create(configMap)
+}
+
+func (k *k8sOps) DeleteConfigMap(name, namespace string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	if len(namespace) == 0 {
+		namespace = v1.NamespaceDefault
+	}
+
+	return k.client.Core().ConfigMaps(namespace).Delete(name, &meta_v1.DeleteOptions{
+		PropagationPolicy: &deleteForegroundPolicy,
+	})
 }
 
 func (k *k8sOps) UpdateConfigMap(configMap *v1.ConfigMap) (*v1.ConfigMap, error) {

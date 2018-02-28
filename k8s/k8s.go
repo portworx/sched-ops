@@ -125,8 +125,8 @@ type StatefulSetOps interface {
 	CreateStatefulSet(*apps_api.StatefulSet) (*apps_api.StatefulSet, error)
 	// DeleteStatefulSet deletes the given statefulset
 	DeleteStatefulSet(name, namespace string) error
-	// ValidateStatefulSet validates the given statefulset if it's running and healthy
-	ValidateStatefulSet(*apps_api.StatefulSet) error
+	// ValidateStatefulSet validates the given statefulset if it's running and healthy within the give timeout
+	ValidateStatefulSet(s *apps_api.StatefulSet, timeout time.Duration) error
 	// ValidateTerminatedStatefulSet validates if given deployment is terminated
 	ValidateTerminatedStatefulSet(*apps_api.StatefulSet) error
 	// GetStatefulSetPods returns pods for the given statefulset
@@ -1247,7 +1247,7 @@ func (k *k8sOps) DescribeStatefulSet(ssetName string, ssetNamespace string) (*ap
 	return &sset.Status, err
 }
 
-func (k *k8sOps) ValidateStatefulSet(statefulset *apps_api.StatefulSet) error {
+func (k *k8sOps) ValidateStatefulSet(statefulset *apps_api.StatefulSet, timeout time.Duration) error {
 	t := func() (interface{}, bool, error) {
 		if err := k.initK8sClient(); err != nil {
 			return "", true, err
@@ -1292,7 +1292,7 @@ func (k *k8sOps) ValidateStatefulSet(statefulset *apps_api.StatefulSet) error {
 		return "", false, nil
 	}
 
-	if _, err := task.DoRetryWithTimeout(t, 10*time.Minute, 10*time.Second); err != nil {
+	if _, err := task.DoRetryWithTimeout(t, timeout, 10*time.Second); err != nil {
 		return err
 	}
 	return nil

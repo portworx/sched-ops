@@ -207,7 +207,9 @@ type PodOps interface {
 	GetPods(string) (*v1.PodList, error)
 	// GetPodsByOwner returns pods for the given owner and namespace
 	GetPodsByOwner(types.UID, string) ([]v1.Pod, error)
-	// GetPodsUsingVolumePluginByNodeName returns all pods who use PVCs provided by the given volume plugin
+	// GetPodsUsingVolumePlugin returns all pods who use PVCs provided by the given volume plugin
+	GetPodsUsingVolumePlugin(plugin string) ([]v1.Pod, error)
+	// GetPodsUsingVolumePluginByNodeName returns all pods who use PVCs provided by the given volume plugin on the given node
 	GetPodsUsingVolumePluginByNodeName(nodeName, plugin string) ([]v1.Pod, error)
 	// GetPodByUID returns pod with the given UID, or error if nothing found
 	GetPodByUID(types.UID, string) (*v1.Pod, error)
@@ -1459,16 +1461,24 @@ func (k *k8sOps) GetPodsByOwner(ownerUID types.UID, namespace string) ([]v1.Pod,
 	return result, nil
 }
 
-func (k *k8sOps) GetPodsUsingVolumePluginByNodeName(nodeName, plugin string) ([]v1.Pod, error) {
-	if err := k.initK8sClient(); err != nil {
-		return nil, err
-	}
+func (k *k8sOps) GetPodsUsingVolumePlugin(plugin string) ([]v1.Pod, error) {
+	return k.listPluginPodsWithOptions(meta_v1.ListOptions{}, plugin)
+}
 
+func (k *k8sOps) GetPodsUsingVolumePluginByNodeName(nodeName, plugin string) ([]v1.Pod, error) {
 	listOptions := meta_v1.ListOptions{
 		FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
 	}
 
-	nodePods, err := k.client.CoreV1().Pods("").List(listOptions)
+	return k.listPluginPodsWithOptions(listOptions, plugin)
+}
+
+func (k *k8sOps) listPluginPodsWithOptions(opts meta_v1.ListOptions, plugin string) ([]v1.Pod, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	nodePods, err := k.client.CoreV1().Pods("").List(opts)
 	if err != nil {
 		return nil, err
 	}

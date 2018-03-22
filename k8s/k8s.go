@@ -26,9 +26,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/kubernetes/typed/apps/v1beta2"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 const (
@@ -227,6 +229,8 @@ type PodOps interface {
 	IsPodBeingManaged(v1.Pod) bool
 	// WaitForPodDeletion waits for given timeout for given pod to be deleted
 	WaitForPodDeletion(uid types.UID, namespace string, timeout time.Duration) error
+	// RunCommandInPod runs given command in the given pod
+	RunCommandInPod(cmds []string, podName, containerName, namespace string) (string, error)
 }
 
 // StorageClassOps is an interface to perform k8s storage class operations
@@ -261,6 +265,7 @@ type PersistentVolumeClaimOps interface {
 	GetPVCsUsingStorageClass(scName string) ([]v1.PersistentVolumeClaim, error)
 }
 
+// SnapshotOps is an interface to perform k8s VolumeSnapshot operations
 type SnapshotOps interface {
 	// CreateSnapshot creates the given snapshot
 	CreateSnapshot(*snap_v1.VolumeSnapshot) (*snap_v1.VolumeSnapshot, error)
@@ -274,6 +279,7 @@ type SnapshotOps interface {
 	GetSnapshotStatus(name string, namespace string) (*snap_v1.VolumeSnapshotStatus, error)
 }
 
+// SecretOps is an interface to perform k8s Secret operations
 type SecretOps interface {
 	// GetSecret gets the secrets object given its name and namespace
 	GetSecret(name string, namespace string) (*v1.Secret, error)
@@ -285,6 +291,7 @@ type SecretOps interface {
 	UpdateSecretData(string, string, map[string][]byte) (*v1.Secret, error)
 }
 
+// ConfigMapOps is an interface to perform k8s ConfigMap operations
 type ConfigMapOps interface {
 	// GetConfigMap gets the config map object for the given name and namespace
 	GetConfigMap(name string, namespace string) (*v1.ConfigMap, error)
@@ -304,6 +311,7 @@ var (
 type k8sOps struct {
 	client     *kubernetes.Clientset
 	snapClient *rest.RESTClient
+	config     *rest.Config
 }
 
 // Instance returns a singleton instance of k8sOps type
@@ -317,7 +325,7 @@ func Instance() Ops {
 // Initialize the k8s client if uninitialized
 func (k *k8sOps) initK8sClient() error {
 	if k.client == nil {
-		k8sClient, snapClient, err := getK8sClient()
+		k8sClient, snapClient, err := k.getK8sClient()
 		if err != nil {
 			return err
 		}
@@ -719,6 +727,65 @@ func (k *k8sOps) WaitForPodDeletion(uid types.UID, namespace string, timeout tim
 	}
 
 	return nil
+}
+
+func (k *k8sOps) RunCommandInPod(cmds []string, podName, containerName, namespace string) (string, error) {
+	err := k.initK8sClient()
+	if err != nil {
+		return "", err
+	}
+
+	var (
+		execOut bytes.Buffer
+		execErr bytes.Buffer
+	)
+
+	pod, err := k.client.Core().Pods(namespace).Get(podName, meta_v1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	if len(containerName) == 0 {
+		if len(pod.Spec.Containers) != 1 {
+			return "", fmt.Errorf("could not determine which container to use")
+		}
+
+		containerName = pod.Spec.Containers[0].Name
+	}
+
+	req := k.client.Core().RESTClient().Post().
+		Resource("pods").
+		Name(podName).
+		Namespace(namespace).
+		SubResource("exec")
+
+	req.VersionedParams(&v1.PodExecOptions{
+		Container: containerName,
+		Command:   cmds,
+		Stdout:    true,
+		Stderr:    true,
+	}, scheme.ParameterCodec)
+
+	exec, err := remotecommand.NewSPDYExecutor(k.config, "POST", req.URL())
+	if err != nil {
+		return "", fmt.Errorf("failed to init executor: %v", err)
+	}
+
+	err = exec.Stream(remotecommand.StreamOptions{
+		Stdout: &execOut,
+		Stderr: &execErr,
+		Tty:    false,
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("could not execute: %v", err)
+	}
+
+	if execErr.Len() > 0 {
+		return "", fmt.Errorf("stderr: %v", execErr.String())
+	}
+
+	return execOut.String(), nil
 }
 
 // Service APIs - BEGIN
@@ -2026,16 +2093,16 @@ func (k *k8sOps) appsClient() v1beta2.AppsV1beta2Interface {
 }
 
 // getK8sClient instantiates a k8s client
-func getK8sClient() (*kubernetes.Clientset, *rest.RESTClient, error) {
+func (k *k8sOps) getK8sClient() (*kubernetes.Clientset, *rest.RESTClient, error) {
 	var k8sClient *kubernetes.Clientset
 	var restClient *rest.RESTClient
 	var err error
 
 	kubeconfig := os.Getenv("KUBECONFIG")
 	if len(kubeconfig) > 0 {
-		k8sClient, restClient, err = loadClientFromKubeconfig(kubeconfig)
+		k8sClient, restClient, err = k.loadClientFromKubeconfig(kubeconfig)
 	} else {
-		k8sClient, restClient, err = loadClientFromServiceAccount()
+		k8sClient, restClient, err = k.loadClientFromServiceAccount()
 	}
 
 	if err != nil {
@@ -2050,21 +2117,23 @@ func getK8sClient() (*kubernetes.Clientset, *rest.RESTClient, error) {
 }
 
 // loadClientFromServiceAccount loads a k8s client from a ServiceAccount specified in the pod running px
-func loadClientFromServiceAccount() (*kubernetes.Clientset, *rest.RESTClient, error) {
+func (k *k8sOps) loadClientFromServiceAccount() (*kubernetes.Clientset, *rest.RESTClient, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, nil, err
 	}
 
+	k.config = config
 	return loadClientFor(config)
 }
 
-func loadClientFromKubeconfig(kubeconfig string) (*kubernetes.Clientset, *rest.RESTClient, error) {
+func (k *k8sOps) loadClientFromKubeconfig(kubeconfig string) (*kubernetes.Clientset, *rest.RESTClient, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	k.config = config
 	return loadClientFor(config)
 }
 

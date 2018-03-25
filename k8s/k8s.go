@@ -261,10 +261,10 @@ type PersistentVolumeClaimOps interface {
 	GetPersistentVolumeClaim(pvcName string, namespace string) (*v1.PersistentVolumeClaim, error)
 	// GetPersistentVolumeClaims returns all PVCs in given namespace
 	GetPersistentVolumeClaims(namespace string) (*v1.PersistentVolumeClaimList, error)
-	// GetPersistentVolume returns the PV for given name and namespace
+	// GetPersistentVolume returns the PV for given name
 	GetPersistentVolume(pvName string) (*v1.PersistentVolume, error)
-	// GetPersistentVolumes returns all PVs in given namespace
-	GetPersistentVolumes(namespace string) (*v1.PersistentVolumeList, error)
+	// GetPersistentVolumes returns all PVs in cluster
+	GetPersistentVolumes() (*v1.PersistentVolumeList, error)
 	// GetVolumeForPersistentVolumeClaim returns the volumeID for the given PVC
 	GetVolumeForPersistentVolumeClaim(*v1.PersistentVolumeClaim) (string, error)
 	// GetPersistentVolumeClaimParams fetches custom parameters for the given PVC
@@ -1845,7 +1845,7 @@ func (k *k8sOps) GetPersistentVolume(pvName string) (*v1.PersistentVolume, error
 	return k.client.Core().PersistentVolumes().Get(pvName, meta_v1.GetOptions{})
 }
 
-func (k *k8sOps) GetPersistentVolumes(namespace string) (*v1.PersistentVolumeList, error) {
+func (k *k8sOps) GetPersistentVolumes() (*v1.PersistentVolumeList, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}

@@ -213,6 +213,10 @@ type PodOps interface {
 	GetPods(string) (*v1.PodList, error)
 	// GetPodsByOwner returns pods for the given owner and namespace
 	GetPodsByOwner(types.UID, string) ([]v1.Pod, error)
+	// GetPodsUsingPV returns all pods in cluster using given pv
+	GetPodsUsingPV(pvName string) ([]v1.Pod, error)
+	// GetPodsUsingPVC returns all pods in cluster using given pvc
+	GetPodsUsingPVC(pvcName, pvcNamespace string) ([]v1.Pod, error)
 	// GetPodsUsingVolumePlugin returns all pods who use PVCs provided by the given volume plugin
 	GetPodsUsingVolumePlugin(plugin string) ([]v1.Pod, error)
 	// GetPodsUsingVolumePluginByNodeName returns all pods who use PVCs provided by the given volume plugin on the given node
@@ -255,6 +259,12 @@ type PersistentVolumeClaimOps interface {
 	ValidatePersistentVolumeClaim(*v1.PersistentVolumeClaim) error
 	// GetPersistentVolumeClaim returns the PVC for given name and namespace
 	GetPersistentVolumeClaim(pvcName string, namespace string) (*v1.PersistentVolumeClaim, error)
+	// GetPersistentVolumeClaims returns all PVCs in given namespace
+	GetPersistentVolumeClaims(namespace string) (*v1.PersistentVolumeClaimList, error)
+	// GetPersistentVolume returns the PV for given name and namespace
+	GetPersistentVolume(pvName string) (*v1.PersistentVolume, error)
+	// GetPersistentVolumes returns all PVs in given namespace
+	GetPersistentVolumes(namespace string) (*v1.PersistentVolumeList, error)
 	// GetVolumeForPersistentVolumeClaim returns the volumeID for the given PVC
 	GetVolumeForPersistentVolumeClaim(*v1.PersistentVolumeClaim) (string, error)
 	// GetPersistentVolumeClaimParams fetches custom parameters for the given PVC
@@ -1575,6 +1585,37 @@ func (k *k8sOps) GetPodsByOwner(ownerUID types.UID, namespace string) ([]v1.Pod,
 	return result, nil
 }
 
+func (k *k8sOps) GetPodsUsingPV(pvName string) ([]v1.Pod, error) {
+	pv, err := k.GetPersistentVolume(pvName)
+	if err != nil {
+		return nil, err
+	}
+
+	if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Kind == "PersistentVolumeClaim" {
+		return k.GetPodsUsingPVC(pv.Spec.ClaimRef.Name, pv.Spec.ClaimRef.Namespace)
+	}
+
+	return nil, nil
+}
+
+func (k *k8sOps) GetPodsUsingPVC(pvcName, pvcNamespace string) ([]v1.Pod, error) {
+	pods, err := k.GetPods(pvcNamespace)
+	if err != nil {
+		return nil, err
+	}
+
+	retList := make([]v1.Pod, 0)
+	for _, p := range pods.Items {
+		for _, v := range p.Spec.Volumes {
+			if v.PersistentVolumeClaim != nil && v.PersistentVolumeClaim.ClaimName == pvcName {
+				retList = append(retList, p)
+				break
+			}
+		}
+	}
+	return retList, nil
+}
+
 func (k *k8sOps) GetPodsUsingVolumePlugin(plugin string) ([]v1.Pod, error) {
 	return k.listPluginPodsWithOptions(meta_v1.ListOptions{}, plugin)
 }
@@ -1786,6 +1827,30 @@ func (k *k8sOps) GetPersistentVolumeClaim(pvcName string, namespace string) (*v1
 
 	return k.client.CoreV1().PersistentVolumeClaims(namespace).
 		Get(pvcName, meta_v1.GetOptions{})
+}
+
+func (k *k8sOps) GetPersistentVolumeClaims(namespace string) (*v1.PersistentVolumeClaimList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.Core().PersistentVolumeClaims(namespace).List(meta_v1.ListOptions{})
+}
+
+func (k *k8sOps) GetPersistentVolume(pvName string) (*v1.PersistentVolume, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.Core().PersistentVolumes().Get(pvName, meta_v1.GetOptions{})
+}
+
+func (k *k8sOps) GetPersistentVolumes(namespace string) (*v1.PersistentVolumeList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.Core().PersistentVolumes().List(meta_v1.ListOptions{})
 }
 
 func (k *k8sOps) GetVolumeForPersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) (string, error) {

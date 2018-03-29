@@ -1054,9 +1054,13 @@ func (k *k8sOps) ValidateTerminatedDeployment(deployment *apps_api.Deployment) e
 		}
 
 		if pods != nil && len(pods) > 0 {
+			var podNames []string
+			for _, pod := range pods {
+				podNames = append(podNames, pod.Name)
+			}
 			return "", true, &ErrAppNotTerminated{
 				ID:    dep.Name,
-				Cause: fmt.Sprintf("pods: %#v is still present", pods),
+				Cause: fmt.Sprintf("pods: %v are still present", podNames),
 			}
 		}
 
@@ -1466,9 +1470,13 @@ func (k *k8sOps) ValidateTerminatedStatefulSet(statefulset *apps_api.StatefulSet
 		}
 
 		if pods != nil && len(pods) > 0 {
+			var podNames []string
+			for _, pod := range pods {
+				podNames = append(podNames, pod.Name)
+			}
 			return "", true, &ErrAppNotTerminated{
 				ID:    sset.Name,
-				Cause: fmt.Sprintf("pods: %#v is still present", pods),
+				Cause: fmt.Sprintf("pods: %v are still present", podNames),
 			}
 		}
 
@@ -1883,13 +1891,7 @@ func (k *k8sOps) GetPersistentVolumes() (*v1.PersistentVolumeList, error) {
 }
 
 func (k *k8sOps) GetVolumeForPersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) (string, error) {
-	if err := k.initK8sClient(); err != nil {
-		return "", err
-	}
-
-	result, err := k.client.CoreV1().
-		PersistentVolumeClaims(pvc.Namespace).
-		Get(pvc.Name, meta_v1.GetOptions{})
+	result, err := k.GetPersistentVolumeClaim(pvc.Name, pvc.Namespace)
 	if err != nil {
 		return "", err
 	}
@@ -2042,19 +2044,12 @@ func (k *k8sOps) ValidateSnapshot(name string, namespace string) error {
 }
 
 func (k *k8sOps) GetVolumeForSnapshot(name string, namespace string) (string, error) {
-	if err := k.initK8sClient(); err != nil {
+	snapshot, err := k.GetSnapshot(name, namespace)
+	if err != nil {
 		return "", err
 	}
 
-	var result snap_v1.VolumeSnapshot
-	if err := k.snapClient.Get().
-		Name(name).
-		Resource(snap_v1.VolumeSnapshotResourcePlural).
-		Namespace(namespace).
-		Do().Into(&result); err != nil {
-		return "", err
-	}
-	return result.Metadata.Name, nil
+	return snapshot.Metadata.Name, nil
 }
 
 func (k *k8sOps) GetSnapshot(name string, namespace string) (*snap_v1.VolumeSnapshot, error) {

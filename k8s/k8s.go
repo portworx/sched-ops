@@ -234,7 +234,7 @@ type PodOps interface {
 	// GetPodByUID returns pod with the given UID, or error if nothing found
 	GetPodByUID(types.UID, string) (*v1.Pod, error)
 	// DeletePods deletes the given pods
-	DeletePods([]v1.Pod) error
+	DeletePods([]v1.Pod, bool) error
 	// IsPodRunning checks if all containers in a pod are in running state
 	IsPodRunning(v1.Pod) bool
 	// IsPodReady checks if all containers in a pod are ready (passed readiness probe)
@@ -717,7 +717,7 @@ func (k *k8sOps) DrainPodsFromNode(nodeName string, pods []v1.Pod, timeout time.
 		return err
 	}
 
-	err = k.DeletePods(pods)
+	err = k.DeletePods(pods, false)
 	if err != nil {
 		e := k.UnCordonNode(nodeName) // rollback cordon
 		if e != nil {
@@ -1581,15 +1581,19 @@ func (k *k8sOps) DeleteServiceAccount(accountName, namespace string) error {
 	})
 }
 
-func (k *k8sOps) DeletePods(pods []v1.Pod) error {
+func (k *k8sOps) DeletePods(pods []v1.Pod, force bool) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
 	}
 
+	deleteOptions := meta_v1.DeleteOptions{}
+	if force {
+		gracePeriodSec := int64(0)
+		deleteOptions.GracePeriodSeconds = &gracePeriodSec
+	}
+
 	for _, pod := range pods {
-		if err := k.client.CoreV1().Pods(pod.Namespace).Delete(pod.Name, &meta_v1.DeleteOptions{
-			PropagationPolicy: &deleteForegroundPolicy,
-		}); err != nil {
+		if err := k.client.CoreV1().Pods(pod.Namespace).Delete(pod.Name, &deleteOptions); err != nil {
 			return err
 		}
 	}

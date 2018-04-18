@@ -1992,6 +1992,12 @@ func (k *k8sOps) GetPVCsUsingStorageClass(scName string) ([]v1.PersistentVolumeC
 }
 
 func (k *k8sOps) GetStorageProvisionerForPVC(pvc *v1.PersistentVolumeClaim) (string, error) {
+	// first try to get the provisioner directly from the annotations
+	provisionerName, present := pvc.Annotations[pvcStorageProvisionerKey]
+	if present {
+		return provisionerName, nil
+	}
+
 	sc, err := k.getStorageClassForPVC(pvc)
 	if err != nil {
 		return "", err

@@ -290,6 +290,8 @@ type PersistentVolumeClaimOps interface {
 	GetPersistentVolumeClaimStatus(*v1.PersistentVolumeClaim) (*v1.PersistentVolumeClaimStatus, error)
 	// GetPVCsUsingStorageClass returns all PVCs that use the given storage class
 	GetPVCsUsingStorageClass(scName string) ([]v1.PersistentVolumeClaim, error)
+	// GetStorageProvisionerForPVC returns storage provisioner for given PVC if it exists
+	GetStorageProvisionerForPVC(pvc *v1.PersistentVolumeClaim) (string, error)
 }
 
 // SnapshotOps is an interface to perform k8s VolumeSnapshot operations
@@ -1989,6 +1991,15 @@ func (k *k8sOps) GetPVCsUsingStorageClass(scName string) ([]v1.PersistentVolumeC
 	return retList, nil
 }
 
+func (k *k8sOps) GetStorageProvisionerForPVC(pvc *v1.PersistentVolumeClaim) (string, error) {
+	sc, err := k.getStorageClassForPVC(pvc)
+	if err != nil {
+		return "", err
+	}
+
+	return sc.Provisioner, nil
+}
+
 // isPVCShared returns true if the PersistentVolumeClaim has been configured for use by multiple clients
 func (k *k8sOps) isPVCShared(pvc *v1.PersistentVolumeClaim) bool {
 	for _, mode := range pvc.Spec.AccessModes {
@@ -2315,16 +2326,6 @@ func getLocalIPList(includeHostname bool) ([]string, error) {
 	return ipList, nil
 }
 
-// getStorageProvisionerForPVC returns storage provisioner for given PVC if it exists
-func (k *k8sOps) getStorageProvisionerForPVC(pvc *v1.PersistentVolumeClaim) (string, error) {
-	sc, err := k.getStorageClassForPVC(pvc)
-	if err != nil {
-		return "", err
-	}
-
-	return sc.Provisioner, nil
-}
-
 // isAnyVolumeUsingVolumePlugin returns true if any of the given volumes is using a storage class for the given plugin
 //	In case errors are found while looking up a particular volume, the function ignores the errors as the goal is to
 //	find if there is any match or not
@@ -2333,7 +2334,7 @@ func (k *k8sOps) isAnyVolumeUsingVolumePlugin(volumes []v1.Volume, volumeNamespa
 		if v.PersistentVolumeClaim != nil {
 			pvc, err := k.GetPersistentVolumeClaim(v.PersistentVolumeClaim.ClaimName, volumeNamespace)
 			if err == nil && pvc != nil {
-				provisioner, err := k.getStorageProvisionerForPVC(pvc)
+				provisioner, err := k.GetStorageProvisionerForPVC(pvc)
 				if err == nil {
 					if provisioner == plugin {
 						return true

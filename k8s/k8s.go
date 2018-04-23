@@ -228,8 +228,12 @@ type PodOps interface {
 	GetPodsByOwner(types.UID, string) ([]v1.Pod, error)
 	// GetPodsUsingPV returns all pods in cluster using given pv
 	GetPodsUsingPV(pvName string) ([]v1.Pod, error)
+	// GetPodsUsingPVByNodeName returns all pods running on the node using the given pv
+	GetPodsUsingPVByNodeName(pvName, nodeName string) ([]v1.Pod, error)
 	// GetPodsUsingPVC returns all pods in cluster using given pvc
 	GetPodsUsingPVC(pvcName, pvcNamespace string) ([]v1.Pod, error)
+	// GetPodsUsingPVCByNodeName returns all pods running on the node using given pvc
+	GetPodsUsingPVCByNodeName(pvcName, pvcNamespace, nodeName string) ([]v1.Pod, error)
 	// GetPodsUsingVolumePlugin returns all pods who use PVCs provided by the given volume plugin
 	GetPodsUsingVolumePlugin(plugin string) ([]v1.Pod, error)
 	// GetPodsUsingVolumePluginByNodeName returns all pods who use PVCs provided by the given volume plugin on the given node
@@ -1607,11 +1611,7 @@ func (k *k8sOps) DeletePods(pods []v1.Pod, force bool) error {
 }
 
 func (k *k8sOps) GetPods(namespace string) (*v1.PodList, error) {
-	if err := k.initK8sClient(); err != nil {
-		return nil, err
-	}
-
-	return k.client.CoreV1().Pods(namespace).List(meta_v1.ListOptions{})
+	return k.getPodsWithListOptions(namespace, meta_v1.ListOptions{})
 }
 
 func (k *k8sOps) GetPodsByNode(nodeName, namespace string) (*v1.PodList, error) {
@@ -1619,15 +1619,11 @@ func (k *k8sOps) GetPodsByNode(nodeName, namespace string) (*v1.PodList, error) 
 		return nil, fmt.Errorf("node name is required for this API")
 	}
 
-	if err := k.initK8sClient(); err != nil {
-		return nil, err
-	}
-
 	listOptions := meta_v1.ListOptions{
 		FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
 	}
 
-	return k.client.CoreV1().Pods(namespace).List(listOptions)
+	return k.getPodsWithListOptions(namespace, listOptions)
 }
 
 func (k *k8sOps) GetPodsByOwner(ownerUID types.UID, namespace string) ([]v1.Pod, error) {
@@ -1653,20 +1649,58 @@ func (k *k8sOps) GetPodsByOwner(ownerUID types.UID, namespace string) ([]v1.Pod,
 }
 
 func (k *k8sOps) GetPodsUsingPV(pvName string) ([]v1.Pod, error) {
+	return k.getPodsUsingPVWithListOptions(pvName, meta_v1.ListOptions{})
+}
+
+func (k *k8sOps) GetPodsUsingPVByNodeName(pvName, nodeName string) ([]v1.Pod, error) {
+	if len(nodeName) == 0 {
+		return nil, fmt.Errorf("node name is required for this API")
+	}
+
+	listOptions := meta_v1.ListOptions{
+		FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
+	}
+	return k.getPodsUsingPVWithListOptions(pvName, listOptions)
+}
+
+func (k *k8sOps) GetPodsUsingPVC(pvcName, pvcNamespace string) ([]v1.Pod, error) {
+	return k.getPodsUsingPVCWithListOptions(pvcName, pvcNamespace, meta_v1.ListOptions{})
+}
+
+func (k *k8sOps) GetPodsUsingPVCByNodeName(pvcName, pvcNamespace, nodeName string) ([]v1.Pod, error) {
+	if len(nodeName) == 0 {
+		return nil, fmt.Errorf("node name is required for this API")
+	}
+
+	listOptions := meta_v1.ListOptions{
+		FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
+	}
+	return k.getPodsUsingPVCWithListOptions(pvcName, pvcNamespace, listOptions)
+}
+
+func (k *k8sOps) getPodsWithListOptions(namespace string, opts meta_v1.ListOptions) (*v1.PodList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.CoreV1().Pods(namespace).List(opts)
+}
+
+func (k *k8sOps) getPodsUsingPVWithListOptions(pvName string, opts meta_v1.ListOptions) ([]v1.Pod, error) {
 	pv, err := k.GetPersistentVolume(pvName)
 	if err != nil {
 		return nil, err
 	}
 
 	if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Kind == "PersistentVolumeClaim" {
-		return k.GetPodsUsingPVC(pv.Spec.ClaimRef.Name, pv.Spec.ClaimRef.Namespace)
+		return k.getPodsUsingPVCWithListOptions(pv.Spec.ClaimRef.Name, pv.Spec.ClaimRef.Namespace, opts)
 	}
 
 	return nil, nil
 }
 
-func (k *k8sOps) GetPodsUsingPVC(pvcName, pvcNamespace string) ([]v1.Pod, error) {
-	pods, err := k.GetPods(pvcNamespace)
+func (k *k8sOps) getPodsUsingPVCWithListOptions(pvcName, pvcNamespace string, opts meta_v1.ListOptions) ([]v1.Pod, error) {
+	pods, err := k.getPodsWithListOptions(pvcNamespace, opts)
 	if err != nil {
 		return nil, err
 	}

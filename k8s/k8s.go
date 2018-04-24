@@ -147,9 +147,9 @@ type StatefulSetOps interface {
 	// GetStatefulSetsUsingStorageClass returns all statefulsets using given storage class
 	GetStatefulSetsUsingStorageClass(scName string) ([]apps_api.StatefulSet, error)
 	// GetPVCsForStatefulSet returns all the PVCs for given stateful set
-	GetPVCsForStatefulSet(name, namespace string) (*v1.PersistentVolumeClaimList, error)
+	GetPVCsForStatefulSet(ss *apps_api.StatefulSet) (*v1.PersistentVolumeClaimList, error)
 	// ValidatePVCsForStatefulSet validates the PVCs for the given stateful set
-	ValidatePVCsForStatefulSet(name, namespace string) error
+	ValidatePVCsForStatefulSet(ss *apps_api.StatefulSet) error
 }
 
 // DeploymentOps is an interface to perform k8s deployment operations
@@ -1532,33 +1532,23 @@ func (k *k8sOps) GetStatefulSetsUsingStorageClass(scName string) ([]apps_api.Sta
 	return retList, nil
 }
 
-func (k *k8sOps) GetPVCsForStatefulSet(name, namespace string) (*v1.PersistentVolumeClaimList, error) {
-	ss, err := k.GetStatefulSet(name, namespace)
-	if err != nil {
-		return nil, err
-	}
-
+func (k *k8sOps) GetPVCsForStatefulSet(ss *apps_api.StatefulSet) (*v1.PersistentVolumeClaimList, error) {
 	listOptions, err := k.getListOptionsForStatefulSet(ss)
 	if err != nil {
 		return nil, err
 	}
 
-	return k.getPVCsWithListOptions(namespace, listOptions)
+	return k.getPVCsWithListOptions(ss.Namespace, listOptions)
 }
 
-func (k *k8sOps) ValidatePVCsForStatefulSet(name, namespace string) error {
-	ss, err := k.GetStatefulSet(name, namespace)
-	if err != nil {
-		return err
-	}
-
+func (k *k8sOps) ValidatePVCsForStatefulSet(ss *apps_api.StatefulSet) error {
 	listOptions, err := k.getListOptionsForStatefulSet(ss)
 	if err != nil {
 		return err
 	}
 
 	t := func() (interface{}, bool, error) {
-		pvcList, err := k.getPVCsWithListOptions(namespace, listOptions)
+		pvcList, err := k.getPVCsWithListOptions(ss.Namespace, listOptions)
 		if err != nil {
 			return nil, true, err
 		}

@@ -42,6 +42,8 @@ const (
 	nodeUpdateTimeout        = 1 * time.Minute
 	nodeUpdateRetryInterval  = 2 * time.Second
 	deploymentReadyTimeout   = 10 * time.Minute
+	validatePVCTimeout       = 5 * time.Minute
+	validatePVCRetryInterval = 10 * time.Second
 )
 
 var deleteForegroundPolicy = meta_v1.DeletePropagationForeground
@@ -134,7 +136,7 @@ type StatefulSetOps interface {
 	UpdateStatefulSet(ss *apps_api.StatefulSet) (*apps_api.StatefulSet, error)
 	// DeleteStatefulSet deletes the given statefulset
 	DeleteStatefulSet(name, namespace string) error
-	// ValidateStatefulSet validates the given statefulset if it's running and healthy within the give timeout
+	// ValidateStatefulSet validates the given statefulset if it's running and healthy within the given timeout
 	ValidateStatefulSet(ss *apps_api.StatefulSet, timeout time.Duration) error
 	// ValidateTerminatedStatefulSet validates if given deployment is terminated
 	ValidateTerminatedStatefulSet(ss *apps_api.StatefulSet) error
@@ -144,6 +146,10 @@ type StatefulSetOps interface {
 	DescribeStatefulSet(name, namespace string) (*apps_api.StatefulSetStatus, error)
 	// GetStatefulSetsUsingStorageClass returns all statefulsets using given storage class
 	GetStatefulSetsUsingStorageClass(scName string) ([]apps_api.StatefulSet, error)
+	// GetPVCsForStatefulSet returns all the PVCs for given stateful set
+	GetPVCsForStatefulSet(ss *apps_api.StatefulSet) (*v1.PersistentVolumeClaimList, error)
+	// ValidatePVCsForStatefulSet validates the PVCs for the given stateful set
+	ValidatePVCsForStatefulSet(ss *apps_api.StatefulSet) error
 }
 
 // DeploymentOps is an interface to perform k8s deployment operations
@@ -1526,6 +1532,64 @@ func (k *k8sOps) GetStatefulSetsUsingStorageClass(scName string) ([]apps_api.Sta
 	return retList, nil
 }
 
+func (k *k8sOps) GetPVCsForStatefulSet(ss *apps_api.StatefulSet) (*v1.PersistentVolumeClaimList, error) {
+	listOptions, err := k.getListOptionsForStatefulSet(ss)
+	if err != nil {
+		return nil, err
+	}
+
+	return k.getPVCsWithListOptions(ss.Namespace, listOptions)
+}
+
+func (k *k8sOps) ValidatePVCsForStatefulSet(ss *apps_api.StatefulSet) error {
+	listOptions, err := k.getListOptionsForStatefulSet(ss)
+	if err != nil {
+		return err
+	}
+
+	t := func() (interface{}, bool, error) {
+		pvcList, err := k.getPVCsWithListOptions(ss.Namespace, listOptions)
+		if err != nil {
+			return nil, true, err
+		}
+
+		if len(pvcList.Items) < int(*ss.Spec.Replicas) {
+			return nil, true, fmt.Errorf("Expected PVCs: %v, Actual: %v", *ss.Spec.Replicas, len(pvcList.Items))
+		}
+
+		for _, pvc := range pvcList.Items {
+			if err := k.ValidatePersistentVolumeClaim(&pvc); err != nil {
+				return nil, true, err
+			}
+		}
+
+		return nil, false, nil
+	}
+
+	if _, err := task.DoRetryWithTimeout(t, validatePVCTimeout, validatePVCRetryInterval); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (k *k8sOps) getListOptionsForStatefulSet(ss *apps_api.StatefulSet) (meta_v1.ListOptions, error) {
+	// TODO: Handle MatchExpressions as well
+	labels := ss.Spec.Selector.MatchLabels
+
+	if len(labels) == 0 {
+		return meta_v1.ListOptions{}, fmt.Errorf("No labels present to retrieve the PVCs")
+	}
+
+	var selectors []string
+	for k, v := range labels {
+		selectors = append(selectors, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	return meta_v1.ListOptions{
+		LabelSelector: strings.Join(selectors, ","),
+	}, nil
+}
+
 // StatefulSet APIs - END
 
 func (k *k8sOps) CreateClusterRole(role *rbac_v1.ClusterRole) (*rbac_v1.ClusterRole, error) {
@@ -1910,7 +1974,7 @@ func (k *k8sOps) ValidatePersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) er
 		}
 	}
 
-	if _, err := task.DoRetryWithTimeout(t, 5*time.Minute, 10*time.Second); err != nil {
+	if _, err := task.DoRetryWithTimeout(t, validatePVCTimeout, validatePVCRetryInterval); err != nil {
 		return err
 	}
 	return nil
@@ -1926,11 +1990,15 @@ func (k *k8sOps) GetPersistentVolumeClaim(pvcName string, namespace string) (*v1
 }
 
 func (k *k8sOps) GetPersistentVolumeClaims(namespace string) (*v1.PersistentVolumeClaimList, error) {
+	return k.getPVCsWithListOptions(namespace, meta_v1.ListOptions{})
+}
+
+func (k *k8sOps) getPVCsWithListOptions(namespace string, listOpts meta_v1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
 
-	return k.client.Core().PersistentVolumeClaims(namespace).List(meta_v1.ListOptions{})
+	return k.client.Core().PersistentVolumeClaims(namespace).List(listOpts)
 }
 
 func (k *k8sOps) GetPersistentVolume(pvName string) (*v1.PersistentVolume, error) {

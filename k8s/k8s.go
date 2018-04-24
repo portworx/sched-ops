@@ -146,10 +146,10 @@ type StatefulSetOps interface {
 	DescribeStatefulSet(name, namespace string) (*apps_api.StatefulSetStatus, error)
 	// GetStatefulSetsUsingStorageClass returns all statefulsets using given storage class
 	GetStatefulSetsUsingStorageClass(scName string) ([]apps_api.StatefulSet, error)
-	// GetPVCForStatefulSet returns all the PVCs for given stateful set
-	GetPVCForStatefulSet(name, namespace string) (*v1.PersistentVolumeClaimList, error)
-	// ValidatePVCForStatefulSet validates the PVCs for the given stateful set
-	ValidatePVCForStatefulSet(name, namespace string) error
+	// GetPVCsForStatefulSet returns all the PVCs for given stateful set
+	GetPVCsForStatefulSet(name, namespace string) (*v1.PersistentVolumeClaimList, error)
+	// ValidatePVCsForStatefulSet validates the PVCs for the given stateful set
+	ValidatePVCsForStatefulSet(name, namespace string) error
 }
 
 // DeploymentOps is an interface to perform k8s deployment operations
@@ -1532,7 +1532,7 @@ func (k *k8sOps) GetStatefulSetsUsingStorageClass(scName string) ([]apps_api.Sta
 	return retList, nil
 }
 
-func (k *k8sOps) GetPVCForStatefulSet(name, namespace string) (*v1.PersistentVolumeClaimList, error) {
+func (k *k8sOps) GetPVCsForStatefulSet(name, namespace string) (*v1.PersistentVolumeClaimList, error) {
 	ss, err := k.GetStatefulSet(name, namespace)
 	if err != nil {
 		return nil, err
@@ -1543,10 +1543,10 @@ func (k *k8sOps) GetPVCForStatefulSet(name, namespace string) (*v1.PersistentVol
 		return nil, err
 	}
 
-	return k.getPVCWithListOptions(namespace, listOptions)
+	return k.getPVCsWithListOptions(namespace, listOptions)
 }
 
-func (k *k8sOps) ValidatePVCForStatefulSet(name, namespace string) error {
+func (k *k8sOps) ValidatePVCsForStatefulSet(name, namespace string) error {
 	ss, err := k.GetStatefulSet(name, namespace)
 	if err != nil {
 		return err
@@ -1558,7 +1558,7 @@ func (k *k8sOps) ValidatePVCForStatefulSet(name, namespace string) error {
 	}
 
 	t := func() (interface{}, bool, error) {
-		pvcList, err := k.getPVCWithListOptions(namespace, listOptions)
+		pvcList, err := k.getPVCsWithListOptions(namespace, listOptions)
 		if err != nil {
 			return nil, true, err
 		}
@@ -2000,10 +2000,10 @@ func (k *k8sOps) GetPersistentVolumeClaim(pvcName string, namespace string) (*v1
 }
 
 func (k *k8sOps) GetPersistentVolumeClaims(namespace string) (*v1.PersistentVolumeClaimList, error) {
-	return k.getPVCWithListOptions(namespace, meta_v1.ListOptions{})
+	return k.getPVCsWithListOptions(namespace, meta_v1.ListOptions{})
 }
 
-func (k *k8sOps) getPVCWithListOptions(namespace string, listOpts meta_v1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
+func (k *k8sOps) getPVCsWithListOptions(namespace string, listOpts meta_v1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}

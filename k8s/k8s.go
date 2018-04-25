@@ -34,16 +34,17 @@ import (
 )
 
 const (
-	masterLabelKey           = "node-role.kubernetes.io/master"
-	hostnameKey              = "kubernetes.io/hostname"
-	pvcStorageClassKey       = "volume.beta.kubernetes.io/storage-class"
-	pvcStorageProvisionerKey = "volume.beta.kubernetes.io/storage-provisioner"
-	labelUpdateMaxRetries    = 5
-	nodeUpdateTimeout        = 1 * time.Minute
-	nodeUpdateRetryInterval  = 2 * time.Second
-	deploymentReadyTimeout   = 10 * time.Minute
-	validatePVCTimeout       = 5 * time.Minute
-	validatePVCRetryInterval = 10 * time.Second
+	masterLabelKey                = "node-role.kubernetes.io/master"
+	hostnameKey                   = "kubernetes.io/hostname"
+	pvcStorageClassKey            = "volume.beta.kubernetes.io/storage-class"
+	pvcStorageProvisionerKey      = "volume.beta.kubernetes.io/storage-provisioner"
+	labelUpdateMaxRetries         = 5
+	nodeUpdateTimeout             = 1 * time.Minute
+	nodeUpdateRetryInterval       = 2 * time.Second
+	deploymentReadyTimeout        = 10 * time.Minute
+	validateStatefulSetPVCTimeout = 15 * time.Minute
+	validatePVCTimeout            = 5 * time.Minute
+	validatePVCRetryInterval      = 10 * time.Second
 )
 
 var deleteForegroundPolicy = meta_v1.DeletePropagationForeground
@@ -1574,7 +1575,7 @@ func (k *k8sOps) ValidatePVCsForStatefulSet(ss *apps_api.StatefulSet) error {
 		return nil, false, nil
 	}
 
-	if _, err := task.DoRetryWithTimeout(t, validatePVCTimeout, validatePVCRetryInterval); err != nil {
+	if _, err := task.DoRetryWithTimeout(t, validateStatefulSetPVCTimeout, validatePVCRetryInterval); err != nil {
 		return err
 	}
 	return nil

@@ -207,10 +207,18 @@ type JobOps interface {
 
 // RBACOps is an interface to perform RBAC operations
 type RBACOps interface {
+	// CreateRole creates the given role
+	CreateRole(role *rbac_v1.Role) (*rbac_v1.Role, error)
+	// UpdateRole updates the given role
+	UpdateRole(role *rbac_v1.Role) (*rbac_v1.Role, error)
 	// CreateClusterRole creates the given cluster role
 	CreateClusterRole(role *rbac_v1.ClusterRole) (*rbac_v1.ClusterRole, error)
 	// UpdateClusterRole updates the given cluster role
 	UpdateClusterRole(role *rbac_v1.ClusterRole) (*rbac_v1.ClusterRole, error)
+	// CreateRoleBinding creates the given role binding
+	CreateRoleBinding(role *rbac_v1.RoleBinding) (*rbac_v1.RoleBinding, error)
+	// UpdateRoleBinding updates the given role binding
+	UpdateRoleBinding(role *rbac_v1.RoleBinding) (*rbac_v1.RoleBinding, error)
 	// CreateClusterRoleBinding creates the given cluster role binding
 	CreateClusterRoleBinding(role *rbac_v1.ClusterRoleBinding) (*rbac_v1.ClusterRoleBinding, error)
 	// CreateServiceAccount creates the given service account
@@ -1592,6 +1600,24 @@ func (k *k8sOps) getListOptionsForStatefulSet(ss *apps_api.StatefulSet) (meta_v1
 
 // StatefulSet APIs - END
 
+// RBAC APIs - BEGIN
+
+func (k *k8sOps) CreateRole(role *rbac_v1.Role) (*rbac_v1.Role, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.Rbac().Roles(role.Namespace).Create(role)
+}
+
+func (k *k8sOps) UpdateRole(role *rbac_v1.Role) (*rbac_v1.Role, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.Rbac().Roles(role.Namespace).Update(role)
+}
+
 func (k *k8sOps) CreateClusterRole(role *rbac_v1.ClusterRole) (*rbac_v1.ClusterRole, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
@@ -1606,6 +1632,22 @@ func (k *k8sOps) UpdateClusterRole(role *rbac_v1.ClusterRole) (*rbac_v1.ClusterR
 	}
 
 	return k.client.Rbac().ClusterRoles().Update(role)
+}
+
+func (k *k8sOps) CreateRoleBinding(binding *rbac_v1.RoleBinding) (*rbac_v1.RoleBinding, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.Rbac().RoleBindings(binding.Namespace).Create(binding)
+}
+
+func (k *k8sOps) UpdateRoleBinding(binding *rbac_v1.RoleBinding) (*rbac_v1.RoleBinding, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.Rbac().RoleBindings(binding.Namespace).Update(binding)
 }
 
 func (k *k8sOps) CreateClusterRoleBinding(binding *rbac_v1.ClusterRoleBinding) (*rbac_v1.ClusterRoleBinding, error) {
@@ -1653,6 +1695,10 @@ func (k *k8sOps) DeleteServiceAccount(accountName, namespace string) error {
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
 }
+
+// RBAC APIs - END
+
+// Pod APIs - BEGIN
 
 func (k *k8sOps) DeletePods(pods []v1.Pod, force bool) error {
 	if err := k.initK8sClient(); err != nil {
@@ -1886,6 +1932,8 @@ func (k *k8sOps) IsPodBeingManaged(pod v1.Pod) bool {
 
 	return false
 }
+
+// Pod APIs - END
 
 // StorageClass APIs - BEGIN
 

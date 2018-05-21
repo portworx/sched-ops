@@ -339,10 +339,12 @@ type SecretOps interface {
 	GetSecret(name string, namespace string) (*v1.Secret, error)
 	// CreateSecret creates the given secret
 	CreateSecret(*v1.Secret) (*v1.Secret, error)
-	// UpdateSecret updates the gives secret
+	// UpdateSecret updates the given secret
 	UpdateSecret(*v1.Secret) (*v1.Secret, error)
 	// UpdateSecretData updates or creates a new secret with the given data
 	UpdateSecretData(string, string, map[string][]byte) (*v1.Secret, error)
+	// DeleteSecret deletes the given secret
+	DeleteSecret(name, namespace string) error
 }
 
 // ConfigMapOps is an interface to perform k8s ConfigMap operations
@@ -2346,6 +2348,16 @@ func (k *k8sOps) UpdateSecretData(name string, ns string, data map[string][]byte
 		secret.Data[k] = v
 	}
 	return k.UpdateSecret(secret)
+}
+
+func (k *k8sOps) DeleteSecret(name, namespace string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	return k.client.CoreV1().Secrets(namespace).Delete(name, &meta_v1.DeleteOptions{
+		PropagationPolicy: &deleteForegroundPolicy,
+	})
 }
 
 // Secret APIs - END

@@ -224,6 +224,10 @@ type RBACOps interface {
 	CreateClusterRoleBinding(role *rbac_v1.ClusterRoleBinding) (*rbac_v1.ClusterRoleBinding, error)
 	// CreateServiceAccount creates the given service account
 	CreateServiceAccount(account *v1.ServiceAccount) (*v1.ServiceAccount, error)
+	// DeleteRole deletes the given role
+	DeleteRole(name, namespace string) error
+	// DeleteRoleBinding deletes the given role binding
+	DeleteRoleBinding(name, namespace string) error
 	// DeleteClusterRole deletes the given cluster role
 	DeleteClusterRole(roleName string) error
 	// DeleteClusterRoleBinding deletes the given cluster role binding
@@ -1667,12 +1671,32 @@ func (k *k8sOps) CreateServiceAccount(account *v1.ServiceAccount) (*v1.ServiceAc
 	return k.client.Core().ServiceAccounts(account.Namespace).Create(account)
 }
 
+func (k *k8sOps) DeleteRole(name, namespace string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	return k.client.Rbac().Roles(namespace).Delete(name, &meta_v1.DeleteOptions{
+		PropagationPolicy: &deleteForegroundPolicy,
+	})
+}
+
 func (k *k8sOps) DeleteClusterRole(roleName string) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
 	}
 
 	return k.client.Rbac().ClusterRoles().Delete(roleName, &meta_v1.DeleteOptions{
+		PropagationPolicy: &deleteForegroundPolicy,
+	})
+}
+
+func (k *k8sOps) DeleteRoleBinding(name, namespace string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	return k.client.Rbac().RoleBindings(namespace).Delete(name, &meta_v1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
 }

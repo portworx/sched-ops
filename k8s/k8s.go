@@ -275,6 +275,8 @@ type PodOps interface {
 
 // StorageClassOps is an interface to perform k8s storage class operations
 type StorageClassOps interface {
+	// GetStorageClasses returns all storageClasses that match given optional label selector
+	GetStorageClasses(labelSelector map[string]string) (*storage_api.StorageClassList, error)
 	// GetStorageClass returns the storage class for the give namme
 	GetStorageClass(name string) (*storage_api.StorageClass, error)
 	// CreateStorageClass creates the given storage class
@@ -299,8 +301,8 @@ type PersistentVolumeClaimOps interface {
 	ValidatePersistentVolumeClaim(*v1.PersistentVolumeClaim) error
 	// GetPersistentVolumeClaim returns the PVC for given name and namespace
 	GetPersistentVolumeClaim(pvcName string, namespace string) (*v1.PersistentVolumeClaim, error)
-	// GetPersistentVolumeClaims returns all PVCs in given namespace
-	GetPersistentVolumeClaims(namespace string) (*v1.PersistentVolumeClaimList, error)
+	// GetPersistentVolumeClaims returns all PVCs in given namespace and that match the optional labelSelector
+	GetPersistentVolumeClaims(namespace string, labelSelector map[string]string) (*v1.PersistentVolumeClaimList, error)
 	// GetPersistentVolume returns the PV for given name
 	GetPersistentVolume(pvName string) (*v1.PersistentVolume, error)
 	// GetPersistentVolumes returns all PVs in cluster
@@ -1601,13 +1603,8 @@ func (k *k8sOps) getListOptionsForStatefulSet(ss *apps_api.StatefulSet) (meta_v1
 		return meta_v1.ListOptions{}, fmt.Errorf("No labels present to retrieve the PVCs")
 	}
 
-	var selectors []string
-	for k, v := range labels {
-		selectors = append(selectors, fmt.Sprintf("%s=%s", k, v))
-	}
-
 	return meta_v1.ListOptions{
-		LabelSelector: strings.Join(selectors, ","),
+		LabelSelector: mapToCSV(labels),
 	}, nil
 }
 
@@ -1970,6 +1967,16 @@ func (k *k8sOps) IsPodBeingManaged(pod v1.Pod) bool {
 
 // StorageClass APIs - BEGIN
 
+func (k *k8sOps) GetStorageClasses(labelSelector map[string]string) (*storage_api.StorageClassList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.StorageV1().StorageClasses().List(meta_v1.ListOptions{
+		LabelSelector: mapToCSV(labelSelector),
+	})
+}
+
 func (k *k8sOps) GetStorageClass(name string) (*storage_api.StorageClass, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
@@ -2070,8 +2077,10 @@ func (k *k8sOps) GetPersistentVolumeClaim(pvcName string, namespace string) (*v1
 		Get(pvcName, meta_v1.GetOptions{})
 }
 
-func (k *k8sOps) GetPersistentVolumeClaims(namespace string) (*v1.PersistentVolumeClaimList, error) {
-	return k.getPVCsWithListOptions(namespace, meta_v1.ListOptions{})
+func (k *k8sOps) GetPersistentVolumeClaims(namespace string, labelSelector map[string]string) (*v1.PersistentVolumeClaimList, error) {
+	return k.getPVCsWithListOptions(namespace, meta_v1.ListOptions{
+		LabelSelector: mapToCSV(labelSelector),
+	})
 }
 
 func (k *k8sOps) getPVCsWithListOptions(namespace string, listOpts meta_v1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
@@ -2601,4 +2610,13 @@ func (k *k8sOps) getStorageClassForPVC(pvc *v1.PersistentVolumeClaim) (*storage_
 	}
 
 	return k.GetStorageClass(scName)
+}
+
+func mapToCSV(in map[string]string) string {
+	var items []string
+	for k, v := range in {
+		items = append(items, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	return strings.Join(items, ",")
 }

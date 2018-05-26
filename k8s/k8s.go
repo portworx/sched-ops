@@ -70,6 +70,15 @@ type Ops interface {
 	SnapshotOps
 	SecretOps
 	ConfigMapOps
+	EventOps
+}
+
+// EventOps is an interface to put and get k8s events
+type EventOps interface {
+	// CreateEvent puts an event into k8s etcd
+	CreateEvent(event *v1.Event) (*v1.Event, error)
+	// ListEvents retrieves all events registered with kubernetes
+	ListEvents(namespace string, opts meta_v1.ListOptions) (*v1.EventList, error)
 }
 
 // NamespaceOps is an interface to perform namespace operations
@@ -2470,6 +2479,22 @@ func (k *k8sOps) UpdateConfigMap(configMap *v1.ConfigMap) (*v1.ConfigMap, error)
 }
 
 // ConfigMap APIs - END
+
+// CreateEvent puts an event into k8s etcd
+func (k *k8sOps) CreateEvent(event *v1.Event) (*v1.Event, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+	return k.client.CoreV1().Events(event.Namespace).Create(event)
+}
+
+// ListEvents retrieves all events registered with kubernetes
+func (k *k8sOps) ListEvents(namespace string, opts meta_v1.ListOptions) (*v1.EventList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+	return k.client.CoreV1().Events(namespace).List(opts)
+}
 
 func (k *k8sOps) appsClient() v1beta2.AppsV1beta2Interface {
 	return k.client.AppsV1beta2()

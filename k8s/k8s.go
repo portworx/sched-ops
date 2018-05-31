@@ -2264,7 +2264,7 @@ func (k *k8sOps) ValidateSnapshot(name string, namespace string) error {
 			if condition.Type == snap_v1.VolumeSnapshotConditionReady && condition.Status == v1.ConditionTrue {
 				return "", true, nil
 			} else if condition.Type == snap_v1.VolumeSnapshotConditionError && condition.Status == v1.ConditionTrue {
-				return "", false, &ErrSnapshotFailed{
+				return "", true, &ErrSnapshotFailed{
 					ID:    name,
 					Cause: fmt.Sprintf("Snapshot Status %v", status),
 				}

@@ -863,11 +863,11 @@ func (k *k8sOps) RunCommandInPod(cmds []string, podName, containerName, namespac
 	})
 
 	if err != nil {
-		return "", fmt.Errorf("could not execute: %v", err)
+		return execErr.String(), fmt.Errorf("could not execute: %v", err)
 	}
 
 	if execErr.Len() > 0 {
-		return "", fmt.Errorf("stderr: %v", execErr.String())
+		return execErr.String(), nil
 	}
 
 	return execOut.String(), nil

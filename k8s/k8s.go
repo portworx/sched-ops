@@ -247,6 +247,8 @@ type RBACOps interface {
 
 // PodOps is an interface to perform k8s pod operations
 type PodOps interface {
+	// CreatePod creates the given pod
+	CreatePod(pod *v1.Pod) (*v1.Pod, error)
 	// GetPods returns pods for the given namespace
 	GetPods(string) (*v1.PodList, error)
 	// GetPodsByNode returns all pods in given namespace and given k8s node name.
@@ -1759,6 +1761,14 @@ func (k *k8sOps) DeletePods(pods []v1.Pod, force bool) error {
 	return nil
 }
 
+func (k *k8sOps) CreatePod(pod *v1.Pod) (*v1.Pod, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.Core().Pods(pod.Namespace).Create(pod)
+}
+
 func (k *k8sOps) GetPods(namespace string) (*v1.PodList, error) {
 	return k.getPodsWithListOptions(namespace, meta_v1.ListOptions{})
 }
@@ -1932,6 +1942,10 @@ func (k *k8sOps) IsPodRunning(pod v1.Pod) bool {
 }
 
 func (k *k8sOps) IsPodReady(pod v1.Pod) bool {
+	if pod.Status.Phase != v1.PodRunning && pod.Status.Phase != v1.PodSucceeded {
+		return false
+	}
+
 	// If init containers are running, return false since the actual container would not have started yet
 	for _, c := range pod.Status.InitContainerStatuses {
 		if c.State.Running != nil {

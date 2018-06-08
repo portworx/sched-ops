@@ -279,7 +279,6 @@ type PersistentVolumeClaimOps interface {
 	CreatePersistentVolumeClaim(*v1.PersistentVolumeClaim) (*v1.PersistentVolumeClaim, error)
 	// DeletePersistentVolumeClaim deletes the given persistent volume claim
 	DeletePersistentVolumeClaim(name, namespace string) error
-
 	// ValidatePersistentVolumeClaim validates the given pvc
 	ValidatePersistentVolumeClaim(*v1.PersistentVolumeClaim) error
 	// GetPersistentVolumeClaim returns the PVC for given name and namespace
@@ -294,6 +293,7 @@ type PersistentVolumeClaimOps interface {
 	GetPVCsUsingStorageClass(scName string) ([]v1.PersistentVolumeClaim, error)
 }
 
+// SecretOps is an interface to perform k8s Secret operations
 type SecretOps interface {
 	// GetSecret gets the secrets object given its name and namespace
 	GetSecret(name string, namespace string) (*v1.Secret, error)
@@ -305,6 +305,7 @@ type SecretOps interface {
 	UpdateSecretData(string, string, map[string][]byte) (*v1.Secret, error)
 }
 
+// ConfigMapOps is an interface to perform k8s ConfigMap operations
 type ConfigMapOps interface {
 	// GetConfigMap gets the config map object for the given name and namespace
 	GetConfigMap(name string, namespace string) (*v1.ConfigMap, error)
@@ -336,7 +337,7 @@ func Instance() Ops {
 // Initialize the k8s client if uninitialized
 func (k *k8sOps) initK8sClient() error {
 	if k.client == nil {
-		k8sClient, snapClient, err := getK8sClient()
+		k8sClient, snapClient, err := k.getK8sClient()
 		if err != nil {
 			return err
 		}
@@ -2219,16 +2220,16 @@ func (k *k8sOps) ListEvents(namespace string, opts meta_v1.ListOptions) (*v1.Eve
 //}
 
 // getK8sClient instantiates a k8s client
-func getK8sClient() (*kubernetes.Clientset, *rest.RESTClient, error) {
+func (k *k8sOps) getK8sClient() (*kubernetes.Clientset, *rest.RESTClient, error) {
 	var k8sClient *kubernetes.Clientset
 	var restClient *rest.RESTClient
 	var err error
 
 	kubeconfig := os.Getenv("KUBECONFIG")
 	if len(kubeconfig) > 0 {
-		k8sClient, restClient, err = loadClientFromKubeconfig(kubeconfig)
+		k8sClient, restClient, err = k.loadClientFromKubeconfig(kubeconfig)
 	} else {
-		k8sClient, restClient, err = loadClientFromServiceAccount()
+		k8sClient, restClient, err = k.loadClientFromServiceAccount()
 	}
 
 	if err != nil {
@@ -2243,21 +2244,23 @@ func getK8sClient() (*kubernetes.Clientset, *rest.RESTClient, error) {
 }
 
 // loadClientFromServiceAccount loads a k8s client from a ServiceAccount specified in the pod running px
-func loadClientFromServiceAccount() (*kubernetes.Clientset, *rest.RESTClient, error) {
+func (k *k8sOps) loadClientFromServiceAccount() (*kubernetes.Clientset, *rest.RESTClient, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, nil, err
 	}
 
+	k.config = config
 	return loadClientFor(config)
 }
 
-func loadClientFromKubeconfig(kubeconfig string) (*kubernetes.Clientset, *rest.RESTClient, error) {
+func (k *k8sOps) loadClientFromKubeconfig(kubeconfig string) (*kubernetes.Clientset, *rest.RESTClient, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	k.config = config
 	return loadClientFor(config)
 }
 

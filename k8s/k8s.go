@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/typed/apps/v1beta1"
 	"k8s.io/client-go/pkg/api/v1"
 	apps_api "k8s.io/client-go/pkg/apis/apps/v1beta1"
 	batch_v1 "k8s.io/client-go/pkg/apis/batch/v1"
@@ -886,7 +887,7 @@ func (k *k8sOps) GetDeployment(name, namespace string) (*apps_api.Deployment, er
 		return nil, err
 	}
 
-	return k.client.Apps().Deployments(namespace).Get(name, meta_v1.GetOptions{})
+	return k.appsClient().Deployments(namespace).Get(name, meta_v1.GetOptions{})
 }
 
 func (k *k8sOps) CreateDeployment(deployment *apps_api.Deployment) (*apps_api.Deployment, error) {
@@ -899,7 +900,7 @@ func (k *k8sOps) CreateDeployment(deployment *apps_api.Deployment) (*apps_api.De
 		ns = v1.NamespaceDefault
 	}
 
-	return k.client.Apps().Deployments(ns).Create(deployment)
+	return k.appsClient().Deployments(ns).Create(deployment)
 }
 
 func (k *k8sOps) DeleteDeployment(name, namespace string) error {
@@ -907,7 +908,7 @@ func (k *k8sOps) DeleteDeployment(name, namespace string) error {
 		return err
 	}
 
-	return k.client.Apps().Deployments(namespace).Delete(name, &meta_v1.DeleteOptions{
+	return k.appsClient().Deployments(namespace).Delete(name, &meta_v1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
 }
@@ -916,7 +917,7 @@ func (k *k8sOps) DescribeDeployment(depName string, depNamespace string) (*apps_
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
-	dep, err := k.client.Apps().Deployments(depNamespace).Get(depName, meta_v1.GetOptions{})
+	dep, err := k.appsClient().Deployments(depNamespace).Get(depName, meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -927,7 +928,7 @@ func (k *k8sOps) UpdateDeployment(deployment *apps_api.Deployment) (*apps_api.De
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
-	return k.client.Apps().Deployments(deployment.Namespace).Update(deployment)
+	return k.appsClient().Deployments(deployment.Namespace).Update(deployment)
 }
 
 func (k *k8sOps) ValidateDeployment(deployment *apps_api.Deployment) error {
@@ -936,7 +937,7 @@ func (k *k8sOps) ValidateDeployment(deployment *apps_api.Deployment) error {
 			return "", true, err
 		}
 
-		dep, err := k.client.Apps().Deployments(deployment.Namespace).Get(deployment.Name, meta_v1.GetOptions{})
+		dep, err := k.appsClient().Deployments(deployment.Namespace).Get(deployment.Name, meta_v1.GetOptions{})
 		if err != nil {
 			return "", true, err
 		}
@@ -1034,7 +1035,7 @@ func (k *k8sOps) ValidateTerminatedDeployment(deployment *apps_api.Deployment) e
 			return "", true, err
 		}
 
-		dep, err := k.client.Apps().Deployments(deployment.Namespace).Get(deployment.Name, meta_v1.GetOptions{})
+		dep, err := k.appsClient().Deployments(deployment.Namespace).Get(deployment.Name, meta_v1.GetOptions{})
 		if err != nil {
 			if matched, _ := regexp.MatchString(".+ not found", err.Error()); matched {
 				return "", true, nil
@@ -1092,7 +1093,7 @@ func (k *k8sOps) GetDeploymentsUsingStorageClass(scName string) ([]apps_api.Depl
 		return nil, err
 	}
 
-	deps, err := k.client.Apps().Deployments("").List(meta_v1.ListOptions{})
+	deps, err := k.appsClient().Deployments("").List(meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -1338,7 +1339,7 @@ func (k *k8sOps) GetStatefulSet(name, namespace string) (*apps_api.StatefulSet, 
 		return nil, err
 	}
 
-	return k.client.Apps().StatefulSets(namespace).Get(name, meta_v1.GetOptions{})
+	return k.appsClient().StatefulSets(namespace).Get(name, meta_v1.GetOptions{})
 }
 
 func (k *k8sOps) CreateStatefulSet(statefulset *apps_api.StatefulSet) (*apps_api.StatefulSet, error) {
@@ -1351,7 +1352,7 @@ func (k *k8sOps) CreateStatefulSet(statefulset *apps_api.StatefulSet) (*apps_api
 		ns = v1.NamespaceDefault
 	}
 
-	return k.client.Apps().StatefulSets(ns).Create(statefulset)
+	return k.appsClient().StatefulSets(ns).Create(statefulset)
 }
 
 func (k *k8sOps) DeleteStatefulSet(name, namespace string) error {
@@ -1359,7 +1360,7 @@ func (k *k8sOps) DeleteStatefulSet(name, namespace string) error {
 		return err
 	}
 
-	return k.client.Apps().StatefulSets(namespace).Delete(name, &meta_v1.DeleteOptions{
+	return k.appsClient().StatefulSets(namespace).Delete(name, &meta_v1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
 }
@@ -1368,7 +1369,7 @@ func (k *k8sOps) DescribeStatefulSet(ssetName string, ssetNamespace string) (*ap
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
-	sset, err := k.client.Apps().StatefulSets(ssetNamespace).Get(ssetName, meta_v1.GetOptions{})
+	sset, err := k.appsClient().StatefulSets(ssetNamespace).Get(ssetName, meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -1379,7 +1380,7 @@ func (k *k8sOps) UpdateStatefulSet(statefulset *apps_api.StatefulSet) (*apps_api
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
-	return k.client.Apps().StatefulSets(statefulset.Namespace).Update(statefulset)
+	return k.appsClient().StatefulSets(statefulset.Namespace).Update(statefulset)
 }
 
 func (k *k8sOps) ValidateStatefulSet(statefulset *apps_api.StatefulSet, timeout time.Duration) error {
@@ -1387,7 +1388,7 @@ func (k *k8sOps) ValidateStatefulSet(statefulset *apps_api.StatefulSet, timeout 
 		if err := k.initK8sClient(); err != nil {
 			return "", true, err
 		}
-		sset, err := k.client.Apps().StatefulSets(statefulset.Namespace).Get(statefulset.Name, meta_v1.GetOptions{})
+		sset, err := k.appsClient().StatefulSets(statefulset.Namespace).Get(statefulset.Name, meta_v1.GetOptions{})
 		if err != nil {
 			return "", true, err
 		}
@@ -1454,7 +1455,7 @@ func (k *k8sOps) ValidateTerminatedStatefulSet(statefulset *apps_api.StatefulSet
 			return "", true, err
 		}
 
-		sset, err := k.client.Apps().StatefulSets(statefulset.Namespace).Get(statefulset.Name, meta_v1.GetOptions{})
+		sset, err := k.appsClient().StatefulSets(statefulset.Namespace).Get(statefulset.Name, meta_v1.GetOptions{})
 		if err != nil {
 			if matched, _ := regexp.MatchString(".+ not found", err.Error()); matched {
 				return "", false, nil
@@ -1492,7 +1493,7 @@ func (k *k8sOps) GetStatefulSetsUsingStorageClass(scName string) ([]apps_api.Sta
 		return nil, err
 	}
 
-	ss, err := k.client.Apps().StatefulSets("").List(meta_v1.ListOptions{})
+	ss, err := k.appsClient().StatefulSets("").List(meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -2215,9 +2216,9 @@ func (k *k8sOps) ListEvents(namespace string, opts meta_v1.ListOptions) (*v1.Eve
 	return k.client.CoreV1().Events(namespace).List(opts)
 }
 
-//func (k *k8sOps) appsClient() appsv1beta1.AppsV1beta1Interface {
-//	return k.client.Apps()
-//}
+func (k *k8sOps) appsClient() v1beta1.AppsV1beta1Interface {
+	return k.client.Apps()
+}
 
 // getK8sClient instantiates a k8s client
 func (k *k8sOps) getK8sClient() (*kubernetes.Clientset, *rest.RESTClient, error) {

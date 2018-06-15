@@ -225,8 +225,13 @@ type RBACOps interface {
 
 // PodOps is an interface to perform k8s pod operations
 type PodOps interface {
+	// CreatePod creates pods for the given namespace
+	CreatePod(*v1.Pod) (*v1.Pod, error)
 	// GetPods returns pods for the given namespace
 	GetPods(string) (*v1.PodList, error)
+	// GetPodsByNode returns all pods in given namespace and given k8s node name.
+	// 	  If namespace is empty, it will return pods from all namespaces
+	GetPodsByNode(nodeName, namespace string) (*v1.PodList, error)
 	// GetPodsByOwner returns pods for the given owner and namespace
 	GetPodsByOwner(types.UID, string) ([]v1.Pod, error)
 	// GetPodsUsingPV returns all pods in cluster using given pv
@@ -256,6 +261,8 @@ type PodOps interface {
 	WaitForPodDeletion(uid types.UID, namespace string, timeout time.Duration) error
 	// RunCommandInPod runs given command in the given pod
 	RunCommandInPod(cmds []string, podName, containerName, namespace string) (string, error)
+	// ValidateDeletedPod validates if given pod is deleted
+	ValidateDeletedPod(string, string) error
 }
 
 // StorageClassOps is an interface to perform k8s storage class operations
@@ -1637,6 +1644,19 @@ func (k *k8sOps) DeleteServiceAccount(accountName, namespace string) error {
 
 // Pod APIs - BEGIN
 
+func (k *k8sOps) CreatePod(pod *v1.Pod) (*v1.Pod, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	ns := pod.Namespace
+	if len(ns) == 0 {
+		ns = v1.NamespaceDefault
+	}
+
+	return k.client.CoreV1().Pods(ns).Create(pod)
+}
+
 func (k *k8sOps) DeletePods(pods []v1.Pod, force bool) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
@@ -1663,6 +1683,18 @@ func (k *k8sOps) GetPods(namespace string) (*v1.PodList, error) {
 	}
 
 	return k.client.CoreV1().Pods(namespace).List(meta_v1.ListOptions{})
+}
+
+func (k *k8sOps) GetPodsByNode(nodeName, namespace string) (*v1.PodList, error) {
+	if len(nodeName) == 0 {
+		return nil, fmt.Errorf("node name is required for this API")
+	}
+
+	listOptions := meta_v1.ListOptions{
+		FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
+	}
+
+	return k.getPodsWithListOptions(namespace, listOptions)
 }
 
 func (k *k8sOps) GetPodsByOwner(ownerUID types.UID, namespace string) ([]v1.Pod, error) {
@@ -1860,6 +1892,26 @@ func (k *k8sOps) IsPodBeingManaged(pod v1.Pod) bool {
 	}
 
 	return false
+}
+
+func (k *k8sOps) ValidateDeletedPod(podName string, podNS string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	if podName == "" {
+		return fmt.Errorf("cannot validate pod without service pod")
+	}
+
+	_, err := k.client.CoreV1().Pods(podNS).Get(podName, meta_v1.GetOptions{})
+	if err != nil {
+		if matched, _ := regexp.MatchString(".+ not found", err.Error()); matched {
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }
 
 // StorageClass APIs - BEGIN

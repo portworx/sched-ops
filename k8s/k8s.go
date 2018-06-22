@@ -268,6 +268,8 @@ type PodOps interface {
 	GetPodsUsingVolumePlugin(plugin string) ([]v1.Pod, error)
 	// GetPodsUsingVolumePluginByNodeName returns all pods who use PVCs provided by the given volume plugin on the given node
 	GetPodsUsingVolumePluginByNodeName(nodeName, plugin string) ([]v1.Pod, error)
+	// GetPodByName returns pod for the given pod name and namespace
+	GetPodByName(string, string) (*v1.Pod, error)
 	// GetPodByUID returns pod with the given UID, or error if nothing found
 	GetPodByUID(types.UID, string) (*v1.Pod, error)
 	// DeletePods deletes the given pods
@@ -1906,6 +1908,22 @@ func (k *k8sOps) listPluginPodsWithOptions(opts meta_v1.ListOptions, plugin stri
 	}
 
 	return retList, nil
+}
+
+func (k *k8sOps) GetPodByName(podName string, namespace string) (*v1.Pod, error) {
+	pods, err := k.GetPods(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+
+	for _, pod := range pods.Items {
+		if pod.Name == podName {
+			return &pod, nil
+		}
+	}
+
+	return nil, ErrPodsNotFound
 }
 
 func (k *k8sOps) GetPodByUID(uid types.UID, namespace string) (*v1.Pod, error) {

@@ -1911,7 +1911,10 @@ func (k *k8sOps) listPluginPodsWithOptions(opts meta_v1.ListOptions, plugin stri
 }
 
 func (k *k8sOps) GetPodByName(podName string, namespace string) (*v1.Pod, error) {
-	pod, err := k.client.CoreV1().Pods(namespace).Get(podName, meta_v1.GetOptions{})
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+        pod, err := k.client.CoreV1().Pods(namespace).Get(podName, meta_v1.GetOptions{})
 	if err != nil {
 		return nil, ErrPodsNotFound
 	}

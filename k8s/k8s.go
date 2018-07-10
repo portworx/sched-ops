@@ -1259,6 +1259,13 @@ func (k *k8sOps) ValidateDaemonSet(name, namespace string, timeout time.Duration
 			}
 		}
 
+		if ds.Status.ObservedGeneration == 0 {
+			return "", true, &ErrAppNotReady{
+				ID:    name,
+				Cause: "Observed generation is still 0. Check back status after some time",
+			}
+		}
+
 		podsOverviewString := k.generatePodsOverviewString(pods)
 
 		if ds.Status.DesiredNumberScheduled != ds.Status.UpdatedNumberScheduled {

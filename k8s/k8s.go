@@ -360,7 +360,7 @@ type SnapshotOps interface {
 type StorkRuleOps interface {
 	// GetStorkRule fetches the given stork rule
 	GetStorkRule(name, namespace string) (*v1alpha1.StorkRule, error)
-	// CreateStorkRule creaets the given stork rule
+	// CreateStorkRule creates the given stork rule
 	CreateStorkRule(rule *v1alpha1.StorkRule) (*v1alpha1.StorkRule, error)
 	// DeleteStorkRule deletes the given stork rule
 	DeleteStorkRule(name, namespace string) error
@@ -2406,8 +2406,6 @@ func (k *k8sOps) DeleteSnapshotData(name string) error {
 // Snapshot APIs - END
 
 // StorkRule APIs - BEGIN
-
-// StorkRule APIs - END
 func (k *k8sOps) GetStorkRule(name, namespace string) (*v1alpha1.StorkRule, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, nil
@@ -2433,6 +2431,8 @@ func (k *k8sOps) DeleteStorkRule(name, namespace string) error {
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
 }
+
+// StorkRule APIs - END
 
 // Secret APIs - BEGIN
 
@@ -2597,7 +2597,8 @@ func (k *k8sOps) getK8sClient() (*kubernetes.Clientset, *rest.RESTClient, storkc
 }
 
 // loadClientFromServiceAccount loads a k8s client from a ServiceAccount specified in the pod running px
-func (k *k8sOps) loadClientFromServiceAccount() (*kubernetes.Clientset, *rest.RESTClient, storkclientset.Interface, error) {
+func (k *k8sOps) loadClientFromServiceAccount() (
+	*kubernetes.Clientset, *rest.RESTClient, storkclientset.Interface, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, nil, nil, err
@@ -2607,7 +2608,8 @@ func (k *k8sOps) loadClientFromServiceAccount() (*kubernetes.Clientset, *rest.RE
 	return loadClientFor(config)
 }
 
-func (k *k8sOps) loadClientFromKubeconfig(kubeconfig string) (*kubernetes.Clientset, *rest.RESTClient, storkclientset.Interface, error) {
+func (k *k8sOps) loadClientFromKubeconfig(kubeconfig string) (
+	*kubernetes.Clientset, *rest.RESTClient, storkclientset.Interface, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		return nil, nil, nil, err
@@ -2617,7 +2619,8 @@ func (k *k8sOps) loadClientFromKubeconfig(kubeconfig string) (*kubernetes.Client
 	return loadClientFor(config)
 }
 
-func loadClientFor(config *rest.Config) (*kubernetes.Clientset, *rest.RESTClient, storkclientset.Interface, error) {
+func loadClientFor(config *rest.Config) (
+	*kubernetes.Clientset, *rest.RESTClient, storkclientset.Interface, error) {
 	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, nil, nil, err

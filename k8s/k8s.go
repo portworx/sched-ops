@@ -13,6 +13,8 @@ import (
 
 	snap_v1 "github.com/kubernetes-incubator/external-storage/snapshot/pkg/apis/crd/v1"
 	snap_client "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client"
+	"github.com/libopenstorage/stork/pkg/apis/stork.com/v1alpha1"
+	storkclientset "github.com/libopenstorage/stork/pkg/client/clientset/versioned"
 	"github.com/portworx/sched-ops/task"
 	"github.com/sirupsen/logrus"
 	apps_api "k8s.io/api/apps/v1beta2"
@@ -354,6 +356,16 @@ type SnapshotOps interface {
 	DeleteSnapshotData(name string) error
 }
 
+// StorkRuleOps is an interface to perform operations for k8s stork rule
+type StorkRuleOps interface {
+	// GetStorkRule fetches the given stork rule
+	GetStorkRule(name, namespace string) (*v1alpha1.StorkRule, error)
+	// CreateStorkRule creates the given stork rule
+	CreateStorkRule(rule *v1alpha1.StorkRule) (*v1alpha1.StorkRule, error)
+	// DeleteStorkRule deletes the given stork rule
+	DeleteStorkRule(name, namespace string) error
+}
+
 // SecretOps is an interface to perform k8s Secret operations
 type SecretOps interface {
 	// GetSecret gets the secrets object given its name and namespace
@@ -386,9 +398,10 @@ var (
 )
 
 type k8sOps struct {
-	client     *kubernetes.Clientset
-	snapClient *rest.RESTClient
-	config     *rest.Config
+	client      *kubernetes.Clientset
+	snapClient  *rest.RESTClient
+	storkClient storkclientset.Interface
+	config      *rest.Config
 }
 
 // Instance returns a singleton instance of k8sOps type
@@ -402,7 +415,7 @@ func Instance() Ops {
 // Initialize the k8s client if uninitialized
 func (k *k8sOps) initK8sClient() error {
 	if k.client == nil {
-		k8sClient, snapClient, err := k.getK8sClient()
+		k8sClient, snapClient, storkClient, err := k.getK8sClient()
 		if err != nil {
 			return err
 		}
@@ -415,6 +428,7 @@ func (k *k8sOps) initK8sClient() error {
 
 		k.client = k8sClient
 		k.snapClient = snapClient
+		k.storkClient = storkClient
 	}
 	return nil
 }
@@ -2391,6 +2405,35 @@ func (k *k8sOps) DeleteSnapshotData(name string) error {
 
 // Snapshot APIs - END
 
+// StorkRule APIs - BEGIN
+func (k *k8sOps) GetStorkRule(name, namespace string) (*v1alpha1.StorkRule, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, nil
+	}
+
+	return k.storkClient.Stork().StorkRules(namespace).Get(name, meta_v1.GetOptions{})
+}
+
+func (k *k8sOps) CreateStorkRule(rule *v1alpha1.StorkRule) (*v1alpha1.StorkRule, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, nil
+	}
+
+	return k.storkClient.Stork().StorkRules(rule.GetNamespace()).Create(rule)
+}
+
+func (k *k8sOps) DeleteStorkRule(name, namespace string) error {
+	if err := k.initK8sClient(); err != nil {
+		return nil
+	}
+
+	return k.storkClient.Stork().StorkRules(namespace).Delete(name, &meta_v1.DeleteOptions{
+		PropagationPolicy: &deleteForegroundPolicy,
+	})
+}
+
+// StorkRule APIs - END
+
 // Secret APIs - BEGIN
 
 func (k *k8sOps) GetSecret(name string, namespace string) (*v1.Secret, error) {
@@ -2529,62 +2572,71 @@ func (k *k8sOps) appsClient() v1beta2.AppsV1beta2Interface {
 }
 
 // getK8sClient instantiates a k8s client
-func (k *k8sOps) getK8sClient() (*kubernetes.Clientset, *rest.RESTClient, error) {
+func (k *k8sOps) getK8sClient() (*kubernetes.Clientset, *rest.RESTClient, storkclientset.Interface, error) {
 	var k8sClient *kubernetes.Clientset
 	var restClient *rest.RESTClient
+	var storkClient storkclientset.Interface
 	var err error
 
 	kubeconfig := os.Getenv("KUBECONFIG")
 	if len(kubeconfig) > 0 {
-		k8sClient, restClient, err = k.loadClientFromKubeconfig(kubeconfig)
+		k8sClient, restClient, storkClient, err = k.loadClientFromKubeconfig(kubeconfig)
 	} else {
-		k8sClient, restClient, err = k.loadClientFromServiceAccount()
+		k8sClient, restClient, storkClient, err = k.loadClientFromServiceAccount()
 	}
 
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if k8sClient == nil {
-		return nil, nil, ErrK8SApiAccountNotSet
+		return nil, nil, nil, ErrK8SApiAccountNotSet
 	}
 
-	return k8sClient, restClient, nil
+	return k8sClient, restClient, storkClient, nil
 }
 
 // loadClientFromServiceAccount loads a k8s client from a ServiceAccount specified in the pod running px
-func (k *k8sOps) loadClientFromServiceAccount() (*kubernetes.Clientset, *rest.RESTClient, error) {
+func (k *k8sOps) loadClientFromServiceAccount() (
+	*kubernetes.Clientset, *rest.RESTClient, storkclientset.Interface, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	k.config = config
 	return loadClientFor(config)
 }
 
-func (k *k8sOps) loadClientFromKubeconfig(kubeconfig string) (*kubernetes.Clientset, *rest.RESTClient, error) {
+func (k *k8sOps) loadClientFromKubeconfig(kubeconfig string) (
+	*kubernetes.Clientset, *rest.RESTClient, storkclientset.Interface, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	k.config = config
 	return loadClientFor(config)
 }
 
-func loadClientFor(config *rest.Config) (*kubernetes.Clientset, *rest.RESTClient, error) {
+func loadClientFor(config *rest.Config) (
+	*kubernetes.Clientset, *rest.RESTClient, storkclientset.Interface, error) {
 	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	snapClient, _, err := snap_client.NewClient(config)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return client, snapClient, nil
+	storkClient, err := storkclientset.NewForConfig(config)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return client, snapClient, storkClient, nil
 }
 
 func roundUpSize(volumeSizeBytes int64, allocationUnitBytes int64) int64 {

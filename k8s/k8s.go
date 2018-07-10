@@ -1244,6 +1244,13 @@ func (k *k8sOps) ValidateDaemonSet(name, namespace string, timeout time.Duration
 			return "", true, err
 		}
 
+		if ds.Status.ObservedGeneration == 0 {
+			return "", true, &ErrAppNotReady{
+				ID:    name,
+				Cause: "Observed generation is still 0. Check back status after some time",
+			}
+		}
+
 		pods, err := k.GetDaemonSetPods(ds)
 		if err != nil || pods == nil {
 			return "", true, &ErrAppNotReady{

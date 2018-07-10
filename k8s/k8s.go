@@ -70,6 +70,7 @@ type Ops interface {
 	StorageClassOps
 	PersistentVolumeClaimOps
 	SnapshotOps
+	StorkRuleOps
 	SecretOps
 	ConfigMapOps
 	EventOps

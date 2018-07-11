@@ -339,8 +339,12 @@ type PersistentVolumeClaimOps interface {
 type SnapshotOps interface {
 	// GetSnapshot returns the snapshot for given name and namespace
 	GetSnapshot(name string, namespace string) (*snap_v1.VolumeSnapshot, error)
+	// ListSnapshots lists all snapshots in the given namespace
+	ListSnapshots(namespace string) (*snap_v1.VolumeSnapshotList, error)
 	// CreateSnapshot creates the given snapshot
 	CreateSnapshot(*snap_v1.VolumeSnapshot) (*snap_v1.VolumeSnapshot, error)
+	// UpdateSnapshot updates the given snapshot
+	UpdateSnapshot(*snap_v1.VolumeSnapshot) (*snap_v1.VolumeSnapshot, error)
 	// DeleteSnapshot deletes the given snapshot
 	DeleteSnapshot(name string, namespace string) error
 	// ValidateSnapshot validates the given snapshot
@@ -2289,6 +2293,23 @@ func (k *k8sOps) CreateSnapshot(snap *snap_v1.VolumeSnapshot) (*snap_v1.VolumeSn
 	return &result, nil
 }
 
+func (k *k8sOps) UpdateSnapshot(snap *snap_v1.VolumeSnapshot) (*snap_v1.VolumeSnapshot, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	var result snap_v1.VolumeSnapshot
+	if err := k.snapClient.Put().
+		Name(snap.Metadata.Name).
+		Resource(snap_v1.VolumeSnapshotResourcePlural).
+		Namespace(snap.Metadata.Namespace).
+		Body(snap).
+		Do().Into(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 func (k *k8sOps) DeleteSnapshot(name string, namespace string) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
@@ -2351,6 +2372,22 @@ func (k *k8sOps) GetSnapshot(name string, namespace string) (*snap_v1.VolumeSnap
 	var result snap_v1.VolumeSnapshot
 	if err := k.snapClient.Get().
 		Name(name).
+		Resource(snap_v1.VolumeSnapshotResourcePlural).
+		Namespace(namespace).
+		Do().Into(&result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (k *k8sOps) ListSnapshots(namespace string) (*snap_v1.VolumeSnapshotList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	var result snap_v1.VolumeSnapshotList
+	if err := k.snapClient.Get().
 		Resource(snap_v1.VolumeSnapshotResourcePlural).
 		Namespace(namespace).
 		Do().Into(&result); err != nil {

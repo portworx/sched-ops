@@ -47,6 +47,8 @@ const (
 	validateStatefulSetPVCTimeout = 15 * time.Minute
 	validatePVCTimeout            = 5 * time.Minute
 	validatePVCRetryInterval      = 10 * time.Second
+	validateSnapshotTimeout       = 5 * time.Minute
+	validateSnapshotRetryInterval = 10 * time.Second
 )
 
 var deleteForegroundPolicy = meta_v1.DeletePropagationForeground
@@ -347,8 +349,8 @@ type SnapshotOps interface {
 	UpdateSnapshot(*snap_v1.VolumeSnapshot) (*snap_v1.VolumeSnapshot, error)
 	// DeleteSnapshot deletes the given snapshot
 	DeleteSnapshot(name string, namespace string) error
-	// ValidateSnapshot validates the given snapshot
-	ValidateSnapshot(name string, namespace string) error
+	// ValidateSnapshot validates the given snapshot.
+	ValidateSnapshot(name string, namespace string, retry bool) error
 	// GetVolumeForSnapshot returns the volumeID for the given snapshot
 	GetVolumeForSnapshot(name string, namespace string) (string, error)
 	// GetSnapshotStatus returns the status of the given snapshot
@@ -2321,7 +2323,7 @@ func (k *k8sOps) DeleteSnapshot(name string, namespace string) error {
 		Do().Error()
 }
 
-func (k *k8sOps) ValidateSnapshot(name string, namespace string) error {
+func (k *k8sOps) ValidateSnapshot(name string, namespace string, retry bool) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
 	}
@@ -2333,9 +2335,9 @@ func (k *k8sOps) ValidateSnapshot(name string, namespace string) error {
 
 		for _, condition := range status.Conditions {
 			if condition.Type == snap_v1.VolumeSnapshotConditionReady && condition.Status == v1.ConditionTrue {
-				return "", true, nil
+				return "", false, nil
 			} else if condition.Type == snap_v1.VolumeSnapshotConditionError && condition.Status == v1.ConditionTrue {
-				return "", true, &ErrSnapshotFailed{
+				return "", false, &ErrSnapshotFailed{
 					ID:    name,
 					Cause: fmt.Sprintf("Snapshot Status %v", status),
 				}
@@ -2348,8 +2350,14 @@ func (k *k8sOps) ValidateSnapshot(name string, namespace string) error {
 		}
 	}
 
-	if _, err := task.DoRetryWithTimeout(t, 5*time.Minute, 10*time.Second); err != nil {
-		return err
+	if retry {
+		if _, err := task.DoRetryWithTimeout(t, validateSnapshotTimeout, validateSnapshotRetryInterval); err != nil {
+			return err
+		}
+	} else {
+		if _, _, err := t(); err != nil {
+			return err
+		}
 	}
 
 	return nil

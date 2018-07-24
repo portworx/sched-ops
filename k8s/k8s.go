@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -24,6 +23,7 @@ import (
 	storage_api "k8s.io/api/storage/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -283,6 +283,8 @@ type PodOps interface {
 	GetPodByName(string, string) (*v1.Pod, error)
 	// GetPodByUID returns pod with the given UID, or error if nothing found
 	GetPodByUID(types.UID, string) (*v1.Pod, error)
+	// DeletePod deletes the given pod
+	DeletePod(string, string, bool) error
 	// DeletePods deletes the given pods
 	DeletePods([]v1.Pod, bool) error
 	// IsPodRunning checks if all containers in a pod are in running state
@@ -407,6 +409,7 @@ type ConfigMapOps interface {
 	UpdateConfigMap(configMap *v1.ConfigMap) (*v1.ConfigMap, error)
 }
 
+// CRDOps is an interface to perfrom k8s Customer Resource operations
 type CRDOps interface {
 	// CreateCRD creates the given custom resource
 	CreateCRD(resource CustomResource) error
@@ -988,7 +991,7 @@ func (k *k8sOps) ValidateDeletedService(svcName string, svcNS string) error {
 
 	_, err := k.client.CoreV1().Services(svcNS).Get(svcName, meta_v1.GetOptions{})
 	if err != nil {
-		if matched, _ := regexp.MatchString(".+ not found", err.Error()); matched {
+		if !errors.IsNotFound(err) {
 			return nil
 		}
 		return err
@@ -1145,7 +1148,7 @@ func (k *k8sOps) ValidateTerminatedDeployment(deployment *apps_api.Deployment) e
 	t := func() (interface{}, bool, error) {
 		dep, err := k.GetDeployment(deployment.Name, deployment.Namespace)
 		if err != nil {
-			if matched, _ := regexp.MatchString(".+ not found", err.Error()); matched {
+			if !errors.IsNotFound(err) {
 				return "", true, nil
 			}
 			return "", true, err
@@ -1567,7 +1570,7 @@ func (k *k8sOps) ValidateTerminatedStatefulSet(statefulset *apps_api.StatefulSet
 	t := func() (interface{}, bool, error) {
 		sset, err := k.GetStatefulSet(statefulset.Name, statefulset.Namespace)
 		if err != nil {
-			if matched, _ := regexp.MatchString(".+ not found", err.Error()); matched {
+			if !errors.IsNotFound(err) {
 				return "", false, nil
 			}
 
@@ -1806,6 +1809,16 @@ func (k *k8sOps) DeleteServiceAccount(accountName, namespace string) error {
 // Pod APIs - BEGIN
 
 func (k *k8sOps) DeletePods(pods []v1.Pod, force bool) error {
+	for _, pod := range pods {
+		if err := k.DeletePod(pod.Name, pod.Namespace, force); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (k *k8sOps) DeletePod(name string, ns string, force bool) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
 	}
@@ -1816,13 +1829,7 @@ func (k *k8sOps) DeletePods(pods []v1.Pod, force bool) error {
 		deleteOptions.GracePeriodSeconds = &gracePeriodSec
 	}
 
-	for _, pod := range pods {
-		if err := k.client.CoreV1().Pods(pod.Namespace).Delete(pod.Name, &deleteOptions); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return k.client.CoreV1().Pods(ns).Delete(name, &deleteOptions)
 }
 
 func (k *k8sOps) CreatePod(pod *v1.Pod) (*v1.Pod, error) {

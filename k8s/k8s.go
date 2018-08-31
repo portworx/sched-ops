@@ -2089,7 +2089,7 @@ func (k *k8sOps) ValidatePod(pod *v1.Pod) error {
 
 		ready := k.IsPodReady(*currPod)
 		if !ready {
-			return "", true, fmt.Errorf("Pod %s, ID: %s  is not ready. Status %v", pod.Name, pod.UID, pod.Status.Phase)
+			return "", true, fmt.Errorf("Pod %s, ID: %s  is not ready. Status %v", currPod.Name, currPod.UID, currPod.Status.Phase)
 		}
 
 		return "", false, nil

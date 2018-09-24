@@ -429,16 +429,20 @@ type ClusterPairOps interface {
 	CreateClusterPair(*v1alpha1.ClusterPair) error
 	// GetClusterPair gets the ClusterPair
 	GetClusterPair(string) (*v1alpha1.ClusterPair, error)
+	// ListClusterPairs gets all the ClusterPairs
+	ListClusterPairs() (*v1alpha1.ClusterPairList, error)
 	// DeleteClusterPair deletes the ClusterPair
 	DeleteClusterPair(string) error
 }
 
-// MigrationsOps is an interface to perfrom k8s Migration operations
+// MigrationOps is an interface to perfrom k8s Migration operations
 type MigrationOps interface {
 	// CreateMigration creates the Migration
 	CreateMigration(*v1alpha1.Migration) error
 	// GetMigration gets the Migration
 	GetMigration(string, string) (*v1alpha1.Migration, error)
+	// ListMigrations lists all the Migration
+	ListMigrations(string) (*v1alpha1.MigrationList, error)
 	// UpdateMigration updates the Migration
 	UpdateMigration(*v1alpha1.Migration) (*v1alpha1.Migration, error)
 	// DeleteMigration deletes the Migration
@@ -2746,15 +2750,23 @@ func (k *k8sOps) UpdateConfigMap(configMap *v1.ConfigMap) (*v1.ConfigMap, error)
 // ClusterPair APIs - BEGIN
 func (k *k8sOps) GetClusterPair(name string) (*v1alpha1.ClusterPair, error) {
 	if err := k.initK8sClient(); err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	return k.storkClient.Stork().ClusterPairs().Get(name, meta_v1.GetOptions{})
 }
 
+func (k *k8sOps) ListClusterPairs() (*v1alpha1.ClusterPairList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ClusterPairs().List(meta_v1.ListOptions{})
+}
+
 func (k *k8sOps) CreateClusterPair(pair *v1alpha1.ClusterPair) error {
 	if err := k.initK8sClient(); err != nil {
-		return nil
+		return err
 	}
 
 	_, err := k.storkClient.Stork().ClusterPairs().Create(pair)
@@ -2763,7 +2775,7 @@ func (k *k8sOps) CreateClusterPair(pair *v1alpha1.ClusterPair) error {
 
 func (k *k8sOps) DeleteClusterPair(name string) error {
 	if err := k.initK8sClient(); err != nil {
-		return nil
+		return err
 	}
 
 	return k.storkClient.Stork().ClusterPairs().Delete(name, &meta_v1.DeleteOptions{
@@ -2776,15 +2788,23 @@ func (k *k8sOps) DeleteClusterPair(name string) error {
 // Migration APIs - BEGIN
 func (k *k8sOps) GetMigration(name string, namespace string) (*v1alpha1.Migration, error) {
 	if err := k.initK8sClient(); err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	return k.storkClient.Stork().Migrations(namespace).Get(name, meta_v1.GetOptions{})
 }
 
+func (k *k8sOps) ListMigrations(namespace string) (*v1alpha1.MigrationList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().Migrations(namespace).List(meta_v1.ListOptions{})
+}
+
 func (k *k8sOps) CreateMigration(migration *v1alpha1.Migration) error {
 	if err := k.initK8sClient(); err != nil {
-		return nil
+		return err
 	}
 
 	_, err := k.storkClient.Stork().Migrations(migration.Namespace).Create(migration)
@@ -2793,7 +2813,7 @@ func (k *k8sOps) CreateMigration(migration *v1alpha1.Migration) error {
 
 func (k *k8sOps) DeleteMigration(name string, namespace string) error {
 	if err := k.initK8sClient(); err != nil {
-		return nil
+		return err
 	}
 
 	return k.storkClient.Stork().Migrations(namespace).Delete(name, &meta_v1.DeleteOptions{
@@ -2803,7 +2823,7 @@ func (k *k8sOps) DeleteMigration(name string, namespace string) error {
 
 func (k *k8sOps) UpdateMigration(migration *v1alpha1.Migration) (*v1alpha1.Migration, error) {
 	if err := k.initK8sClient(); err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	return k.storkClient.Stork().Migrations(migration.Namespace).Update(migration)

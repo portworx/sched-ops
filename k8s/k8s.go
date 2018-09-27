@@ -430,13 +430,13 @@ type MigrationOps interface {
 	// CreateMigration creates the Migration
 	CreateMigration(*v1alpha1.Migration) error
 	// GetMigration gets the Migration
-	GetMigration(string, string) (*v1alpha1.Migration, error)
+	GetMigration(string) (*v1alpha1.Migration, error)
 	// ListMigrations lists all the Migration
-	ListMigrations(string) (*v1alpha1.MigrationList, error)
+	ListMigrations() (*v1alpha1.MigrationList, error)
 	// UpdateMigration updates the Migration
 	UpdateMigration(*v1alpha1.Migration) (*v1alpha1.Migration, error)
 	// DeleteMigration deletes the Migration
-	DeleteMigration(string, string) error
+	DeleteMigration(string) error
 }
 
 // CustomResource is for creating a Kubernetes TPR/CRD
@@ -2789,20 +2789,20 @@ func (k *k8sOps) DeleteClusterPair(name string) error {
 // ClusterPair APIs - END
 
 // Migration APIs - BEGIN
-func (k *k8sOps) GetMigration(name string, namespace string) (*v1alpha1.Migration, error) {
+func (k *k8sOps) GetMigration(name string) (*v1alpha1.Migration, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
 
-	return k.storkClient.Stork().Migrations(namespace).Get(name, meta_v1.GetOptions{})
+	return k.storkClient.Stork().Migrations().Get(name, meta_v1.GetOptions{})
 }
 
-func (k *k8sOps) ListMigrations(namespace string) (*v1alpha1.MigrationList, error) {
+func (k *k8sOps) ListMigrations() (*v1alpha1.MigrationList, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
 
-	return k.storkClient.Stork().Migrations(namespace).List(meta_v1.ListOptions{})
+	return k.storkClient.Stork().Migrations().List(meta_v1.ListOptions{})
 }
 
 func (k *k8sOps) CreateMigration(migration *v1alpha1.Migration) error {
@@ -2810,16 +2810,16 @@ func (k *k8sOps) CreateMigration(migration *v1alpha1.Migration) error {
 		return err
 	}
 
-	_, err := k.storkClient.Stork().Migrations(migration.Namespace).Create(migration)
+	_, err := k.storkClient.Stork().Migrations().Create(migration)
 	return err
 }
 
-func (k *k8sOps) DeleteMigration(name string, namespace string) error {
+func (k *k8sOps) DeleteMigration(name string) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
 	}
 
-	return k.storkClient.Stork().Migrations(namespace).Delete(name, &meta_v1.DeleteOptions{
+	return k.storkClient.Stork().Migrations().Delete(name, &meta_v1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
 }
@@ -2829,7 +2829,7 @@ func (k *k8sOps) UpdateMigration(migration *v1alpha1.Migration) (*v1alpha1.Migra
 		return nil, err
 	}
 
-	return k.storkClient.Stork().Migrations(migration.Namespace).Update(migration)
+	return k.storkClient.Stork().Migrations().Update(migration)
 }
 
 // Migration APIs - END

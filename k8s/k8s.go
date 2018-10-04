@@ -74,6 +74,7 @@ type Ops interface {
 	CRDOps
 	ClusterPairOps
 	MigrationOps
+	SetConfig(config *rest.Config)
 }
 
 // EventOps is an interface to put and get k8s events
@@ -479,6 +480,12 @@ func Instance() Ops {
 		instance = &k8sOps{}
 	})
 	return instance
+}
+
+func (k *k8sOps) SetConfig(config *rest.Config) {
+	// Set the config and reset the client
+	k.config = config
+	k.client = nil
 }
 
 // Initialize the k8s client if uninitialized
@@ -2913,13 +2920,17 @@ func (k *k8sOps) appsClient() v1beta2.AppsV1beta2Interface {
 func (k *k8sOps) setK8sClient() error {
 	var err error
 
-	kubeconfig := os.Getenv("KUBECONFIG")
-	if len(kubeconfig) > 0 {
-		err = k.loadClientFromKubeconfig(kubeconfig)
+	if k.config != nil {
+		err = k.loadClientFor(k.config)
 	} else {
-		err = k.loadClientFromServiceAccount()
-	}
+		kubeconfig := os.Getenv("KUBECONFIG")
+		if len(kubeconfig) > 0 {
+			err = k.loadClientFromKubeconfig(kubeconfig)
+		} else {
+			err = k.loadClientFromServiceAccount()
+		}
 
+	}
 	if err != nil {
 		return err
 	}

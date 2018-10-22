@@ -115,3 +115,15 @@ type ErrSnapshotDataFailed struct {
 func (e *ErrSnapshotDataFailed) Error() string {
 	return fmt.Sprintf("SnapshotData %v has failed. Cause: %v", e.ID, e.Cause)
 }
+
+// ErrFailedToApplyCustomSpec error type when CRD objects does not applied successfully
+type ErrFailedToApplyCustomSpec struct {
+	// Name of CRD object
+	Name string
+	// Cause is the underlying cause of the error
+	Cause string
+}
+
+func (e *ErrFailedToApplyCustomSpec) Error() string {
+	return fmt.Sprintf("Failed to apply custom spec : %v due to err: %v", e.Name, e.Cause)
+}

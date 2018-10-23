@@ -447,7 +447,7 @@ type MigrationOps interface {
 	// DeleteMigration deletes the Migration
 	DeleteMigration(string) error
 	// ValidateMigration validate the Migration status
-	ValidateMigration(name string, namespace string, timeout, retryInterval time.Duration)
+	ValidateMigration(name string, timeout, retryInterval time.Duration) error
 }
 
 // ObjectOps is an interface to perform generic Object operations
@@ -2822,18 +2822,22 @@ func (k *k8sOps) ValidateClusterPair(name string, timeout, retryInterval time.Du
 			return "", true, err
 		}
 
-		if clusterPair.Status.SchedulerStatus == v1alpha1.ClusterPairStatusReady && clusterPair.Status.StorageStatus == v1alpha1.ClusterPairStatusReady {
+		if clusterPair.Status.SchedulerStatus == v1alpha1.ClusterPairStatusReady &&
+			clusterPair.Status.StorageStatus == v1alpha1.ClusterPairStatusReady {
 			return "", false, nil
-		} else if clusterPair.Status.SchedulerStatus == v1alpha1.ClusterPairStatusError || clusterPair.Status.StorageStatus == v1alpha1.ClusterPairStatusError {
-			return "", true, &ErrFailedToApplyCustomSpec{
+		} else if clusterPair.Status.SchedulerStatus == v1alpha1.ClusterPairStatusError ||
+			clusterPair.Status.StorageStatus == v1alpha1.ClusterPairStatusError {
+			return "", true, &ErrFailedToValidateCustomSpec{
 				Name:  name,
 				Cause: fmt.Sprintf("Storage Status %v \t Schedular Status %v", clusterPair.Status.StorageStatus, clusterPair.Status.SchedulerStatus),
+				Type:  clusterPair,
 			}
 		}
 
-		return "", true, &ErrFailedToApplyCustomSpec{
+		return "", true, &ErrFailedToValidateCustomSpec{
 			Name:  name,
 			Cause: fmt.Sprintf("Storage Status %v \t Schedular Status %v", clusterPair.Status.StorageStatus, clusterPair.Status.SchedulerStatus),
+			Type:  clusterPair,
 		}
 	}
 
@@ -2890,12 +2894,12 @@ func (k *k8sOps) UpdateMigration(migration *v1alpha1.Migration) (*v1alpha1.Migra
 	return k.storkClient.Stork().Migrations().Update(migration)
 }
 
-func (k *k8sOps) ValidateMigration(name string, namespace string, timeout, retryInterval time.Duration) error {
+func (k *k8sOps) ValidateMigration(name string, timeout, retryInterval time.Duration) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
 	}
 	t := func() (interface{}, bool, error) {
-		resp, err := k.GetMigration(name, namespace)
+		resp, err := k.GetMigration(name)
 		if err != nil {
 			return "", true, err
 		}
@@ -2903,15 +2907,17 @@ func (k *k8sOps) ValidateMigration(name string, namespace string, timeout, retry
 		if resp.Status.Status == v1alpha1.MigrationStatusSuccessful {
 			return "", false, nil
 		} else if resp.Status.Status == v1alpha1.MigrationStatusFailed {
-			return "", true, &ErrFailedToApplyCustomSpec{
+			return "", true, &ErrFailedToValidateCustomSpec{
 				Name:  name,
 				Cause: fmt.Sprintf("Migration Status %v", resp.Status.Status),
+				Type:  resp,
 			}
 		}
 
-		return "", true, &ErrFailedToApplyCustomSpec{
+		return "", true, &ErrFailedToValidateCustomSpec{
 			Name:  name,
 			Cause: fmt.Sprintf("Migration Status %v", resp.Status.Status),
+			Type:  resp,
 		}
 	}
 

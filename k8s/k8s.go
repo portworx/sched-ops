@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -2950,7 +2949,7 @@ func (k *k8sOps) GetObject(object runtime.Object) (runtime.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	return client.Get(metadata.GetName(), metav1.GetOptions{}, "")
+	return client.Get(metadata.GetName(), meta_v1.GetOptions{}, "")
 }
 
 // UpdateObject updates a generic Object
@@ -2965,7 +2964,7 @@ func (k *k8sOps) UpdateObject(object runtime.Object) (runtime.Object, error) {
 		return nil, err
 	}
 
-	return client.Update(unstructured, "")
+	return client.Update(unstructured, meta_v1.UpdateOptions{})
 }
 
 // Object APIs - BEGIN

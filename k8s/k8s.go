@@ -485,7 +485,7 @@ var (
 
 type k8sOps struct {
 	client             *kubernetes.Clientset
-	snapClient         *rest.RESTClient
+	snapClient         rest.Interface
 	storkClient        storkclientset.Interface
 	apiExtensionClient apiextensionsclient.Interface
 	config             *rest.Config

@@ -81,6 +81,7 @@ type Ops interface {
 	MigrationOps
 	ObjectOps
 	SetConfig(config *rest.Config)
+	SetClient(client *kubernetes.Clientset, snapClient rest.Interface, storkClient storkclientset.Interface, apiExtensionClient apiextensionsclient.Interface, dynamicInterface dynamic.Interface)
 }
 
 // EventOps is an interface to put and get k8s events
@@ -516,6 +517,21 @@ func NewInstance(config string) (Ops, error) {
 		return nil, err
 	}
 	return newInstance, nil
+}
+
+// Set the k8s clients
+func (k *k8sOps) SetClient(
+	client *kubernetes.Clientset,
+	snapClient rest.Interface,
+	storkClient storkclientset.Interface,
+	apiExtensionClient apiextensionsclient.Interface,
+	dynamicInterface dynamic.Interface) {
+
+	k.client = client
+	k.snapClient = snapClient
+	k.storkClient = storkClient
+	k.apiExtensionClient = apiExtensionClient
+	k.dynamicInterface = dynamicInterface
 }
 
 // Initialize the k8s client if uninitialized

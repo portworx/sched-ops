@@ -15,6 +15,8 @@ import (
 	"github.com/libopenstorage/stork/pkg/apis/stork/v1alpha1"
 	storkclientset "github.com/libopenstorage/stork/pkg/client/clientset/versioned"
 	"github.com/portworx/sched-ops/task"
+	talisman_v1beta1 "github.com/portworx/talisman/pkg/apis/portworx/v1beta1"
+	talismanclientset "github.com/portworx/talisman/pkg/client/clientset/versioned"
 	"github.com/sirupsen/logrus"
 	apps_api "k8s.io/api/apps/v1beta2"
 	batch_v1 "k8s.io/api/batch/v1"
@@ -79,6 +81,7 @@ type Ops interface {
 	ClusterPairOps
 	MigrationOps
 	ObjectOps
+	VolumePlacementStrategyOps
 	SetConfig(config *rest.Config)
 	SetClient(client *kubernetes.Clientset, snapClient rest.Interface, storkClient storkclientset.Interface, apiExtensionClient apiextensionsclient.Interface, dynamicInterface dynamic.Interface)
 }
@@ -458,6 +461,20 @@ type ObjectOps interface {
 	UpdateObject(object runtime.Object) (runtime.Object, error)
 }
 
+// VolumePlacementStrategyOps is an interface to perform CRUD volume placememt strategy ops
+type VolumePlacementStrategyOps interface {
+	// CreateVolumePlacementStrategy creates a new volume placement strategy
+	CreateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlacementStrategy) (*talisman_v1beta1.VolumePlacementStrategy, error)
+	// UpdateVolumePlacementStrategy updates an existing volume placement strategy
+	UpdateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlacementStrategy) (*talisman_v1beta1.VolumePlacementStrategy, error)
+	// ListVolumePlacementStrategies lists all volume placement strategies in the given namespace
+	ListVolumePlacementStrategies(namespace string) (*talisman_v1beta1.VolumePlacementStrategyList, error)
+	// DeleteVolumePlacementStrategy deletes the volume placement strategy with given name and namespace
+	DeleteVolumePlacementStrategy(name, namespace string) error
+	// GetVolumePlacementStrategy returns the volume placememt strategy with given name and namespace
+	GetVolumePlacementStrategy(name, namespace string) (*talisman_v1beta1.VolumePlacementStrategy, error)
+}
+
 // CustomResource is for creating a Kubernetes TPR/CRD
 type CustomResource struct {
 	// Name of the custom resource
@@ -488,6 +505,7 @@ type k8sOps struct {
 	client             *kubernetes.Clientset
 	snapClient         rest.Interface
 	storkClient        storkclientset.Interface
+	talismanClient     talismanclientset.Interface
 	apiExtensionClient apiextensionsclient.Interface
 	config             *rest.Config
 	dynamicInterface   dynamic.Interface
@@ -3025,6 +3043,47 @@ func (k *k8sOps) ValidateCRD(resource CustomResource, timeout, retryInterval tim
 	})
 }
 
+func (k *k8sOps) CreateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlacementStrategy) (*talisman_v1beta1.VolumePlacementStrategy, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.talismanClient.Portworx().VolumePlacementStrategies(spec.Namespace).Create(spec)
+}
+
+func (k *k8sOps) UpdateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlacementStrategy) (*talisman_v1beta1.VolumePlacementStrategy, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.talismanClient.Portworx().VolumePlacementStrategies(spec.Namespace).Update(spec)
+}
+
+func (k *k8sOps) ListVolumePlacementStrategies(namespace string) (*talisman_v1beta1.VolumePlacementStrategyList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+	return k.talismanClient.Portworx().VolumePlacementStrategies(namespace).List(meta_v1.ListOptions{})
+}
+
+func (k *k8sOps) DeleteVolumePlacementStrategy(name, namespace string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	return k.talismanClient.Portworx().VolumePlacementStrategies(namespace).Delete(name, &meta_v1.DeleteOptions{
+		PropagationPolicy: &deleteForegroundPolicy,
+	})
+}
+
+func (k *k8sOps) GetVolumePlacementStrategy(name, namespace string) (*talisman_v1beta1.VolumePlacementStrategy, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.talismanClient.Portworx().VolumePlacementStrategies(namespace).Get(name, meta_v1.GetOptions{})
+}
+
 // CRD APIs - END
 
 // Object APIs - BEGIN
@@ -3134,6 +3193,11 @@ func (k *k8sOps) loadClientFor(config *rest.Config) error {
 	}
 
 	k.storkClient, err = storkclientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	k.talismanClient, err = talismanclientset.NewForConfig(config)
 	if err != nil {
 		return err
 	}

@@ -214,7 +214,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e465bb9e3f50884b552960a19521803b8b9b6cce13a2d941f6d247687b4be093"
+  digest = "1:4e4a4f1d3ab4e59ed026fe48cf970759f96d5b402cae3df9c64acd17ffa4cc90"
   name = "github.com/portworx/talisman"
   packages = [
     "pkg/apis/portworx",
@@ -224,7 +224,7 @@
     "pkg/client/clientset/versioned/typed/portworx/v1beta1",
   ]
   pruneopts = "UT"
-  revision = "89308cf6e4ffef3c0a9885e78456a6c030f05d98"
+  revision = "56fc42c9c1b202587de4e2a4566f9118440558cf"
 
 [[projects]]
   digest = "1:3f53e9e4dfbb664cd62940c9c4b65a2171c66acd0b7621a1a6b8e78513525a52"

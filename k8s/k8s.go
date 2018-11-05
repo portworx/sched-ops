@@ -467,12 +467,12 @@ type VolumePlacementStrategyOps interface {
 	CreateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlacementStrategy) (*talisman_v1beta1.VolumePlacementStrategy, error)
 	// UpdateVolumePlacementStrategy updates an existing volume placement strategy
 	UpdateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlacementStrategy) (*talisman_v1beta1.VolumePlacementStrategy, error)
-	// ListVolumePlacementStrategies lists all volume placement strategies in the given namespace
-	ListVolumePlacementStrategies(namespace string) (*talisman_v1beta1.VolumePlacementStrategyList, error)
-	// DeleteVolumePlacementStrategy deletes the volume placement strategy with given name and namespace
-	DeleteVolumePlacementStrategy(name, namespace string) error
-	// GetVolumePlacementStrategy returns the volume placememt strategy with given name and namespace
-	GetVolumePlacementStrategy(name, namespace string) (*talisman_v1beta1.VolumePlacementStrategy, error)
+	// ListVolumePlacementStrategies lists all volume placement strategies
+	ListVolumePlacementStrategies() (*talisman_v1beta1.VolumePlacementStrategyList, error)
+	// DeleteVolumePlacementStrategy deletes the volume placement strategy with given name
+	DeleteVolumePlacementStrategy(name string) error
+	// GetVolumePlacementStrategy returns the volume placememt strategy with given name
+	GetVolumePlacementStrategy(name string) (*talisman_v1beta1.VolumePlacementStrategy, error)
 }
 
 // CustomResource is for creating a Kubernetes TPR/CRD
@@ -3048,7 +3048,7 @@ func (k *k8sOps) CreateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlac
 		return nil, err
 	}
 
-	return k.talismanClient.Portworx().VolumePlacementStrategies(spec.Namespace).Create(spec)
+	return k.talismanClient.Portworx().VolumePlacementStrategies().Create(spec)
 }
 
 func (k *k8sOps) UpdateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlacementStrategy) (*talisman_v1beta1.VolumePlacementStrategy, error) {
@@ -3056,32 +3056,32 @@ func (k *k8sOps) UpdateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlac
 		return nil, err
 	}
 
-	return k.talismanClient.Portworx().VolumePlacementStrategies(spec.Namespace).Update(spec)
+	return k.talismanClient.Portworx().VolumePlacementStrategies().Update(spec)
 }
 
-func (k *k8sOps) ListVolumePlacementStrategies(namespace string) (*talisman_v1beta1.VolumePlacementStrategyList, error) {
+func (k *k8sOps) ListVolumePlacementStrategies() (*talisman_v1beta1.VolumePlacementStrategyList, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
-	return k.talismanClient.Portworx().VolumePlacementStrategies(namespace).List(meta_v1.ListOptions{})
+	return k.talismanClient.Portworx().VolumePlacementStrategies().List(meta_v1.ListOptions{})
 }
 
-func (k *k8sOps) DeleteVolumePlacementStrategy(name, namespace string) error {
+func (k *k8sOps) DeleteVolumePlacementStrategy(name string) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
 	}
 
-	return k.talismanClient.Portworx().VolumePlacementStrategies(namespace).Delete(name, &meta_v1.DeleteOptions{
+	return k.talismanClient.Portworx().VolumePlacementStrategies().Delete(name, &meta_v1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
 }
 
-func (k *k8sOps) GetVolumePlacementStrategy(name, namespace string) (*talisman_v1beta1.VolumePlacementStrategy, error) {
+func (k *k8sOps) GetVolumePlacementStrategy(name string) (*talisman_v1beta1.VolumePlacementStrategy, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
 
-	return k.talismanClient.Portworx().VolumePlacementStrategies(namespace).Get(name, meta_v1.GetOptions{})
+	return k.talismanClient.Portworx().VolumePlacementStrategies().Get(name, meta_v1.GetOptions{})
 }
 
 // CRD APIs - END

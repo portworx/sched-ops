@@ -312,8 +312,12 @@ type PersistentVolumeClaimOps interface {
 	GetPersistentVolumeClaim(pvcName string, namespace string) (*v1.PersistentVolumeClaim, error)
 	// GetPersistentVolumeClaims returns all PVCs in given namespace and that match the optional labelSelector
 	GetPersistentVolumeClaims(namespace string, labelSelector map[string]string) (*v1.PersistentVolumeClaimList, error)
+	// CreatePersistentVolume creates the given PV
+	CreatePersistentVolume(pv *v1.PersistentVolume) (*v1.PersistentVolume, error)
 	// GetPersistentVolume returns the PV for given name
 	GetPersistentVolume(pvName string) (*v1.PersistentVolume, error)
+	// DeletePersistentVolume deletes the PV for given name
+	DeletePersistentVolume(pvName string) error
 	// GetPersistentVolumes returns all PVs in cluster
 	GetPersistentVolumes() (*v1.PersistentVolumeList, error)
 	// GetVolumeForPersistentVolumeClaim returns the volumeID for the given PVC
@@ -2077,6 +2081,14 @@ func (k *k8sOps) ValidatePersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) er
 	return nil
 }
 
+func (k *k8sOps) CreatePersistentVolume(pv *v1.PersistentVolume) (*v1.PersistentVolume, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.CoreV1().PersistentVolumes().Create(pv)
+}
+
 func (k *k8sOps) GetPersistentVolumeClaim(pvcName string, namespace string) (*v1.PersistentVolumeClaim, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
@@ -2106,6 +2118,16 @@ func (k *k8sOps) GetPersistentVolume(pvName string) (*v1.PersistentVolume, error
 	}
 
 	return k.client.Core().PersistentVolumes().Get(pvName, meta_v1.GetOptions{})
+}
+
+func (k *k8sOps) DeletePersistentVolume(pvName string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	return k.client.Core().PersistentVolumes().Delete(pvName, &meta_v1.DeleteOptions{
+		PropagationPolicy: &deleteForegroundPolicy,
+	})
 }
 
 func (k *k8sOps) GetPersistentVolumes() (*v1.PersistentVolumeList, error) {

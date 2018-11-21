@@ -129,7 +129,8 @@
   version = "v5.1.0-openstorage"
 
 [[projects]]
-  digest = "1:21ca0b702be9edb55c0a04ad63b21943f6188cfbe4910580701927633aa5bd12"
+  branch = "migration_scope"
+  digest = "1:e22a69c214374ef0dae2c847bb392abb33ddcc7ca33a07f5ca5837a16de2173b"
   name = "github.com/libopenstorage/stork"
   packages = [
     "pkg/apis/stork",
@@ -139,8 +140,7 @@
     "pkg/client/clientset/versioned/typed/stork/v1alpha1",
   ]
   pruneopts = "UT"
-  revision = "d3d7356dae46ec865a95b65c502e508e002e7a34"
-  version = "v1.2.0"
+  revision = "32c37ccbb73694e18de07feed9eb3e65a854e036"
 
 [[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
@@ -157,6 +157,14 @@
   pruneopts = "UT"
   revision = "4b7aa43c6742a2c18fdef89dd197aaae7dac7ccd"
   version = "1.0.1"
+
+[[projects]]
+  digest = "1:bde6c3a610bd01ea7e2c8d9c7fd1116531fb6619f46f73f4f2ea16adb70da6be"
+  name = "github.com/operator-framework/operator-sdk"
+  packages = ["pkg/util/k8sutil"]
+  pruneopts = "UT"
+  revision = "e5a0ab096e1a7c0e6b937d2b41707eccb82c3c77"
+  version = "v0.0.7"
 
 [[projects]]
   branch = "master"

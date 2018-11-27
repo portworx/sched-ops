@@ -81,7 +81,7 @@ type Ops interface {
 	MigrationOps
 	ObjectOps
 	SetConfig(config *rest.Config)
-	SetClient(client *kubernetes.Clientset, snapClient rest.Interface, storkClient storkclientset.Interface, apiExtensionClient apiextensionsclient.Interface, dynamicInterface dynamic.Interface)
+	SetClient(client kubernetes.Interface, snapClient rest.Interface, storkClient storkclientset.Interface, apiExtensionClient apiextensionsclient.Interface, dynamicInterface dynamic.Interface)
 }
 
 // EventOps is an interface to put and get k8s events
@@ -488,7 +488,7 @@ var (
 )
 
 type k8sOps struct {
-	client             *kubernetes.Clientset
+	client             kubernetes.Interface
 	snapClient         rest.Interface
 	storkClient        storkclientset.Interface
 	apiExtensionClient apiextensionsclient.Interface
@@ -523,7 +523,7 @@ func NewInstance(config string) (Ops, error) {
 
 // Set the k8s clients
 func (k *k8sOps) SetClient(
-	client *kubernetes.Clientset,
+	client kubernetes.Interface,
 	snapClient rest.Interface,
 	storkClient storkclientset.Interface,
 	apiExtensionClient apiextensionsclient.Interface,
@@ -545,7 +545,7 @@ func (k *k8sOps) initK8sClient() error {
 		}
 
 		// Quick validation if client connection works
-		_, err = k.client.ServerVersion()
+		_, err = k.client.Discovery().ServerVersion()
 		if err != nil {
 			return fmt.Errorf("failed to connect to k8s server: %s", err)
 		}

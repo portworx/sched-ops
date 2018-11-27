@@ -457,6 +457,8 @@ type ClusterPairOps interface {
 	GetClusterPair(string, string) (*v1alpha1.ClusterPair, error)
 	// ListClusterPairs gets all the ClusterPairs
 	ListClusterPairs(string) (*v1alpha1.ClusterPairList, error)
+	// UpdateClusterPair updates the ClusterPair
+	UpdateClusterPair(*v1alpha1.ClusterPair) (*v1alpha1.ClusterPair, error)
 	// DeleteClusterPair deletes the ClusterPair
 	DeleteClusterPair(string, string) error
 	// ValidateClusterPair validates clusterpair status
@@ -3000,6 +3002,14 @@ func (k *k8sOps) CreateClusterPair(pair *v1alpha1.ClusterPair) error {
 
 	_, err := k.storkClient.Stork().ClusterPairs(pair.Namespace).Create(pair)
 	return err
+}
+
+func (k *k8sOps) UpdateClusterPair(pair *v1alpha1.ClusterPair) (*v1alpha1.ClusterPair, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ClusterPairs(pair.Namespace).Update(pair)
 }
 
 func (k *k8sOps) DeleteClusterPair(name string, namespace string) error {

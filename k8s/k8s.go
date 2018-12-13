@@ -1609,7 +1609,7 @@ func (k *k8sOps) ValidateStatefulSet(statefulset *apps_api.StatefulSet, timeout 
 			return "", true, err
 		}
 
-		pods, err := k.GetStatefulSetPods(statefulset)
+		pods, err := k.GetStatefulSetPods(sset)
 		if err != nil || pods == nil {
 			return "", true, &ErrAppNotReady{
 				ID:    sset.Name,

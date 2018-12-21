@@ -31,6 +31,11 @@
   source = "github.com/libopenstorage/external-storage"
 
 [[constraint]]
+  # Change back to master once stork groupsnapshot CRD is merged
+  branch = "group-snap-controller"
+  name = "github.com/libopenstorage/stork"
+
+[[constraint]]
   version = "kubernetes-1.11.0"
   name = "k8s.io/api"
 

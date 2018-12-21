@@ -18,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 	apps_api "k8s.io/api/apps/v1beta2"
 	batch_v1 "k8s.io/api/batch/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	rbac_v1 "k8s.io/api/rbac/v1"
 	storage_api "k8s.io/api/storage/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -80,8 +81,12 @@ type Ops interface {
 	ClusterPairOps
 	MigrationOps
 	ObjectOps
+	GetVersion() (*version.Info, error)
 	SetConfig(config *rest.Config)
 	SetClient(client kubernetes.Interface, snapClient rest.Interface, storkClient storkclientset.Interface, apiExtensionClient apiextensionsclient.Interface, dynamicInterface dynamic.Interface)
+
+	// private methods for unit tests
+	privateMethods
 }
 
 // EventOps is an interface to put and get k8s events
@@ -461,6 +466,10 @@ type ObjectOps interface {
 	UpdateObject(object runtime.Object) (runtime.Object, error)
 }
 
+type privateMethods interface {
+	initK8sClient() error
+}
+
 // CustomResource is for creating a Kubernetes TPR/CRD
 type CustomResource struct {
 	// Name of the custom resource
@@ -552,6 +561,14 @@ func (k *k8sOps) initK8sClient() error {
 
 	}
 	return nil
+}
+
+func (k *k8sOps) GetVersion() (*version.Info, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.Discovery().ServerVersion()
 }
 
 // Namespace APIs - BEGIN

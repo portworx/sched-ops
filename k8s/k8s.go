@@ -489,6 +489,9 @@ type CustomResource struct {
 	// Name of the custom resource
 	Name string
 
+	// ShortNames are short names for the resource.  It must be all lowercase.
+	ShortNames []string
+
 	// Plural of the custom resource in plural
 	Plural string
 
@@ -3026,9 +3029,10 @@ func (k *k8sOps) CreateCRD(resource CustomResource) error {
 			Version: resource.Version,
 			Scope:   resource.Scope,
 			Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
-				Singular: resource.Name,
-				Plural:   resource.Plural,
-				Kind:     resource.Kind,
+				Singular:   resource.Name,
+				Plural:     resource.Plural,
+				Kind:       resource.Kind,
+				ShortNames: resource.ShortNames,
 			},
 		},
 	}

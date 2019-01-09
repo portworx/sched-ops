@@ -137,7 +137,8 @@
   version = "v5.1.0-openstorage"
 
 [[projects]]
-  digest = "1:e22a69c214374ef0dae2c847bb392abb33ddcc7ca33a07f5ca5837a16de2173b"
+  branch = "group-snap-controller"
+  digest = "1:1f2b13b195b8b8856ead0259b023ba834e27897405436ee5551ecf3e605322ac"
   name = "github.com/libopenstorage/stork"
   packages = [
     "pkg/apis/stork",
@@ -147,8 +148,7 @@
     "pkg/client/clientset/versioned/typed/stork/v1alpha1",
   ]
   pruneopts = "UT"
-  revision = "7e2b610533b9d1a509b21206ff3b6072c897273f"
-  version = "v2.0.1"
+  revision = "f8c44c9b4533816739a8fcaab663b4590b6d62c9"
 
 [[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"

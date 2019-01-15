@@ -31,8 +31,7 @@
   source = "github.com/libopenstorage/external-storage"
 
 [[constraint]]
-  # Change back to master once stork groupsnapshot CRD is merged
-  branch = "group-snap-controller"
+  branch = "master"
   name = "github.com/libopenstorage/stork"
 
 [[constraint]]

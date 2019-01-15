@@ -30,7 +30,7 @@
   name = "github.com/kubernetes-incubator/external-storage"
   source = "github.com/libopenstorage/external-storage"
 
-[[constraint]]
+[[override]]
   branch = "master"
   name = "github.com/libopenstorage/stork"
 

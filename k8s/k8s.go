@@ -270,7 +270,7 @@ type PodOps interface {
 	// CreatePod creates the given pod
 	CreatePod(pod *v1.Pod) (*v1.Pod, error)
 	// GetPods returns pods for the given namespace
-	GetPods(string) (*v1.PodList, error)
+	GetPods(string, map[string]string) (*v1.PodList, error)
 	// GetPodsByNode returns all pods in given namespace and given k8s node name.
 	//  If namespace is empty, it will return pods from all namespaces
 	GetPodsByNode(nodeName, namespace string) (*v1.PodList, error)
@@ -1982,8 +1982,10 @@ func (k *k8sOps) CreatePod(pod *v1.Pod) (*v1.Pod, error) {
 	return k.client.Core().Pods(pod.Namespace).Create(pod)
 }
 
-func (k *k8sOps) GetPods(namespace string) (*v1.PodList, error) {
-	return k.getPodsWithListOptions(namespace, meta_v1.ListOptions{})
+func (k *k8sOps) GetPods(namespace string, labelSelector map[string]string) (*v1.PodList, error) {
+	return k.getPodsWithListOptions(namespace, meta_v1.ListOptions{
+		LabelSelector: mapToCSV(labelSelector),
+	})
 }
 
 func (k *k8sOps) GetPodsByNode(nodeName, namespace string) (*v1.PodList, error) {
@@ -1999,7 +2001,7 @@ func (k *k8sOps) GetPodsByNode(nodeName, namespace string) (*v1.PodList, error) 
 }
 
 func (k *k8sOps) GetPodsByOwner(ownerUID types.UID, namespace string) ([]v1.Pod, error) {
-	pods, err := k.GetPods(namespace)
+	pods, err := k.GetPods(namespace, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2134,7 +2136,7 @@ func (k *k8sOps) GetPodByName(podName string, namespace string) (*v1.Pod, error)
 }
 
 func (k *k8sOps) GetPodByUID(uid types.UID, namespace string) (*v1.Pod, error) {
-	pods, err := k.GetPods(namespace)
+	pods, err := k.GetPods(namespace, nil)
 	if err != nil {
 		return nil, err
 	}

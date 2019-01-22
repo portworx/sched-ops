@@ -452,7 +452,7 @@ type CRDOps interface {
 // ClusterPairOps is an interface to perfrom k8s ClusterPair operations
 type ClusterPairOps interface {
 	// CreateClusterPair creates the ClusterPair
-	CreateClusterPair(*v1alpha1.ClusterPair) error
+	CreateClusterPair(*v1alpha1.ClusterPair) (*v1alpha1.ClusterPair, error)
 	// GetClusterPair gets the ClusterPair
 	GetClusterPair(string, string) (*v1alpha1.ClusterPair, error)
 	// ListClusterPairs gets all the ClusterPairs
@@ -468,7 +468,7 @@ type ClusterPairOps interface {
 // MigrationOps is an interface to perfrom k8s Migration operations
 type MigrationOps interface {
 	// CreateMigration creates the Migration
-	CreateMigration(*v1alpha1.Migration) error
+	CreateMigration(*v1alpha1.Migration) (*v1alpha1.Migration, error)
 	// GetMigration gets the Migration
 	GetMigration(string, string) (*v1alpha1.Migration, error)
 	// ListMigrations lists all the Migration
@@ -2997,13 +2997,12 @@ func (k *k8sOps) ListClusterPairs(namespace string) (*v1alpha1.ClusterPairList, 
 	return k.storkClient.Stork().ClusterPairs(namespace).List(meta_v1.ListOptions{})
 }
 
-func (k *k8sOps) CreateClusterPair(pair *v1alpha1.ClusterPair) error {
+func (k *k8sOps) CreateClusterPair(pair *v1alpha1.ClusterPair) (*v1alpha1.ClusterPair, error) {
 	if err := k.initK8sClient(); err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err := k.storkClient.Stork().ClusterPairs(pair.Namespace).Create(pair)
-	return err
+	return k.storkClient.Stork().ClusterPairs(pair.Namespace).Create(pair)
 }
 
 func (k *k8sOps) UpdateClusterPair(pair *v1alpha1.ClusterPair) (*v1alpha1.ClusterPair, error) {
@@ -3041,14 +3040,14 @@ func (k *k8sOps) ValidateClusterPair(name string, namespace string, timeout, ret
 			clusterPair.Status.StorageStatus == v1alpha1.ClusterPairStatusError {
 			return "", true, &ErrFailedToValidateCustomSpec{
 				Name:  name,
-				Cause: fmt.Sprintf("Storage Status %v \t Schedular Status %v", clusterPair.Status.StorageStatus, clusterPair.Status.SchedulerStatus),
+				Cause: fmt.Sprintf("Storage Status: %v \t Scheduler Status: %v", clusterPair.Status.StorageStatus, clusterPair.Status.SchedulerStatus),
 				Type:  clusterPair,
 			}
 		}
 
 		return "", true, &ErrFailedToValidateCustomSpec{
 			Name:  name,
-			Cause: fmt.Sprintf("Storage Status %v \t Schedular Status %v", clusterPair.Status.StorageStatus, clusterPair.Status.SchedulerStatus),
+			Cause: fmt.Sprintf("Storage Status: %v \t Scheduler Status: %v", clusterPair.Status.StorageStatus, clusterPair.Status.SchedulerStatus),
 			Type:  clusterPair,
 		}
 	}
@@ -3079,13 +3078,12 @@ func (k *k8sOps) ListMigrations(namespace string) (*v1alpha1.MigrationList, erro
 	return k.storkClient.Stork().Migrations(namespace).List(meta_v1.ListOptions{})
 }
 
-func (k *k8sOps) CreateMigration(migration *v1alpha1.Migration) error {
+func (k *k8sOps) CreateMigration(migration *v1alpha1.Migration) (*v1alpha1.Migration, error) {
 	if err := k.initK8sClient(); err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err := k.storkClient.Stork().Migrations(migration.Namespace).Create(migration)
-	return err
+	return k.storkClient.Stork().Migrations(migration.Namespace).Create(migration)
 }
 
 func (k *k8sOps) DeleteMigration(name string, namespace string) error {

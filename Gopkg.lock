@@ -48,24 +48,21 @@
   revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
 [[projects]]
-  digest = "1:5eae7496bdb74a6c7592bc74ea3da8a6a61a361fd52682820900d755bb144194"
+  digest = "1:fa5e9e1af8a8645086811ec5ab003806026babc57c8bb3a6f7e1ab34b80e2ff1"
   name = "github.com/golang/protobuf"
   packages = [
     "jsonpb",
     "proto",
     "protoc-gen-go/descriptor",
-    "protoc-gen-go/generator",
-    "protoc-gen-go/generator/internal/remap",
-    "protoc-gen-go/plugin",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
     "ptypes/struct",
     "ptypes/timestamp",
-    "ptypes/wrappers",
   ]
   pruneopts = "UT"
   revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
@@ -97,17 +94,17 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:86c1210529e69d69860f2bb3ee9ccce0b595aa3f9165e7dd1388e5c612915888"
+  digest = "1:b4395b2a4566c24459af3d04009b39cc21762fc77ec7bf7a1aa905c91e8f018d"
   name = "github.com/gregjones/httpcache"
   packages = [
     ".",
     "diskcache",
   ]
   pruneopts = "UT"
-  revision = "c63ab54fda8f77302f8d414e19933f2b6026a089"
+  revision = "7a902570cb17174de4ac788094f8ebedec136f57"
 
 [[projects]]
-  digest = "1:1125fb981553dec25344f857eb68ccf2438c3696bc2f718acbb56321933490d0"
+  digest = "1:3cbc83a159e161c6cf3e64590ae19da29069ecd8d92f9400ab6fda15e93cbc5f"
   name = "github.com/grpc-ecosystem/grpc-gateway"
   packages = [
     "runtime",
@@ -115,16 +112,16 @@
     "utilities",
   ]
   pruneopts = "UT"
-  revision = "ae4bb97e7718691c8e0742a7c07989c91630e042"
-  version = "v1.6.4"
+  revision = "aeab1d96e0f1368d243e2e5f526aa29d495517bb"
+  version = "v1.5.1"
 
 [[projects]]
-  digest = "1:8eb1de8112c9924d59bf1d3e5c26f5eaa2bfc2a5fcbb92dc1c2e4546d695f277"
+  digest = "1:a0cefd27d12712af4b5018dc7046f245e1e3b5760e2e848c30b171b570708f9b"
   name = "github.com/imdario/mergo"
   packages = ["."]
   pruneopts = "UT"
-  revision = "9f23e2d6bd2a77f959b2bf6acdbefd708a83a4a4"
-  version = "v0.3.6"
+  revision = "7c29201646fa3de8506f701213473dd407f19646"
+  version = "v0.3.7"
 
 [[projects]]
   digest = "1:3e551bbb3a7c0ab2a2bf4660e7fcad16db089fdcfbb44b0199e62838038623ea"
@@ -155,16 +152,16 @@
   version = "v5.1.0-openstorage"
 
 [[projects]]
-  branch = "master"
-  digest = "1:ed25cf58f02d1d2ee956944ffd30d3a6251144b3ffb121123a93b9eabfe22900"
+  digest = "1:5f323570b6a12f7878c745d1622bb40153fa3e33212e65e787ec67c2566816e4"
   name = "github.com/libopenstorage/openstorage"
   packages = ["api"]
   pruneopts = "UT"
-  revision = "573c33b037102bd2c250b7c5b9c7a9102a1ccd29"
+  revision = "af610b3afb95d5a4999446aa28c050da93022c35"
+  version = "v6.0.0"
 
 [[projects]]
   branch = "master"
-  digest = "1:10da73047ebeb5c14795ab7ef7ad3c7a8941eb48a7a5845a66cf2d5e6cd6f84a"
+  digest = "1:f85b108bd1c542a426cf181edefb5f7a94df4cb5659dc9875fb1633dbd0eb21b"
   name = "github.com/libopenstorage/stork"
   packages = [
     "pkg/apis/stork",
@@ -174,7 +171,7 @@
     "pkg/client/clientset/versioned/typed/stork/v1alpha1",
   ]
   pruneopts = "UT"
-  revision = "2d46472b0799caf7c0c761da0eb1edce9a335fb8"
+  revision = "27f86f64a9369d1faec44cf494b1eac048ab199a"
 
 [[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
@@ -233,7 +230,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "kubernetes-1.11"
+  branch = "master"
   digest = "1:cfe8d419eb553560ba1e297dc0430a161be3239372a9fd60111e63da3b75fdb8"
   name = "github.com/portworx/talisman"
   packages = [
@@ -244,7 +241,7 @@
     "pkg/client/clientset/versioned/typed/portworx/v1beta1",
   ]
   pruneopts = "UT"
-  revision = "286f67c146ff4ade3bbb902da97085f85f99b1cd"
+  revision = "73c47f96b4178a49863212c1e3212a0c07678599"
 
 [[projects]]
   digest = "1:87c2e02fb01c27060ccc5ba7c5a407cc91147726f8f40b70cceeedbc52b1f3a8"
@@ -275,15 +272,15 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:38f553aff0273ad6f367cb0a0f8b6eecbaef8dc6cb8b50e57b6a81c1d5b1e332"
+  digest = "1:fde12c4da6237363bf36b81b59aa36a43d28061167ec4acb0d41fc49464e28b9"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "UT"
-  revision = "ff983b9c42bc9fbf91556e191cc8efb585c16908"
+  revision = "b8fe1690c61389d7d2a8074a507d1d40c5d30448"
 
 [[projects]]
   branch = "master"
-  digest = "1:293d03d721a8bebb909ff16dad088981a995204f67df318456f92ffe13e8e8cd"
+  digest = "1:fc7b6b4384e1e849d99eab58eca4f8c0a76bad4699117d5077a9a5c3c83e289e"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -295,18 +292,18 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "915654e7eabcea33ae277abbecf52f0d8b7a9fdc"
+  revision = "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
 
 [[projects]]
   branch = "master"
-  digest = "1:0150ad9329793acacd98bcbd88492d9e4731824b5d3fbc73a8a1b45eb21acf6b"
+  digest = "1:a1914323eabb0da3b4392fb0d34b1ae5b6b531323daf4eeddc355d8000982052"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "a457fd036447854c0c02e89ea439481bdcf941a2"
+  revision = "41f3e6584952bb034a481797859f6ab34b6803bd"
 
 [[projects]]
   digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"
@@ -340,18 +337,18 @@
   revision = "85acf8d2951cb2a3bde7632f9ff273ef0379bcbd"
 
 [[projects]]
-  digest = "1:0ff5d79ff7df5c47800f11c139615b2e485efd0014b74257c1f46cb6cb3bb84d"
+  branch = "master"
+  digest = "1:6c6b70cf6d2788d9f7dc6589bc88e0e1c7edc40612294431ebb7d09536d12240"
   name = "google.golang.org/genproto"
   packages = [
     "googleapis/api/annotations",
     "googleapis/rpc/status",
-    "protobuf/field_mask",
   ]
   pruneopts = "UT"
-  revision = "383e8b2c3b9e36c4076b235b32537292176bae20"
+  revision = "4b09977fb92221987e99d190c8f88f2c92727a29"
 
 [[projects]]
-  digest = "1:9edd250a3c46675d0679d87540b30c9ed253b19bd1fd1af08f4f5fb3c79fc487"
+  digest = "1:9ab5a33d8cb5c120602a34d2e985ce17956a4e8c2edce7e6961568f95e40c09a"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -387,8 +384,8 @@
     "tap",
   ]
   pruneopts = "UT"
-  revision = "df014850f6dee74ba2fc94874043a9f3f75fbfd8"
-  version = "v1.17.0"
+  revision = "a02b0774206b209466313a0b525d2c738fe407eb"
+  version = "v1.18.0"
 
 [[projects]]
   digest = "1:2d1fbdc6777e5408cabeb02bf336305e724b925ff4546ded0fa8715a7267922a"

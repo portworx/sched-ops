@@ -3172,7 +3172,7 @@ func (k *k8sOps) ValidateMigration(name string, namespace string, timeout, retry
 		if resp.Status.Status == v1alpha1.MigrationStatusSuccessful {
 			return "", false, nil
 		} else if resp.Status.Status == v1alpha1.MigrationStatusFailed {
-			return "", true, &ErrFailedToValidateCustomSpec{
+			return "", false, &ErrFailedToValidateCustomSpec{
 				Name:  name,
 				Cause: fmt.Sprintf("Migration Status %v", resp.Status.Status),
 				Type:  resp,

@@ -161,7 +161,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f85b108bd1c542a426cf181edefb5f7a94df4cb5659dc9875fb1633dbd0eb21b"
+  digest = "1:6eb83be8d117c5cd3cfa8d342ab7afd57a8f3877ba73df69459c4b3451f1f8f1"
   name = "github.com/libopenstorage/stork"
   packages = [
     "pkg/apis/stork",
@@ -171,7 +171,7 @@
     "pkg/client/clientset/versioned/typed/stork/v1alpha1",
   ]
   pruneopts = "UT"
-  revision = "27f86f64a9369d1faec44cf494b1eac048ab199a"
+  revision = "0d77e6352a29efa2bd43b77b34258a85d4d13b17"
 
 [[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
@@ -591,9 +591,8 @@
     "k8s.io/apimachinery/pkg/api/meta",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured",
-    "k8s.io/apimachinery/pkg/labels",
+    "k8s.io/apimachinery/pkg/fields",
     "k8s.io/apimachinery/pkg/runtime",
-    "k8s.io/apimachinery/pkg/selection",
     "k8s.io/apimachinery/pkg/types",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/apimachinery/pkg/version",

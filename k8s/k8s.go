@@ -389,6 +389,16 @@ type SnapshotOps interface {
 	DeleteSnapshotData(name string) error
 	// ValidateSnapshotData validates the given snapshot data object
 	ValidateSnapshotData(name string, retry bool, timeout, retryInterval time.Duration) error
+	// GetSnapshotSchedule gets the SnapshotSchedule
+	GetSnapshotSchedule(string, string) (*v1alpha1.VolumeSnapshotSchedule, error)
+	// CreateSnapshotSchedule creates a SnapshotSchedule
+	CreateSnapshotSchedule(*v1alpha1.VolumeSnapshotSchedule) (*v1alpha1.VolumeSnapshotSchedule, error)
+	// UpdateSnapshotSchedule updates the SnapshotSchedule
+	UpdateSnapshotSchedule(*v1alpha1.VolumeSnapshotSchedule) (*v1alpha1.VolumeSnapshotSchedule, error)
+	// ListSnapshotSchedules lists all the SnapshotSchedules
+	ListSnapshotSchedules(string) (*v1alpha1.VolumeSnapshotScheduleList, error)
+	// DeleteSnapshotSchedule deletes the SnapshotSchedule
+	DeleteSnapshotSchedule(string, string) error
 }
 
 // GroupSnapshotOps is an interface to perform k8s GroupVolumeSnapshot operations
@@ -2775,6 +2785,47 @@ func (k *k8sOps) DeleteSnapshotData(name string) error {
 		Name(name).
 		Resource(snap_v1.VolumeSnapshotDataResourcePlural).
 		Do().Error()
+}
+
+func (k *k8sOps) GetSnapshotSchedule(name string, namespace string) (*v1alpha1.VolumeSnapshotSchedule, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().VolumeSnapshotSchedules(namespace).Get(name, meta_v1.GetOptions{})
+}
+
+func (k *k8sOps) ListSnapshotSchedules(namespace string) (*v1alpha1.VolumeSnapshotScheduleList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().VolumeSnapshotSchedules(namespace).List(meta_v1.ListOptions{})
+}
+
+func (k *k8sOps) CreateSnapshotSchedule(snapshotSchedule *v1alpha1.VolumeSnapshotSchedule) (*v1alpha1.VolumeSnapshotSchedule, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().VolumeSnapshotSchedules(snapshotSchedule.Namespace).Create(snapshotSchedule)
+}
+
+func (k *k8sOps) UpdateSnapshotSchedule(snapshotSchedule *v1alpha1.VolumeSnapshotSchedule) (*v1alpha1.VolumeSnapshotSchedule, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().VolumeSnapshotSchedules(snapshotSchedule.Namespace).Update(snapshotSchedule)
+}
+func (k *k8sOps) DeleteSnapshotSchedule(name string, namespace string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	return k.storkClient.Stork().VolumeSnapshotSchedules(namespace).Delete(name, &meta_v1.DeleteOptions{
+		PropagationPolicy: &deleteForegroundPolicy,
+	})
 }
 
 // Snapshot APIs - END

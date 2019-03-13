@@ -496,6 +496,12 @@ type MigrationOps interface {
 	ListMigrationSchedules(string) (*v1alpha1.MigrationScheduleList, error)
 	// DeleteMigrationSchedule deletes the MigrationSchedule
 	DeleteMigrationSchedule(string, string) error
+	// ValidateMigrationSchedule validates the given MigrationSchedule. It checks the status of each of
+	// the migrations triggered for this schedule and returns a map of successfull migrations. The key of the
+	// map will be the schedule type and value will be list of migrations for that schedule type.
+	// The caller is expected to validate if the returned map has all migrations expected at that point of time
+	ValidateMigrationSchedule(string, string, time.Duration, time.Duration) (
+		map[v1alpha1.SchedulePolicyType][]*v1alpha1.ScheduledMigrationStatus, error)
 }
 
 // ObjectOps is an interface to perform generic Object operations
@@ -3276,6 +3282,88 @@ func (k *k8sOps) DeleteMigrationSchedule(name string, namespace string) error {
 	return k.storkClient.Stork().MigrationSchedules(namespace).Delete(name, &meta_v1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
+}
+
+func (k *k8sOps) ValidateMigrationSchedule(name string, namespace string, timeout, retryInterval time.Duration) (
+	map[v1alpha1.SchedulePolicyType][]*v1alpha1.ScheduledMigrationStatus, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+	t := func() (interface{}, bool, error) {
+		resp, err := k.GetMigrationSchedule(name, namespace)
+		if err != nil {
+			return nil, true, err
+		}
+
+		if len(resp.Status.Items) == 0 {
+			return nil, true, &ErrFailedToValidateCustomSpec{
+				Name:  name,
+				Cause: fmt.Sprintf("0 migrations have yet run for the migration schedule"),
+				Type:  resp,
+			}
+		}
+
+		failedMigrations := make([]string, 0)
+		pendingMigrations := make([]string, 0)
+		for _, migrationStatuses := range resp.Status.Items {
+			// The check below assumes that the status will not have a failed migration if the last one succeeded
+			// so just get the last status
+			if len(migrationStatuses) > 0 {
+				status := migrationStatuses[len(migrationStatuses)-1]
+				if status == nil {
+					return nil, true, &ErrFailedToValidateCustomSpec{
+						Name:  name,
+						Cause: "MigrationSchedule has an empty migration in it's most recent status",
+						Type:  resp,
+					}
+				}
+
+				if status.Status == v1alpha1.MigrationStatusSuccessful {
+					continue
+				}
+
+				if status.Status == v1alpha1.MigrationStatusFailed {
+					failedMigrations = append(failedMigrations,
+						fmt.Sprintf("migration: %s failed. status: %v", status.Name, status.Status))
+				} else {
+					pendingMigrations = append(pendingMigrations,
+						fmt.Sprintf("migration: %s is not done. status: %v", status.Name, status.Status))
+				}
+			}
+		}
+
+		if len(failedMigrations) > 0 {
+			return nil, false, &ErrFailedToValidateCustomSpec{
+				Name: name,
+				Cause: fmt.Sprintf("MigrationSchedule failed as one or more migrations have failed. %s",
+					failedMigrations),
+				Type: resp,
+			}
+		}
+
+		if len(pendingMigrations) > 0 {
+			return nil, true, &ErrFailedToValidateCustomSpec{
+				Name: name,
+				Cause: fmt.Sprintf("MigrationSchedule has certain migrations pending: %s",
+					pendingMigrations),
+				Type: resp,
+			}
+		}
+
+		return resp.Status.Items, false, nil
+	}
+
+	ret, err := task.DoRetryWithTimeout(t, timeout, retryInterval)
+	if err != nil {
+		return nil, err
+	}
+
+	migrations, ok := ret.(map[v1alpha1.SchedulePolicyType][]*v1alpha1.ScheduledMigrationStatus)
+	if !ok {
+		return nil, fmt.Errorf("invalid type when checking migration schedules: %v", migrations)
+	}
+
+	return migrations, nil
 }
 
 // Migration APIs - END

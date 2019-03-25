@@ -313,6 +313,8 @@ type PodOps interface {
 	RunCommandInPod(cmds []string, podName, containerName, namespace string) (string, error)
 	// ValidatePod validates the given pod if it's ready
 	ValidatePod(pod *v1.Pod, timeout, retryInterval time.Duration) error
+	// WatchPods sets up a watcher that listens for the changes to pods in given namespace
+	WatchPods(namespace string, fn WatchFunc) error
 }
 
 // StorageClassOps is an interface to perform k8s storage class operations
@@ -888,7 +890,11 @@ type WatchFunc func(object runtime.Object) error
 
 // handleWatch is internal function that handles the watch.  On channel shutdown (ie. stop watch),
 // it'll attempt to reestablish its watch function.
-func (k *k8sOps) handleWatch(watchInterface watch.Interface, object runtime.Object, fn WatchFunc) {
+func (k *k8sOps) handleWatch(
+	watchInterface watch.Interface,
+	object runtime.Object,
+	namespace string,
+	fn WatchFunc) {
 	for {
 		select {
 		case event, more := <-watchInterface.ResultChan():
@@ -901,6 +907,8 @@ func (k *k8sOps) handleWatch(watchInterface watch.Interface, object runtime.Obje
 						err = k.WatchNode(node, fn)
 					} else if cm, ok := object.(*v1.ConfigMap); ok {
 						err = k.WatchConfigMap(cm, fn)
+					} else if _, ok := object.(*v1.Pod); ok {
+						err = k.WatchPods(namespace, fn)
 					} else {
 						return "", false, fmt.Errorf("unsupported object: %v given to handle watch", object)
 					}
@@ -941,7 +949,7 @@ func (k *k8sOps) WatchNode(node *v1.Node, watchNodeFn WatchFunc) error {
 	}
 
 	// fire off watch function
-	go k.handleWatch(watchInterface, node, watchNodeFn)
+	go k.handleWatch(watchInterface, node, "", watchNodeFn)
 	return nil
 }
 
@@ -2303,6 +2311,31 @@ func (k *k8sOps) ValidatePod(pod *v1.Pod, timeout, retryInterval time.Duration) 
 	return nil
 }
 
+func (k *k8sOps) WatchPods(namespace string, fn WatchFunc) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	listOptions := meta_v1.ListOptions{
+		Watch: true,
+	}
+
+	watchInterface, err := k.client.Core().Pods(namespace).Watch(listOptions)
+	if err != nil {
+		logrus.WithError(err).Error("error invoking the watch api for pods")
+		return err
+	}
+
+	// fire off watch function
+	go k.handleWatch(
+		watchInterface,
+		&v1.Pod{},
+		namespace,
+		fn)
+
+	return nil
+}
+
 // Pod APIs - END
 
 // StorageClass APIs - BEGIN
@@ -3130,7 +3163,7 @@ func (k *k8sOps) WatchConfigMap(configMap *v1.ConfigMap, fn WatchFunc) error {
 	}
 
 	// fire off watch function
-	go k.handleWatch(watchInterface, configMap, fn)
+	go k.handleWatch(watchInterface, configMap, "", fn)
 	return nil
 }
 

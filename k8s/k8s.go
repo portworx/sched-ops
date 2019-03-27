@@ -114,6 +114,10 @@ type NamespaceOps interface {
 
 // NodeOps is an interface to perform k8s node operations
 type NodeOps interface {
+	// CreateNode creates the given node
+	CreateNode(n *v1.Node) (*v1.Node, error)
+	// UpdateNode updates the given node
+	UpdateNode(n *v1.Node) (*v1.Node, error)
 	// GetNodes talks to the k8s api server and gets the nodes in the cluster
 	GetNodes() (*v1.NodeList, error)
 	// GetNodeByName returns the k8s node given it's name
@@ -272,8 +276,10 @@ type RBACOps interface {
 
 // PodOps is an interface to perform k8s pod operations
 type PodOps interface {
-	// CreatePod creates the given pod
+	// CreatePod creates the given pod.
 	CreatePod(pod *v1.Pod) (*v1.Pod, error)
+	// UpdatePod updates the given pod
+	UpdatePod(pod *v1.Pod) (*v1.Pod, error)
 	// GetPods returns pods for the given namespace
 	GetPods(string, map[string]string) (*v1.PodList, error)
 	// GetPodsByNode returns all pods in given namespace and given k8s node name.
@@ -701,6 +707,21 @@ func (k *k8sOps) DeleteNamespace(name string) error {
 }
 
 // Namespace APIs - END
+func (k *k8sOps) CreateNode(n *v1.Node) (*v1.Node, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.CoreV1().Nodes().Create(n)
+}
+
+func (k *k8sOps) UpdateNode(n *v1.Node) (*v1.Node, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.CoreV1().Nodes().Update(n)
+}
 
 func (k *k8sOps) GetNodes() (*v1.NodeList, error) {
 	if err := k.initK8sClient(); err != nil {
@@ -2052,6 +2073,14 @@ func (k *k8sOps) CreatePod(pod *v1.Pod) (*v1.Pod, error) {
 	}
 
 	return k.client.Core().Pods(pod.Namespace).Create(pod)
+}
+
+func (k *k8sOps) UpdatePod(pod *v1.Pod) (*v1.Pod, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.Core().Pods(pod.Namespace).Update(pod)
 }
 
 func (k *k8sOps) GetPods(namespace string, labelSelector map[string]string) (*v1.PodList, error) {

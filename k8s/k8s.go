@@ -248,12 +248,18 @@ type RBACOps interface {
 	UpdateRole(role *rbac_v1.Role) (*rbac_v1.Role, error)
 	// CreateClusterRole creates the given cluster role
 	CreateClusterRole(role *rbac_v1.ClusterRole) (*rbac_v1.ClusterRole, error)
+	// GetClusterRole gets the given cluster role
+	GetClusterRole(name string) (*rbac_v1.ClusterRole, error)
 	// UpdateClusterRole updates the given cluster role
 	UpdateClusterRole(role *rbac_v1.ClusterRole) (*rbac_v1.ClusterRole, error)
 	// CreateRoleBinding creates the given role binding
 	CreateRoleBinding(role *rbac_v1.RoleBinding) (*rbac_v1.RoleBinding, error)
 	// UpdateRoleBinding updates the given role binding
 	UpdateRoleBinding(role *rbac_v1.RoleBinding) (*rbac_v1.RoleBinding, error)
+	// GetClusterRoleBinding gets the given cluster role binding
+	GetClusterRoleBinding(name string) (*rbac_v1.ClusterRoleBinding, error)
+	// ListClusterRoleBindings lists the cluster role bindings
+	ListClusterRoleBindings() (*rbac_v1.ClusterRoleBindingList, error)
 	// CreateClusterRoleBinding creates the given cluster role binding
 	CreateClusterRoleBinding(role *rbac_v1.ClusterRoleBinding) (*rbac_v1.ClusterRoleBinding, error)
 	// CreateServiceAccount creates the given service account
@@ -1928,6 +1934,14 @@ func (k *k8sOps) CreateClusterRole(role *rbac_v1.ClusterRole) (*rbac_v1.ClusterR
 	return k.client.Rbac().ClusterRoles().Create(role)
 }
 
+func (k *k8sOps) GetClusterRole(name string) (*rbac_v1.ClusterRole, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.Rbac().ClusterRoles().Get(name, meta_v1.GetOptions{})
+}
+
 func (k *k8sOps) UpdateClusterRole(role *rbac_v1.ClusterRole) (*rbac_v1.ClusterRole, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
@@ -1958,6 +1972,22 @@ func (k *k8sOps) CreateClusterRoleBinding(binding *rbac_v1.ClusterRoleBinding) (
 	}
 
 	return k.client.Rbac().ClusterRoleBindings().Create(binding)
+}
+
+func (k *k8sOps) GetClusterRoleBinding(name string) (*rbac_v1.ClusterRoleBinding, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.Rbac().ClusterRoleBindings().Get(name, meta_v1.GetOptions{})
+}
+
+func (k *k8sOps) ListClusterRoleBindings() (*rbac_v1.ClusterRoleBindingList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.Rbac().ClusterRoleBindings().List(meta_v1.ListOptions{})
 }
 
 func (k *k8sOps) CreateServiceAccount(account *v1.ServiceAccount) (*v1.ServiceAccount, error) {

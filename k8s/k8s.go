@@ -502,26 +502,26 @@ type ClusterDomainsOps interface {
 	// CreateClusterDomainsStatus creates the ClusterDomainStatus
 	CreateClusterDomainsStatus(*v1alpha1.ClusterDomainsStatus) (*v1alpha1.ClusterDomainsStatus, error)
 	// GetClusterDomainsStatus gets the ClusterDomainsStatus
-	GetClusterDomainsStatus(string, string) (*v1alpha1.ClusterDomainsStatus, error)
+	GetClusterDomainsStatus(string) (*v1alpha1.ClusterDomainsStatus, error)
 	// UpdateClusterDomainsStatus updates the ClusterDomainsStatus
 	UpdateClusterDomainsStatus(*v1alpha1.ClusterDomainsStatus) (*v1alpha1.ClusterDomainsStatus, error)
 	// DeleteClusterDomainsStatus deletes the ClusterDomainsStatus
-	DeleteClusterDomainsStatus(string, string) error
+	DeleteClusterDomainsStatus(string) error
 	// ListClusterDomainStatuses lists ClusterDomainsStatus
-	ListClusterDomainStatuses(string) (*v1alpha1.ClusterDomainsStatusList, error)
+	ListClusterDomainStatuses() (*v1alpha1.ClusterDomainsStatusList, error)
 
 	// CreateClusterDomainUpdate creates the ClusterDomainUpdate
 	CreateClusterDomainUpdate(*v1alpha1.ClusterDomainUpdate) (*v1alpha1.ClusterDomainUpdate, error)
 	// GetClusterDomainUpdate gets the ClusterDomainUpdate
-	GetClusterDomainUpdate(string, string) (*v1alpha1.ClusterDomainUpdate, error)
+	GetClusterDomainUpdate(string) (*v1alpha1.ClusterDomainUpdate, error)
 	// UpdateClusterDomainUpdate updates the ClusterDomainUpdate
 	UpdateClusterDomainUpdate(*v1alpha1.ClusterDomainUpdate) (*v1alpha1.ClusterDomainUpdate, error)
 	// DeleteClusterDomainUpdate deletes the ClusterDomainUpdate
-	DeleteClusterDomainUpdate(string, string) error
+	DeleteClusterDomainUpdate(string) error
 	// ValidateClusterDomainUpdate validates ClusterDomainUpdate
-	ValidateClusterDomainUpdate(string, string, time.Duration, time.Duration) error
+	ValidateClusterDomainUpdate(string, time.Duration, time.Duration) error
 	// ListClusterDomainUpdates lists ClusterDomainUpdates
-	ListClusterDomainUpdates(string) (*v1alpha1.ClusterDomainUpdateList, error)
+	ListClusterDomainUpdates() (*v1alpha1.ClusterDomainUpdateList, error)
 }
 
 // MigrationOps is an interface to perfrom k8s Migration operations
@@ -3712,15 +3712,15 @@ func (k *k8sOps) CreateClusterDomainsStatus(clusterDomainsStatus *v1alpha1.Clust
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
-	return k.storkClient.Stork().ClusterDomainsStatuses(clusterDomainsStatus.Namespace).Create(clusterDomainsStatus)
+	return k.storkClient.Stork().ClusterDomainsStatuses().Create(clusterDomainsStatus)
 }
 
 // GetClusterDomainsStatus gets the ClusterDomainsStatus
-func (k *k8sOps) GetClusterDomainsStatus(name string, namespace string) (*v1alpha1.ClusterDomainsStatus, error) {
+func (k *k8sOps) GetClusterDomainsStatus(name string) (*v1alpha1.ClusterDomainsStatus, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
-	return k.storkClient.Stork().ClusterDomainsStatuses(namespace).Get(name, meta_v1.GetOptions{})
+	return k.storkClient.Stork().ClusterDomainsStatuses().Get(name, meta_v1.GetOptions{})
 }
 
 // UpdateClusterDomainsStatus updates the ClusterDomainsStatus
@@ -3728,25 +3728,25 @@ func (k *k8sOps) UpdateClusterDomainsStatus(clusterDomainsStatus *v1alpha1.Clust
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
-	return k.storkClient.Stork().ClusterDomainsStatuses(clusterDomainsStatus.Namespace).Update(clusterDomainsStatus)
+	return k.storkClient.Stork().ClusterDomainsStatuses().Update(clusterDomainsStatus)
 }
 
 // DeleteClusterDomainsStatus deletes the ClusterDomainsStatus
-func (k *k8sOps) DeleteClusterDomainsStatus(name string, namespace string) error {
+func (k *k8sOps) DeleteClusterDomainsStatus(name string) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
 	}
-	return k.storkClient.Stork().ClusterDomainsStatuses(namespace).Delete(name, &meta_v1.DeleteOptions{
+	return k.storkClient.Stork().ClusterDomainsStatuses().Delete(name, &meta_v1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
 }
 
 // ListClusterDomainStatuses lists ClusterDomainsStatus
-func (k *k8sOps) ListClusterDomainStatuses(namespace string) (*v1alpha1.ClusterDomainsStatusList, error) {
+func (k *k8sOps) ListClusterDomainStatuses() (*v1alpha1.ClusterDomainsStatusList, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
-	return k.storkClient.Stork().ClusterDomainsStatuses(namespace).List(meta_v1.ListOptions{})
+	return k.storkClient.Stork().ClusterDomainsStatuses().List(meta_v1.ListOptions{})
 }
 
 // CreateClusterDomainUpdate creates the ClusterDomainUpdate
@@ -3754,15 +3754,15 @@ func (k *k8sOps) CreateClusterDomainUpdate(clusterDomainUpdate *v1alpha1.Cluster
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
-	return k.storkClient.Stork().ClusterDomainUpdates(clusterDomainUpdate.Namespace).Create(clusterDomainUpdate)
+	return k.storkClient.Stork().ClusterDomainUpdates().Create(clusterDomainUpdate)
 }
 
 // GetClusterDomainUpdate gets the ClusterDomainUpdate
-func (k *k8sOps) GetClusterDomainUpdate(name string, namespace string) (*v1alpha1.ClusterDomainUpdate, error) {
+func (k *k8sOps) GetClusterDomainUpdate(name string) (*v1alpha1.ClusterDomainUpdate, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
-	return k.storkClient.Stork().ClusterDomainUpdates(namespace).Get(name, meta_v1.GetOptions{})
+	return k.storkClient.Stork().ClusterDomainUpdates().Get(name, meta_v1.GetOptions{})
 }
 
 // UpdateClusterDomainUpdate updates the ClusterDomainUpdate
@@ -3770,26 +3770,26 @@ func (k *k8sOps) UpdateClusterDomainUpdate(clusterDomainUpdate *v1alpha1.Cluster
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
-	return k.storkClient.Stork().ClusterDomainUpdates(clusterDomainUpdate.Namespace).Update(clusterDomainUpdate)
+	return k.storkClient.Stork().ClusterDomainUpdates().Update(clusterDomainUpdate)
 }
 
 // DeleteClusterDomainUpdate deletes the ClusterDomainUpdate
-func (k *k8sOps) DeleteClusterDomainUpdate(name string, namespace string) error {
+func (k *k8sOps) DeleteClusterDomainUpdate(name string) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
 	}
-	return k.storkClient.Stork().ClusterDomainUpdates(namespace).Delete(name, &meta_v1.DeleteOptions{
+	return k.storkClient.Stork().ClusterDomainUpdates().Delete(name, &meta_v1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
 }
 
 // ValidateClusterDomainUpdate validates ClusterDomainUpdate
-func (k *k8sOps) ValidateClusterDomainUpdate(name, namespace string, timeout, retryInterval time.Duration) error {
+func (k *k8sOps) ValidateClusterDomainUpdate(name string, timeout, retryInterval time.Duration) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
 	}
 	t := func() (interface{}, bool, error) {
-		resp, err := k.GetClusterDomainUpdate(name, namespace)
+		resp, err := k.GetClusterDomainUpdate(name)
 		if err != nil {
 			return "", true, err
 		}
@@ -3818,11 +3818,11 @@ func (k *k8sOps) ValidateClusterDomainUpdate(name, namespace string, timeout, re
 }
 
 // ListClusterDomainUpdates lists ClusterDomainUpdates
-func (k *k8sOps) ListClusterDomainUpdates(namespace string) (*v1alpha1.ClusterDomainUpdateList, error) {
+func (k *k8sOps) ListClusterDomainUpdates() (*v1alpha1.ClusterDomainUpdateList, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
-	return k.storkClient.Stork().ClusterDomainUpdates(namespace).List(meta_v1.ListOptions{})
+	return k.storkClient.Stork().ClusterDomainUpdates().List(meta_v1.ListOptions{})
 }
 
 // ClusterDomain CRD - END

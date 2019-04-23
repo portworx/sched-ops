@@ -7,6 +7,7 @@ import (
 	prometheusclient "github.com/coreos/prometheus-operator/pkg/client/versioned"
 	snap_client "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client"
 	autopilotclientset "github.com/libopenstorage/autopilot/pkg/client/clientset/versioned"
+	ostclientset "github.com/libopenstorage/operator/pkg/client/clientset/versioned"
 	storkclientset "github.com/libopenstorage/stork/pkg/client/clientset/versioned"
 	ocp_clientset "github.com/openshift/client-go/apps/clientset/versioned"
 	ocp_security_clientset "github.com/openshift/client-go/security/clientset/versioned"
@@ -41,6 +42,8 @@ type ClientSetter interface {
 	SetSnapshotClient(rest.Interface)
 	// SetStorkClient sets the stork clientset
 	SetStorkClient(storkclientset.Interface)
+	// SetOpenstorageOperatorClient sets the openstorage operator clientset
+	SetOpenstorageOperatorClient(ostclientset.Interface)
 	// SetAPIExtensionsClient sets the api extensions clientset
 	SetAPIExtensionsClient(apiextensionsclient.Interface)
 	// SetDynamicClient sets the dynamic clientset
@@ -113,6 +116,11 @@ func (k *k8sOps) SetSnapshotClient(snapClient rest.Interface) {
 // SetStorkClient sets the stork clientset
 func (k *k8sOps) SetStorkClient(storkClient storkclientset.Interface) {
 	k.storkClient = storkClient
+}
+
+// SetOpenstorageOperatorClient sets the openstorage operator clientset
+func (k *k8sOps) SetOpenstorageOperatorClient(ostClient ostclientset.Interface) {
+	k.ostClient = ostClient
 }
 
 // SetAPIExtensionsClient sets the api extensions clientset
@@ -228,6 +236,11 @@ func (k *k8sOps) loadClientFor(config *rest.Config) error {
 	}
 
 	k.storkClient, err = storkclientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	k.ostClient, err = ostclientset.NewForConfig(config)
 	if err != nil {
 		return err
 	}

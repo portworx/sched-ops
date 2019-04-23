@@ -300,6 +300,20 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:fb3cfb4ef2dcd47847c4c3bbf0ba4aaa5ecca635c974368059863277be2cb9e3"
+  name = "github.com/libopenstorage/operator"
+  packages = [
+    "pkg/apis/core",
+    "pkg/apis/core/v1alpha1",
+    "pkg/client/clientset/versioned",
+    "pkg/client/clientset/versioned/scheme",
+    "pkg/client/clientset/versioned/typed/core/v1alpha1",
+  ]
+  pruneopts = "UT"
+  revision = "2f8b72b05421ad6bd1a6455994d631c9aea4fdcf"
+
+[[projects]]
+  branch = "master"
   digest = "1:c55bc14c1fdd921b44f7dc4c6a55314c44c98b1110f902ffb9e56e1b79c0ba5c"
   name = "github.com/libopenstorage/stork"
   packages = [
@@ -873,6 +887,8 @@
     "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client",
     "github.com/libopenstorage/autopilot/pkg/apis/autopilot/v1alpha1",
     "github.com/libopenstorage/autopilot/pkg/client/clientset/versioned",
+    "github.com/libopenstorage/operator/pkg/apis/core/v1alpha1",
+    "github.com/libopenstorage/operator/pkg/client/clientset/versioned",
     "github.com/libopenstorage/stork/pkg/apis/stork/v1alpha1",
     "github.com/libopenstorage/stork/pkg/client/clientset/versioned",
     "github.com/openshift/api/apps/v1",

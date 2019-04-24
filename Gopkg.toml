@@ -35,16 +35,16 @@
   name = "github.com/libopenstorage/stork"
 
 [[constraint]]
-  version = "kubernetes-1.11.0"
+  version = "kubernetes-1.13.1"
   name = "k8s.io/api"
 
 [[constraint]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.11.0"
+  version = "kubernetes-1.13.1"
 
 [[constraint]]
   name = "k8s.io/client-go"
-  version = "8.0.0"
+  version = "kubernetes-1.13.1"
 
 [prune]
   go-tests = true

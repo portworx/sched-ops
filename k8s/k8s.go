@@ -4007,7 +4007,7 @@ func (k *k8sOps) UpdateObject(object runtime.Object) (runtime.Object, error) {
 		return nil, err
 	}
 
-	return client.Update(unstructured, "")
+	return client.Update(unstructured, meta_v1.UpdateOptions{}, "")
 }
 
 // Object APIs - BEGIN

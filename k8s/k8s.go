@@ -267,6 +267,8 @@ type RBACOps interface {
 	ListClusterRoleBindings() (*rbac_v1.ClusterRoleBindingList, error)
 	// CreateClusterRoleBinding creates the given cluster role binding
 	CreateClusterRoleBinding(role *rbac_v1.ClusterRoleBinding) (*rbac_v1.ClusterRoleBinding, error)
+	// UpdateClusterRoleBinding updates the given cluster role binding
+	UpdateClusterRoleBinding(role *rbac_v1.ClusterRoleBinding) (*rbac_v1.ClusterRoleBinding, error)
 	// CreateServiceAccount creates the given service account
 	CreateServiceAccount(account *v1.ServiceAccount) (*v1.ServiceAccount, error)
 	// DeleteRole deletes the given role
@@ -2029,6 +2031,14 @@ func (k *k8sOps) CreateClusterRoleBinding(binding *rbac_v1.ClusterRoleBinding) (
 	}
 
 	return k.client.Rbac().ClusterRoleBindings().Create(binding)
+}
+
+func (k *k8sOps) UpdateClusterRoleBinding(binding *rbac_v1.ClusterRoleBinding) (*rbac_v1.ClusterRoleBinding, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.Rbac().ClusterRoleBindings().Update(binding)
 }
 
 func (k *k8sOps) GetClusterRoleBinding(name string) (*rbac_v1.ClusterRoleBinding, error) {

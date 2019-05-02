@@ -46,6 +46,14 @@
   name = "k8s.io/client-go"
   version = "8.0.0"
 
+[[constraint]]
+  name = "github.com/openshift/api"
+  branch = "release-3.11"
+
+[[constraint]]
+  name = "github.com/openshift/client-go"
+  branch = "release-3.11"
+
 [prune]
   go-tests = true
   unused-packages = true

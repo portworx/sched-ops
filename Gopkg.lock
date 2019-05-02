@@ -198,6 +198,26 @@
   revision = "c48cc78d482608239f6c4c92a4abd87eb8761c90"
 
 [[projects]]
+  branch = "release-3.11"
+  digest = "1:21e11e06ebb4c8dbdfab6198acf6cd68ffe61d67c58c858f2218f048c557bf4f"
+  name = "github.com/openshift/api"
+  packages = ["apps/v1"]
+  pruneopts = "UT"
+  revision = "8741ff068a473be041d7bafb4502c12e4f10aab5"
+
+[[projects]]
+  branch = "release-3.11"
+  digest = "1:8f8c9a60a25a3d5e5981067f438ce42ecc4217d00c6cdb7ad1067f1e563666c6"
+  name = "github.com/openshift/client-go"
+  packages = [
+    "apps/clientset/versioned",
+    "apps/clientset/versioned/scheme",
+    "apps/clientset/versioned/typed/apps/v1",
+  ]
+  pruneopts = "UT"
+  revision = "431ec9a26e5021f35fa41ee9a89842db9bfdb370"
+
+[[projects]]
   digest = "1:bde6c3a610bd01ea7e2c8d9c7fd1116531fb6619f46f73f4f2ea16adb70da6be"
   name = "github.com/operator-framework/operator-sdk"
   packages = ["pkg/util/k8sutil"]
@@ -576,6 +596,9 @@
     "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client",
     "github.com/libopenstorage/stork/pkg/apis/stork/v1alpha1",
     "github.com/libopenstorage/stork/pkg/client/clientset/versioned",
+    "github.com/openshift/api/apps/v1",
+    "github.com/openshift/client-go/apps/clientset/versioned",
+    "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1",
     "github.com/portworx/talisman/pkg/apis/portworx/v1beta1",
     "github.com/portworx/talisman/pkg/client/clientset/versioned",
     "github.com/sirupsen/logrus",

@@ -204,7 +204,7 @@ type StatefulSetOps interface {
 // DeploymentOps is an interface to perform k8s deployment operations
 type DeploymentOps interface {
 	// ListDeployments lists all deployments for the given namespace
-	ListDeployments(namespace string) (*apps_api.DeploymentList, error)
+	ListDeployments(namespace string, options meta_v1.ListOptions) (*apps_api.DeploymentList, error)
 	// GetDeployment returns a deployment for the give name and namespace
 	GetDeployment(name, namespace string) (*apps_api.Deployment, error)
 	// CreateDeployment creates the given deployment
@@ -1301,12 +1301,12 @@ func (k *k8sOps) ValidateDeletedService(svcName string, svcNS string) error {
 
 // Deployment APIs - BEGIN
 
-func (k *k8sOps) ListDeployments(namespace string) (*apps_api.DeploymentList, error) {
+func (k *k8sOps) ListDeployments(namespace string, options meta_v1.ListOptions) (*apps_api.DeploymentList, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
 
-	return k.appsClient().Deployments(namespace).List(meta_v1.ListOptions{})
+	return k.appsClient().Deployments(namespace).List(options)
 }
 
 func (k *k8sOps) GetDeployment(name, namespace string) (*apps_api.Deployment, error) {

@@ -1,7 +1,7 @@
 package task
 
 import (
-	"errors"
+	"fmt"
 	"log"
 	"time"
 )
@@ -9,7 +9,14 @@ import (
 //TODO: export the type: type Task func() (string, error)
 
 // ErrTimedOut is returned when an operation times out
-var ErrTimedOut = errors.New("timed out performing task")
+type ErrTimedOut struct {
+	// Reason is the reason for the timeout
+	Reason string
+}
+
+func (e *ErrTimedOut) Error() string {
+	return fmt.Sprintf("timed out performing task. Error was: %s", e.Reason)
+}
 
 // DoRetryWithTimeout performs given task with given timeout and timeBeforeRetry
 func DoRetryWithTimeout(t func() (interface{}, bool, error), timeout, timeBeforeRetry time.Duration) (interface{}, error) {
@@ -48,6 +55,8 @@ func DoRetryWithTimeout(t func() (interface{}, bool, error), timeout, timeBefore
 		return out, err
 	case <-time.After(timeout):
 		quit <- true
-		return out, ErrTimedOut
+		return out, &ErrTimedOut{
+			Reason: err.Error(),
+		}
 	}
 }

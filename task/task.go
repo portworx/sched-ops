@@ -16,7 +16,12 @@ type ErrTimedOut struct {
 }
 
 func (e *ErrTimedOut) Error() string {
-	return fmt.Sprintf("timed out performing task. Error was: %s", e.Reason)
+	errString := "timed out performing task."
+	if len(e.Reason) > 0 {
+		errString = fmt.Sprintf("%s, Error was: %s", errString, e.Reason)
+	}
+
+	return errString
 }
 
 // DoRetryWithTimeout performs given task with given timeout and timeBeforeRetry
@@ -41,11 +46,13 @@ func DoRetryWithTimeout(t func() (interface{}, bool, error), timeout, timeBefore
 			default:
 				errLock.Lock()
 				out, retry, err = t()
-				errLock.Unlock()
 				if err == nil || !retry {
 					done <- true
+					errLock.Unlock()
 					return
 				}
+
+				errLock.Unlock()
 
 				log.Printf("%v Next retry in: %v", err, timeBeforeRetry)
 				time.Sleep(timeBeforeRetry)
@@ -62,8 +69,14 @@ func DoRetryWithTimeout(t func() (interface{}, bool, error), timeout, timeBefore
 		errLock.Lock()
 		defer errLock.Unlock()
 		quit <- true
+
+		var reason string
+		if err != nil {
+			reason = err.Error()
+		}
+
 		return out, &ErrTimedOut{
-			Reason: err.Error(),
+			Reason: reason,
 		}
 	}
 }

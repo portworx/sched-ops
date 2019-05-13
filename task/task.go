@@ -3,6 +3,7 @@ package task
 import (
 	"fmt"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -22,10 +23,12 @@ func (e *ErrTimedOut) Error() string {
 func DoRetryWithTimeout(t func() (interface{}, bool, error), timeout, timeBeforeRetry time.Duration) (interface{}, error) {
 	done := make(chan bool, 1)
 	quit := make(chan bool, 1)
-	var out interface{}
-	var err error
-	var retry bool
-
+	var (
+		out     interface{}
+		err     error
+		errLock sync.Mutex
+		retry   bool
+	)
 	go func() {
 		count := 0
 		for {
@@ -36,7 +39,9 @@ func DoRetryWithTimeout(t func() (interface{}, bool, error), timeout, timeBefore
 				}
 
 			default:
+				errLock.Lock()
 				out, retry, err = t()
+				errLock.Unlock()
 				if err == nil || !retry {
 					done <- true
 					return
@@ -54,6 +59,8 @@ func DoRetryWithTimeout(t func() (interface{}, bool, error), timeout, timeBefore
 	case <-done:
 		return out, err
 	case <-time.After(timeout):
+		errLock.Lock()
+		defer errLock.Unlock()
 		quit <- true
 		return out, &ErrTimedOut{
 			Reason: err.Error(),

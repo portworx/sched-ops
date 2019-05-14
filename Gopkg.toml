@@ -34,6 +34,10 @@
   branch = "master"
   name = "github.com/libopenstorage/stork"
 
+[[override]]
+  branch = "placement-v2"
+  name = "github.com/portworx/talisman"
+
 [[constraint]]
   version = "kubernetes-1.11.0"
   name = "k8s.io/api"

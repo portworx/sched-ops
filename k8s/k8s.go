@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -803,7 +804,20 @@ func (k *k8sOps) GetVersion() (*version.Info, error) {
 		return nil, err
 	}
 
-	return k.client.Discovery().ServerVersion()
+	version, err := k.client.Discovery().ServerVersion()
+	if err != nil {
+		return nil, err
+	}
+
+	// For git versions like v1.13.4+81fc896 the API has been found to return minor
+	// versions like 13+. This isn't very useful. So cleanup minor to just have a number
+	matches := regexp.MustCompile(`(\d+).*`).FindStringSubmatch(version.Minor)
+	if len(matches) < 2 {
+		return nil, fmt.Errorf("failed to parse minor version from: %s", version.GitVersion)
+	}
+
+	version.Minor = matches[1]
+	return version, nil
 }
 
 // Namespace APIs - BEGIN

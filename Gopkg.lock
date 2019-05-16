@@ -250,18 +250,19 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:cfe8d419eb553560ba1e297dc0430a161be3239372a9fd60111e63da3b75fdb8"
+  branch = "placement-v2"
+  digest = "1:bdd967334d0d0057bea0b9a823bf6cecf075a9ae3dd4945e6138788ba6dddcbe"
   name = "github.com/portworx/talisman"
   packages = [
     "pkg/apis/portworx",
     "pkg/apis/portworx/v1beta1",
+    "pkg/apis/portworx/v1beta2",
     "pkg/client/clientset/versioned",
     "pkg/client/clientset/versioned/scheme",
-    "pkg/client/clientset/versioned/typed/portworx/v1beta1",
+    "pkg/client/clientset/versioned/typed/portworx/v1beta2",
   ]
   pruneopts = "UT"
-  revision = "73c47f96b4178a49863212c1e3212a0c07678599"
+  revision = "0478126e6190edf1cbecd27d1f46d5e3cbe01e3c"
 
 [[projects]]
   digest = "1:87c2e02fb01c27060ccc5ba7c5a407cc91147726f8f40b70cceeedbc52b1f3a8"
@@ -599,7 +600,7 @@
     "github.com/openshift/api/apps/v1",
     "github.com/openshift/client-go/apps/clientset/versioned",
     "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1",
-    "github.com/portworx/talisman/pkg/apis/portworx/v1beta1",
+    "github.com/portworx/talisman/pkg/apis/portworx/v1beta2",
     "github.com/portworx/talisman/pkg/client/clientset/versioned",
     "github.com/sirupsen/logrus",
     "github.com/stretchr/testify/require",

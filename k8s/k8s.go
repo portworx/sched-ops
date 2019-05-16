@@ -18,7 +18,7 @@ import (
 	ocp_clientset "github.com/openshift/client-go/apps/clientset/versioned"
 	ocp_appsv1_client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	"github.com/portworx/sched-ops/task"
-	talisman_v1beta1 "github.com/portworx/talisman/pkg/apis/portworx/v1beta1"
+	talisman_v1beta2 "github.com/portworx/talisman/pkg/apis/portworx/v1beta2"
 	talismanclientset "github.com/portworx/talisman/pkg/client/clientset/versioned"
 	"github.com/sirupsen/logrus"
 	apps_api "k8s.io/api/apps/v1beta2"
@@ -629,15 +629,15 @@ type SchedulePolicyOps interface {
 // VolumePlacementStrategyOps is an interface to perform CRUD volume placememt strategy ops
 type VolumePlacementStrategyOps interface {
 	// CreateVolumePlacementStrategy creates a new volume placement strategy
-	CreateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlacementStrategy) (*talisman_v1beta1.VolumePlacementStrategy, error)
+	CreateVolumePlacementStrategy(spec *talisman_v1beta2.VolumePlacementStrategy) (*talisman_v1beta2.VolumePlacementStrategy, error)
 	// UpdateVolumePlacementStrategy updates an existing volume placement strategy
-	UpdateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlacementStrategy) (*talisman_v1beta1.VolumePlacementStrategy, error)
+	UpdateVolumePlacementStrategy(spec *talisman_v1beta2.VolumePlacementStrategy) (*talisman_v1beta2.VolumePlacementStrategy, error)
 	// ListVolumePlacementStrategies lists all volume placement strategies
-	ListVolumePlacementStrategies() (*talisman_v1beta1.VolumePlacementStrategyList, error)
+	ListVolumePlacementStrategies() (*talisman_v1beta2.VolumePlacementStrategyList, error)
 	// DeleteVolumePlacementStrategy deletes the volume placement strategy with given name
 	DeleteVolumePlacementStrategy(name string) error
 	// GetVolumePlacementStrategy returns the volume placememt strategy with given name
-	GetVolumePlacementStrategy(name string) (*talisman_v1beta1.VolumePlacementStrategy, error)
+	GetVolumePlacementStrategy(name string) (*talisman_v1beta2.VolumePlacementStrategy, error)
 }
 
 // BackupLocationOps is an interface to perfrom k8s BackupLocation operations
@@ -4107,7 +4107,7 @@ func (k *k8sOps) ValidateCRD(resource CustomResource, timeout, retryInterval tim
 	})
 }
 
-func (k *k8sOps) CreateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlacementStrategy) (*talisman_v1beta1.VolumePlacementStrategy, error) {
+func (k *k8sOps) CreateVolumePlacementStrategy(spec *talisman_v1beta2.VolumePlacementStrategy) (*talisman_v1beta2.VolumePlacementStrategy, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
@@ -4115,7 +4115,7 @@ func (k *k8sOps) CreateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlac
 	return k.talismanClient.Portworx().VolumePlacementStrategies().Create(spec)
 }
 
-func (k *k8sOps) UpdateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlacementStrategy) (*talisman_v1beta1.VolumePlacementStrategy, error) {
+func (k *k8sOps) UpdateVolumePlacementStrategy(spec *talisman_v1beta2.VolumePlacementStrategy) (*talisman_v1beta2.VolumePlacementStrategy, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
@@ -4123,7 +4123,7 @@ func (k *k8sOps) UpdateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlac
 	return k.talismanClient.Portworx().VolumePlacementStrategies().Update(spec)
 }
 
-func (k *k8sOps) ListVolumePlacementStrategies() (*talisman_v1beta1.VolumePlacementStrategyList, error) {
+func (k *k8sOps) ListVolumePlacementStrategies() (*talisman_v1beta2.VolumePlacementStrategyList, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
@@ -4140,7 +4140,7 @@ func (k *k8sOps) DeleteVolumePlacementStrategy(name string) error {
 	})
 }
 
-func (k *k8sOps) GetVolumePlacementStrategy(name string) (*talisman_v1beta1.VolumePlacementStrategy, error) {
+func (k *k8sOps) GetVolumePlacementStrategy(name string) (*talisman_v1beta2.VolumePlacementStrategy, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}

@@ -250,8 +250,8 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "placement-v2"
-  digest = "1:bdd967334d0d0057bea0b9a823bf6cecf075a9ae3dd4945e6138788ba6dddcbe"
+  branch = "master"
+  digest = "1:5e46500f35c5126876081742791abc2a0971f157c725fec40b22bb2f4eb7dd96"
   name = "github.com/portworx/talisman"
   packages = [
     "pkg/apis/portworx",
@@ -259,10 +259,11 @@
     "pkg/apis/portworx/v1beta2",
     "pkg/client/clientset/versioned",
     "pkg/client/clientset/versioned/scheme",
+    "pkg/client/clientset/versioned/typed/portworx/v1beta1",
     "pkg/client/clientset/versioned/typed/portworx/v1beta2",
   ]
   pruneopts = "UT"
-  revision = "0478126e6190edf1cbecd27d1f46d5e3cbe01e3c"
+  revision = "3a3db17387315bac13781d969f51e2a03a27b314"
 
 [[projects]]
   digest = "1:87c2e02fb01c27060ccc5ba7c5a407cc91147726f8f40b70cceeedbc52b1f3a8"

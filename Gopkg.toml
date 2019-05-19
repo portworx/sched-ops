@@ -34,8 +34,8 @@
   branch = "master"
   name = "github.com/libopenstorage/stork"
 
-[[override]]
-  branch = "placement-v2"
+[[constraint]]
+  branch = "master"
   name = "github.com/portworx/talisman"
 
 [[constraint]]

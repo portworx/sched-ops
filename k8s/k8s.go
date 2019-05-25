@@ -4196,28 +4196,29 @@ func (k *k8sOps) ValidateClusterDomainsStatus(name string, domainMap map[string]
 			return "", true, err
 		}
 
-		for _, domain := range cds.Status.Active {
-			isActive, _ := domainMap[domain]
-			if !isActive {
-				return "", true, &ErrFailedToValidateCustomSpec{
-					Name: name,
-					Cause: fmt.Sprintf("ClusterDomainsStatus mismatch. For domain %v "+
-						"expected to be inactive found active", domain),
-					Type: cds,
-				}
-			}
-		}
-		for _, domain := range cds.Status.Inactive {
-			isActive, _ := domainMap[domain]
+		for _, domainInfo := range cds.Status.ClusterDomainInfos {
+			isActive, _ := domainMap[domainInfo.Name]
 			if isActive {
-				return "", true, &ErrFailedToValidateCustomSpec{
-					Name: name,
-					Cause: fmt.Sprintf("ClusterDomainsStatus mismatch. For domain %v "+
-						"expected to be active found inactive", domain),
-					Type: cds,
+				if domainInfo.State != v1alpha1.ClusterDomainActive {
+					return "", true, &ErrFailedToValidateCustomSpec{
+						Name: domainInfo.Name,
+						Cause: fmt.Sprintf("ClusterDomainsStatus mismatch. For domain %v "+
+							"expected to be active found inactive", domainInfo.Name),
+						Type: cds,
+					}
+				}
+			} else {
+				if domainInfo.State != v1alpha1.ClusterDomainInactive {
+					return "", true, &ErrFailedToValidateCustomSpec{
+						Name: domainInfo.Name,
+						Cause: fmt.Sprintf("ClusterDomainsStatus mismatch. For domain %v "+
+							"expected to be inactive found active", domainInfo.Name),
+						Type: cds,
+					}
 				}
 			}
 		}
+
 		return "", false, nil
 
 	}

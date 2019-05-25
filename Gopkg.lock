@@ -160,8 +160,8 @@
   version = "v6.0.0"
 
 [[projects]]
-  branch = "cds_sync_status"
-  digest = "1:31d5bf4f1f49f0abfa7eb105cd0c97d98ec48cc2324eb534365291b2338163ff"
+  branch = "master"
+  digest = "1:135046d0c09c26954826ee6a5b850f41b5dd21e10e9a12a3afcc687c0b0f1f17"
   name = "github.com/libopenstorage/stork"
   packages = [
     "pkg/apis/stork",
@@ -171,7 +171,7 @@
     "pkg/client/clientset/versioned/typed/stork/v1alpha1",
   ]
   pruneopts = "UT"
-  revision = "3f094c5e9b4552cb28fbc7c41e2bd342f7afcf79"
+  revision = "8a0d552989bb585b61a9266cecc5437ad0de2d85"
 
 [[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"

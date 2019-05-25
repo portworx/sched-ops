@@ -30,8 +30,8 @@
   name = "github.com/kubernetes-incubator/external-storage"
   source = "github.com/libopenstorage/external-storage"
 
-[[constraint]]
-  branch = "cds_sync_status"
+[[override]]
+  branch = "master"
   name = "github.com/libopenstorage/stork"
 
 [[constraint]]

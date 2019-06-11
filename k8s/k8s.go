@@ -175,6 +175,8 @@ type ServiceOps interface {
 	ValidateDeletedService(string, string) error
 	// DescribeService gets the service status
 	DescribeService(string, string) (*v1.ServiceStatus, error)
+	// PatchService patches the current service with the given json path
+	PatchService(name, namespace string, jsonPatch []byte) (*v1.Service, error)
 }
 
 // StatefulSetOps is an interface to perform k8s stateful set operations
@@ -1365,6 +1367,15 @@ func (k *k8sOps) ValidateDeletedService(svcName string, svcNS string) error {
 	}
 
 	return nil
+}
+
+func (k *k8sOps) PatchService(name, namespace string, jsonPatch []byte) (*v1.Service, error) {
+	current, err := k.GetService(name, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	return k.client.CoreV1().Services(current.Namespace).Patch(current.Name, types.StrategicMergePatchType, jsonPatch)
 }
 
 // Service APIs - END

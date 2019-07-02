@@ -14,8 +14,11 @@ import (
 	snap_client "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client"
 	"github.com/libopenstorage/stork/pkg/apis/stork/v1alpha1"
 	storkclientset "github.com/libopenstorage/stork/pkg/client/clientset/versioned"
+	ocp_appsv1_api "github.com/openshift/api/apps/v1"
+	ocp_clientset "github.com/openshift/client-go/apps/clientset/versioned"
+	ocp_appsv1_client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	"github.com/portworx/sched-ops/task"
-	talisman_v1beta1 "github.com/portworx/talisman/pkg/apis/portworx/v1beta1"
+	talisman_v1beta2 "github.com/portworx/talisman/pkg/apis/portworx/v1beta2"
 	talismanclientset "github.com/portworx/talisman/pkg/client/clientset/versioned"
 	"github.com/sirupsen/logrus"
 	apps_api "k8s.io/api/apps/v1beta2"
@@ -66,6 +69,7 @@ type Ops interface {
 	ServiceOps
 	StatefulSetOps
 	DeploymentOps
+	DeploymentConfigOps
 	JobOps
 	DaemonSetOps
 	RBACOps
@@ -85,9 +89,20 @@ type Ops interface {
 	ObjectOps
 	SchedulePolicyOps
 	VolumePlacementStrategyOps
+	BackupLocationOps
+	ApplicationBackupRestoreOps
+	ApplicationCloneOps
+	VolumeSnapshotRestoreOps
 	GetVersion() (*version.Info, error)
 	SetConfig(config *rest.Config)
-	SetClient(client kubernetes.Interface, snapClient rest.Interface, storkClient storkclientset.Interface, apiExtensionClient apiextensionsclient.Interface, dynamicInterface dynamic.Interface)
+	SetClient(
+		client kubernetes.Interface,
+		snapClient rest.Interface,
+		storkClient storkclientset.Interface,
+		apiExtensionClient apiextensionsclient.Interface,
+		dynamicInterface dynamic.Interface,
+		ocpClient ocp_clientset.Interface,
+	)
 
 	// private methods for unit tests
 	privateMethods
@@ -160,6 +175,8 @@ type ServiceOps interface {
 	ValidateDeletedService(string, string) error
 	// DescribeService gets the service status
 	DescribeService(string, string) (*v1.ServiceStatus, error)
+	// PatchService patches the current service with the given json path
+	PatchService(name, namespace string, jsonPatch []byte) (*v1.Service, error)
 }
 
 // StatefulSetOps is an interface to perform k8s stateful set operations
@@ -193,7 +210,7 @@ type StatefulSetOps interface {
 // DeploymentOps is an interface to perform k8s deployment operations
 type DeploymentOps interface {
 	// ListDeployments lists all deployments for the given namespace
-	ListDeployments(namespace string) (*apps_api.DeploymentList, error)
+	ListDeployments(namespace string, options meta_v1.ListOptions) (*apps_api.DeploymentList, error)
 	// GetDeployment returns a deployment for the give name and namespace
 	GetDeployment(name, namespace string) (*apps_api.Deployment, error)
 	// CreateDeployment creates the given deployment
@@ -212,6 +229,30 @@ type DeploymentOps interface {
 	DescribeDeployment(name, namespace string) (*apps_api.DeploymentStatus, error)
 	// GetDeploymentsUsingStorageClass returns all deployments using the given storage class
 	GetDeploymentsUsingStorageClass(scName string) ([]apps_api.Deployment, error)
+}
+
+// DeploymentConfigOps is an interface to perform ocp deployment config operations
+type DeploymentConfigOps interface {
+	// ListDeploymentConfigs lists all deployments for the given namespace
+	ListDeploymentConfigs(namespace string) (*ocp_appsv1_api.DeploymentConfigList, error)
+	// GetDeploymentConfig returns a deployment for the give name and namespace
+	GetDeploymentConfig(name, namespace string) (*ocp_appsv1_api.DeploymentConfig, error)
+	// CreateDeploymentConfig creates the given deployment
+	CreateDeploymentConfig(*ocp_appsv1_api.DeploymentConfig) (*ocp_appsv1_api.DeploymentConfig, error)
+	// UpdateDeploymentConfig updates the given deployment
+	UpdateDeploymentConfig(*ocp_appsv1_api.DeploymentConfig) (*ocp_appsv1_api.DeploymentConfig, error)
+	// DeleteDeploymentConfig deletes the given deployment
+	DeleteDeploymentConfig(name, namespace string) error
+	// ValidateDeploymentConfig validates the given deployment if it's running and healthy
+	ValidateDeploymentConfig(deployment *ocp_appsv1_api.DeploymentConfig, timeout, retryInterval time.Duration) error
+	// ValidateTerminatedDeploymentConfig validates if given deployment is terminated
+	ValidateTerminatedDeploymentConfig(*ocp_appsv1_api.DeploymentConfig) error
+	// GetDeploymentConfigPods returns pods for the given deployment
+	GetDeploymentConfigPods(*ocp_appsv1_api.DeploymentConfig) ([]v1.Pod, error)
+	// DescribeDeploymentConfig gets the deployment status
+	DescribeDeploymentConfig(name, namespace string) (*ocp_appsv1_api.DeploymentConfigStatus, error)
+	// GetDeploymentConfigsUsingStorageClass returns all deployments using the given storage class
+	GetDeploymentConfigsUsingStorageClass(scName string) ([]ocp_appsv1_api.DeploymentConfig, error)
 }
 
 // DaemonSetOps is an interface to perform k8s daemon set operations
@@ -267,6 +308,8 @@ type RBACOps interface {
 	ListClusterRoleBindings() (*rbac_v1.ClusterRoleBindingList, error)
 	// CreateClusterRoleBinding creates the given cluster role binding
 	CreateClusterRoleBinding(role *rbac_v1.ClusterRoleBinding) (*rbac_v1.ClusterRoleBinding, error)
+	// UpdateClusterRoleBinding updates the given cluster role binding
+	UpdateClusterRoleBinding(role *rbac_v1.ClusterRoleBinding) (*rbac_v1.ClusterRoleBinding, error)
 	// CreateServiceAccount creates the given service account
 	CreateServiceAccount(account *v1.ServiceAccount) (*v1.ServiceAccount, error)
 	// DeleteRole deletes the given role
@@ -327,7 +370,7 @@ type PodOps interface {
 	// ValidatePod validates the given pod if it's ready
 	ValidatePod(pod *v1.Pod, timeout, retryInterval time.Duration) error
 	// WatchPods sets up a watcher that listens for the changes to pods in given namespace
-	WatchPods(namespace string, fn WatchFunc) error
+	WatchPods(namespace string, fn WatchFunc, listOptions meta_v1.ListOptions) error
 }
 
 // StorageClassOps is an interface to perform k8s storage class operations
@@ -414,6 +457,12 @@ type SnapshotOps interface {
 	ListSnapshotSchedules(string) (*v1alpha1.VolumeSnapshotScheduleList, error)
 	// DeleteSnapshotSchedule deletes the SnapshotSchedule
 	DeleteSnapshotSchedule(string, string) error
+	// ValidateSnapshotSchedule validates the given SnapshotSchedule. It checks the status of each of
+	// the snapshots triggered for this schedule and returns a map of successfull snapshots. The key of the
+	// map will be the schedule type and value will be list of snapshots for that schedule type.
+	// The caller is expected to validate if the returned map has all snapshots expected at that point of time
+	ValidateSnapshotSchedule(string, string, time.Duration, time.Duration) (
+		map[v1alpha1.SchedulePolicyType][]*v1alpha1.ScheduledVolumeSnapshotStatus, error)
 }
 
 // GroupSnapshotOps is an interface to perform k8s GroupVolumeSnapshot operations
@@ -433,6 +482,19 @@ type GroupSnapshotOps interface {
 	ValidateGroupSnapshot(name, namespace string, retry bool, timeout, retryInterval time.Duration) error
 	// GetSnapshotsForGroupSnapshot returns all child snapshots for the group snapshot
 	GetSnapshotsForGroupSnapshot(name, namespace string) ([]*snap_v1.VolumeSnapshot, error)
+}
+
+// VolumeSnapshotRestoreOps is interface to perform isnapshot restore using CRD
+type VolumeSnapshotRestoreOps interface {
+	// CreateVolumeSnapshotRestore restore snapshot to pvc specifed in CRD, if no pvcs defined we restore to
+	// parent volumes
+	CreateVolumeSnapshotRestore(snap *v1alpha1.VolumeSnapshotRestore) (*v1alpha1.VolumeSnapshotRestore, error)
+	// GetVolumeSnapshotRestore returns details of given restore crd status
+	GetVolumeSnapshotRestore(name, namespace string) (*v1alpha1.VolumeSnapshotRestore, error)
+	// ListVolumeSnapshotRestore return list of volumesnapshotrestores in given namespaces
+	ListVolumeSnapshotRestore(namespace string) (*v1alpha1.VolumeSnapshotRestoreList, error)
+	// DeleteVolumeSnapshotRestore delete given volumesnapshotrestore CRD
+	DeleteVolumeSnapshotRestore(name, namespace string) error
 }
 
 // RuleOps is an interface to perform operations for k8s stork rule
@@ -509,6 +571,8 @@ type ClusterDomainsOps interface {
 	DeleteClusterDomainsStatus(string) error
 	// ListClusterDomainStatuses lists ClusterDomainsStatus
 	ListClusterDomainStatuses() (*v1alpha1.ClusterDomainsStatusList, error)
+	// ValidateClusterDomainsStatus validates the ClusterDomainsStatus
+	ValidateClusterDomainsStatus(string, map[string]bool, time.Duration, time.Duration) error
 
 	// CreateClusterDomainUpdate creates the ClusterDomainUpdate
 	CreateClusterDomainUpdate(*v1alpha1.ClusterDomainUpdate) (*v1alpha1.ClusterDomainUpdate, error)
@@ -581,15 +645,74 @@ type SchedulePolicyOps interface {
 // VolumePlacementStrategyOps is an interface to perform CRUD volume placememt strategy ops
 type VolumePlacementStrategyOps interface {
 	// CreateVolumePlacementStrategy creates a new volume placement strategy
-	CreateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlacementStrategy) (*talisman_v1beta1.VolumePlacementStrategy, error)
+	CreateVolumePlacementStrategy(spec *talisman_v1beta2.VolumePlacementStrategy) (*talisman_v1beta2.VolumePlacementStrategy, error)
 	// UpdateVolumePlacementStrategy updates an existing volume placement strategy
-	UpdateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlacementStrategy) (*talisman_v1beta1.VolumePlacementStrategy, error)
+	UpdateVolumePlacementStrategy(spec *talisman_v1beta2.VolumePlacementStrategy) (*talisman_v1beta2.VolumePlacementStrategy, error)
 	// ListVolumePlacementStrategies lists all volume placement strategies
-	ListVolumePlacementStrategies() (*talisman_v1beta1.VolumePlacementStrategyList, error)
+	ListVolumePlacementStrategies() (*talisman_v1beta2.VolumePlacementStrategyList, error)
 	// DeleteVolumePlacementStrategy deletes the volume placement strategy with given name
 	DeleteVolumePlacementStrategy(name string) error
 	// GetVolumePlacementStrategy returns the volume placememt strategy with given name
-	GetVolumePlacementStrategy(name string) (*talisman_v1beta1.VolumePlacementStrategy, error)
+	GetVolumePlacementStrategy(name string) (*talisman_v1beta2.VolumePlacementStrategy, error)
+}
+
+// BackupLocationOps is an interface to perfrom k8s BackupLocation operations
+type BackupLocationOps interface {
+	// CreateBackupLocation creates the BackupLocation
+	CreateBackupLocation(*v1alpha1.BackupLocation) (*v1alpha1.BackupLocation, error)
+	// GetBackupLocation gets the BackupLocation
+	GetBackupLocation(string, string) (*v1alpha1.BackupLocation, error)
+	// ListBackupLocations lists all the BackupLocations
+	ListBackupLocations(string) (*v1alpha1.BackupLocationList, error)
+	// UpdateBackupLocation updates the BackupLocation
+	UpdateBackupLocation(*v1alpha1.BackupLocation) (*v1alpha1.BackupLocation, error)
+	// DeleteBackupLocation deletes the BackupLocation
+	DeleteBackupLocation(string, string) error
+	// ValidateBackupLocation validates the BackupLocation
+	ValidateBackupLocation(string, string, time.Duration, time.Duration) error
+}
+
+// ApplicationBackupRestoreOps is an interface to perfrom k8s Application Backup
+// and Restore operations
+type ApplicationBackupRestoreOps interface {
+	// CreateApplicationBackup creates the ApplicationBackup
+	CreateApplicationBackup(*v1alpha1.ApplicationBackup) (*v1alpha1.ApplicationBackup, error)
+	// GetApplicationBackup gets the ApplicationBackup
+	GetApplicationBackup(string, string) (*v1alpha1.ApplicationBackup, error)
+	// ListApplicationBackups lists all the ApplicationBackups
+	ListApplicationBackups(string) (*v1alpha1.ApplicationBackupList, error)
+	// UpdateApplicationBackup updates the ApplicationBackup
+	UpdateApplicationBackup(*v1alpha1.ApplicationBackup) (*v1alpha1.ApplicationBackup, error)
+	// DeleteApplicationBackup deletes the ApplicationBackup
+	DeleteApplicationBackup(string, string) error
+	// ValidateApplicationBackup validates the ApplicationBackup
+	ValidateApplicationBackup(string, string, time.Duration, time.Duration) error
+	// CreateApplicationRestore creates the ApplicationRestore
+	CreateApplicationRestore(*v1alpha1.ApplicationRestore) (*v1alpha1.ApplicationRestore, error)
+	// GetApplicationRestore gets the ApplicationRestore
+	GetApplicationRestore(string, string) (*v1alpha1.ApplicationRestore, error)
+	// ListApplicationRestores lists all the ApplicationRestores
+	ListApplicationRestores(string) (*v1alpha1.ApplicationRestoreList, error)
+	// UpdateApplicationRestore updates the ApplicationRestore
+	UpdateApplicationRestore(*v1alpha1.ApplicationRestore) (*v1alpha1.ApplicationRestore, error)
+	// DeleteApplicationRestore deletes the ApplicationRestore
+	DeleteApplicationRestore(string, string) error
+	// ValidateApplicationRestore validates  the ApplicationRestore
+	ValidateApplicationRestore(string, string, time.Duration, time.Duration) error
+}
+
+// ApplicationCloneOps is an interface to perfrom k8s Application Clone operations
+type ApplicationCloneOps interface {
+	// CreateApplicationClone creates the ApplicationClone
+	CreateApplicationClone(*v1alpha1.ApplicationClone) (*v1alpha1.ApplicationClone, error)
+	// GetApplicationClone gets the ApplicationClone
+	GetApplicationClone(string, string) (*v1alpha1.ApplicationClone, error)
+	// ListApplicationClones lists all the ApplicationClones
+	ListApplicationClones(string) (*v1alpha1.ApplicationCloneList, error)
+	// UpdateApplicationClone updates the ApplicationClone
+	UpdateApplicationClone(*v1alpha1.ApplicationClone) (*v1alpha1.ApplicationClone, error)
+	// DeleteApplicationClone deletes the ApplicationClone
+	DeleteApplicationClone(string, string) error
 }
 
 type privateMethods interface {
@@ -633,6 +756,7 @@ type k8sOps struct {
 	apiExtensionClient apiextensionsclient.Interface
 	config             *rest.Config
 	dynamicInterface   dynamic.Interface
+	ocpClient          ocp_clientset.Interface
 }
 
 // Instance returns a singleton instance of k8sOps type
@@ -666,13 +790,16 @@ func (k *k8sOps) SetClient(
 	snapClient rest.Interface,
 	storkClient storkclientset.Interface,
 	apiExtensionClient apiextensionsclient.Interface,
-	dynamicInterface dynamic.Interface) {
+	dynamicInterface dynamic.Interface,
+	ocpClient ocp_clientset.Interface,
+) {
 
 	k.client = client
 	k.snapClient = snapClient
 	k.storkClient = storkClient
 	k.apiExtensionClient = apiExtensionClient
 	k.dynamicInterface = dynamicInterface
+	k.ocpClient = ocpClient
 }
 
 // Initialize the k8s client if uninitialized
@@ -949,7 +1076,9 @@ func (k *k8sOps) handleWatch(
 	watchInterface watch.Interface,
 	object runtime.Object,
 	namespace string,
-	fn WatchFunc) {
+	fn WatchFunc,
+	listOptions meta_v1.ListOptions) {
+	defer watchInterface.Stop()
 	for {
 		select {
 		case event, more := <-watchInterface.ResultChan():
@@ -963,7 +1092,7 @@ func (k *k8sOps) handleWatch(
 					} else if cm, ok := object.(*v1.ConfigMap); ok {
 						err = k.WatchConfigMap(cm, fn)
 					} else if _, ok := object.(*v1.Pod); ok {
-						err = k.WatchPods(namespace, fn)
+						err = k.WatchPods(namespace, fn, listOptions)
 					} else {
 						return "", false, fmt.Errorf("unsupported object: %v given to handle watch", object)
 					}
@@ -1004,7 +1133,7 @@ func (k *k8sOps) WatchNode(node *v1.Node, watchNodeFn WatchFunc) error {
 	}
 
 	// fire off watch function
-	go k.handleWatch(watchInterface, node, "", watchNodeFn)
+	go k.handleWatch(watchInterface, node, "", watchNodeFn, listOptions)
 	return nil
 }
 
@@ -1246,16 +1375,25 @@ func (k *k8sOps) ValidateDeletedService(svcName string, svcNS string) error {
 	return nil
 }
 
+func (k *k8sOps) PatchService(name, namespace string, jsonPatch []byte) (*v1.Service, error) {
+	current, err := k.GetService(name, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	return k.client.CoreV1().Services(current.Namespace).Patch(current.Name, types.StrategicMergePatchType, jsonPatch)
+}
+
 // Service APIs - END
 
 // Deployment APIs - BEGIN
 
-func (k *k8sOps) ListDeployments(namespace string) (*apps_api.DeploymentList, error) {
+func (k *k8sOps) ListDeployments(namespace string, options meta_v1.ListOptions) (*apps_api.DeploymentList, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
 
-	return k.appsClient().Deployments(namespace).List(meta_v1.ListOptions{})
+	return k.appsClient().Deployments(namespace).List(options)
 }
 
 func (k *k8sOps) GetDeployment(name, namespace string) (*apps_api.Deployment, error) {
@@ -1498,6 +1636,257 @@ func (k *k8sOps) GetDeploymentsUsingStorageClass(scName string) ([]apps_api.Depl
 }
 
 // Deployment APIs - END
+
+// DeploymentConfig APIs - BEGIN
+
+func (k *k8sOps) ListDeploymentConfigs(namespace string) (*ocp_appsv1_api.DeploymentConfigList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.ocpAppsClient().DeploymentConfigs(namespace).List(meta_v1.ListOptions{})
+}
+
+func (k *k8sOps) GetDeploymentConfig(name, namespace string) (*ocp_appsv1_api.DeploymentConfig, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.ocpAppsClient().DeploymentConfigs(namespace).Get(name, meta_v1.GetOptions{})
+}
+
+func (k *k8sOps) CreateDeploymentConfig(deployment *ocp_appsv1_api.DeploymentConfig) (*ocp_appsv1_api.DeploymentConfig, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	ns := deployment.Namespace
+	if len(ns) == 0 {
+		ns = v1.NamespaceDefault
+	}
+
+	return k.ocpAppsClient().DeploymentConfigs(ns).Create(deployment)
+}
+
+func (k *k8sOps) DeleteDeploymentConfig(name, namespace string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	return k.ocpAppsClient().DeploymentConfigs(namespace).Delete(name, &meta_v1.DeleteOptions{
+		PropagationPolicy: &deleteForegroundPolicy,
+	})
+}
+
+func (k *k8sOps) DescribeDeploymentConfig(depName, depNamespace string) (*ocp_appsv1_api.DeploymentConfigStatus, error) {
+	dep, err := k.GetDeploymentConfig(depName, depNamespace)
+	if err != nil {
+		return nil, err
+	}
+	return &dep.Status, err
+}
+
+func (k *k8sOps) UpdateDeploymentConfig(deployment *ocp_appsv1_api.DeploymentConfig) (*ocp_appsv1_api.DeploymentConfig, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+	return k.ocpAppsClient().DeploymentConfigs(deployment.Namespace).Update(deployment)
+}
+
+func (k *k8sOps) ValidateDeploymentConfig(deployment *ocp_appsv1_api.DeploymentConfig, timeout, retryInterval time.Duration) error {
+	t := func() (interface{}, bool, error) {
+		dep, err := k.GetDeploymentConfig(deployment.Name, deployment.Namespace)
+		if err != nil {
+			return "", true, err
+		}
+
+		requiredReplicas := dep.Spec.Replicas
+		shared := false
+
+		if requiredReplicas != 1 {
+			foundPVC := false
+			for _, vol := range dep.Spec.Template.Spec.Volumes {
+				if vol.PersistentVolumeClaim != nil {
+					foundPVC = true
+
+					claim, err := k.client.CoreV1().
+						PersistentVolumeClaims(dep.Namespace).
+						Get(vol.PersistentVolumeClaim.ClaimName, meta_v1.GetOptions{})
+					if err != nil {
+						return "", true, err
+					}
+
+					if k.isPVCShared(claim) {
+						shared = true
+						break
+					}
+				}
+			}
+
+			if foundPVC && !shared {
+				requiredReplicas = 1
+			}
+		}
+
+		pods, err := k.GetDeploymentConfigPods(deployment)
+		if err != nil || pods == nil {
+			return "", true, &ErrAppNotReady{
+				ID:    dep.Name,
+				Cause: fmt.Sprintf("Failed to get pods for deployment. Err: %v", err),
+			}
+		}
+
+		if len(pods) == 0 {
+			return "", true, &ErrAppNotReady{
+				ID:    dep.Name,
+				Cause: "DeploymentConfig has 0 pods",
+			}
+		}
+		podsOverviewString := k.generatePodsOverviewString(pods)
+		if requiredReplicas > dep.Status.AvailableReplicas {
+			return "", true, &ErrAppNotReady{
+				ID: dep.Name,
+				Cause: fmt.Sprintf("Expected replicas: %v Available replicas: %v Current pods overview:\n%s",
+					requiredReplicas, dep.Status.AvailableReplicas, podsOverviewString),
+			}
+		}
+
+		if requiredReplicas > dep.Status.ReadyReplicas {
+			return "", true, &ErrAppNotReady{
+				ID: dep.Name,
+				Cause: fmt.Sprintf("Expected replicas: %v Ready replicas: %v Current pods overview:\n%s",
+					requiredReplicas, dep.Status.ReadyReplicas, podsOverviewString),
+			}
+		}
+
+		if requiredReplicas != dep.Status.UpdatedReplicas && shared {
+			return "", true, &ErrAppNotReady{
+				ID: dep.Name,
+				Cause: fmt.Sprintf("Expected replicas: %v Updated replicas: %v Current pods overview:\n%s",
+					requiredReplicas, dep.Status.UpdatedReplicas, podsOverviewString),
+			}
+		}
+
+		// look for "requiredReplicas" number of pods in ready state
+		var notReadyPods []string
+		var readyCount int32
+		for _, pod := range pods {
+			if !k.IsPodReady(pod) {
+				notReadyPods = append(notReadyPods, pod.Name)
+			} else {
+				readyCount++
+			}
+		}
+
+		if readyCount >= requiredReplicas {
+			return "", false, nil
+		}
+
+		return "", true, &ErrAppNotReady{
+			ID:    dep.Name,
+			Cause: fmt.Sprintf("Pod(s): %#v not yet ready", notReadyPods),
+		}
+	}
+
+	if _, err := task.DoRetryWithTimeout(t, timeout, retryInterval); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (k *k8sOps) ValidateTerminatedDeploymentConfig(deployment *ocp_appsv1_api.DeploymentConfig) error {
+	t := func() (interface{}, bool, error) {
+		dep, err := k.GetDeploymentConfig(deployment.Name, deployment.Namespace)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return "", false, nil
+			}
+			return "", true, err
+		}
+
+		pods, err := k.GetDeploymentConfigPods(deployment)
+		if err != nil {
+			return "", true, &ErrAppNotTerminated{
+				ID:    dep.Name,
+				Cause: fmt.Sprintf("Failed to get pods for deployment. Err: %v", err),
+			}
+		}
+
+		if pods != nil && len(pods) > 0 {
+			var podNames []string
+			for _, pod := range pods {
+				podNames = append(podNames, pod.Name)
+			}
+			return "", true, &ErrAppNotTerminated{
+				ID:    dep.Name,
+				Cause: fmt.Sprintf("pods: %v are still present", podNames),
+			}
+		}
+
+		return "", false, nil
+	}
+
+	if _, err := task.DoRetryWithTimeout(t, 10*time.Minute, 10*time.Second); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (k *k8sOps) GetDeploymentConfigPods(deployment *ocp_appsv1_api.DeploymentConfig) ([]v1.Pod, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	rSets, err := k.appsClient().ReplicaSets(deployment.Namespace).List(meta_v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, rSet := range rSets.Items {
+		for _, owner := range rSet.OwnerReferences {
+			if owner.Name == deployment.Name {
+				return k.GetPodsByOwner(rSet.UID, rSet.Namespace)
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+func (k *k8sOps) GetDeploymentConfigsUsingStorageClass(scName string) ([]ocp_appsv1_api.DeploymentConfig, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	deps, err := k.ocpAppsClient().DeploymentConfigs("").List(meta_v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var retList []ocp_appsv1_api.DeploymentConfig
+	for _, dep := range deps.Items {
+		for _, v := range dep.Spec.Template.Spec.Volumes {
+			if v.PersistentVolumeClaim == nil {
+				continue
+			}
+
+			pvc, err := k.GetPersistentVolumeClaim(v.PersistentVolumeClaim.ClaimName, dep.Namespace)
+			if err != nil {
+				continue // don't let one bad pvc stop processing
+			}
+
+			sc, err := k.getStorageClassForPVC(pvc)
+			if err == nil && sc.Name == scName {
+				retList = append(retList, dep)
+				break
+			}
+		}
+	}
+
+	return retList, nil
+}
+
+// DeploymentConfig APIs - END
 
 // DaemonSet APIs - BEGIN
 
@@ -2023,6 +2412,14 @@ func (k *k8sOps) CreateClusterRoleBinding(binding *rbac_v1.ClusterRoleBinding) (
 	return k.client.Rbac().ClusterRoleBindings().Create(binding)
 }
 
+func (k *k8sOps) UpdateClusterRoleBinding(binding *rbac_v1.ClusterRoleBinding) (*rbac_v1.ClusterRoleBinding, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.Rbac().ClusterRoleBindings().Update(binding)
+}
+
 func (k *k8sOps) GetClusterRoleBinding(name string) (*rbac_v1.ClusterRoleBinding, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
@@ -2398,15 +2795,12 @@ func (k *k8sOps) ValidatePod(pod *v1.Pod, timeout, retryInterval time.Duration) 
 	return nil
 }
 
-func (k *k8sOps) WatchPods(namespace string, fn WatchFunc) error {
+func (k *k8sOps) WatchPods(namespace string, fn WatchFunc, listOptions meta_v1.ListOptions) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
 	}
 
-	listOptions := meta_v1.ListOptions{
-		Watch: true,
-	}
-
+	listOptions.Watch = true
 	watchInterface, err := k.client.Core().Pods(namespace).Watch(listOptions)
 	if err != nil {
 		logrus.WithError(err).Error("error invoking the watch api for pods")
@@ -2418,7 +2812,8 @@ func (k *k8sOps) WatchPods(namespace string, fn WatchFunc) error {
 		watchInterface,
 		&v1.Pod{},
 		namespace,
-		fn)
+		fn,
+		listOptions)
 
 	return nil
 }
@@ -2948,6 +3343,86 @@ func (k *k8sOps) DeleteSnapshotSchedule(name string, namespace string) error {
 	})
 }
 
+func (k *k8sOps) ValidateSnapshotSchedule(name string, namespace string, timeout, retryInterval time.Duration) (
+	map[v1alpha1.SchedulePolicyType][]*v1alpha1.ScheduledVolumeSnapshotStatus, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+	t := func() (interface{}, bool, error) {
+		resp, err := k.GetSnapshotSchedule(name, namespace)
+		if err != nil {
+			return nil, true, err
+		}
+
+		if len(resp.Status.Items) == 0 {
+			return nil, true, &ErrFailedToValidateCustomSpec{
+				Name:  name,
+				Cause: fmt.Sprintf("0 snapshots have yet run for the snapshot schedule"),
+				Type:  resp,
+			}
+		}
+
+		failedSnapshots := make([]string, 0)
+		pendingSnapshots := make([]string, 0)
+		for _, snapshotStatuses := range resp.Status.Items {
+			if len(snapshotStatuses) > 0 {
+				status := snapshotStatuses[len(snapshotStatuses)-1]
+				if status == nil {
+					return nil, true, &ErrFailedToValidateCustomSpec{
+						Name:  name,
+						Cause: "SnapshotSchedule has an empty migration in it's most recent status",
+						Type:  resp,
+					}
+				}
+
+				if status.Status == snap_v1.VolumeSnapshotConditionReady {
+					continue
+				}
+
+				if status.Status == snap_v1.VolumeSnapshotConditionError {
+					failedSnapshots = append(failedSnapshots,
+						fmt.Sprintf("snapshot: %s failed. status: %v", status.Name, status.Status))
+				} else {
+					pendingSnapshots = append(pendingSnapshots,
+						fmt.Sprintf("snapshot: %s is not done. status: %v", status.Name, status.Status))
+				}
+			}
+		}
+
+		if len(failedSnapshots) > 0 {
+			return nil, false, &ErrFailedToValidateCustomSpec{
+				Name: name,
+				Cause: fmt.Sprintf("SnapshotSchedule failed as one or more snapshots have failed. %s",
+					failedSnapshots),
+				Type: resp,
+			}
+		}
+
+		if len(pendingSnapshots) > 0 {
+			return nil, true, &ErrFailedToValidateCustomSpec{
+				Name: name,
+				Cause: fmt.Sprintf("SnapshotSchedule has certain snapshots pending: %s",
+					pendingSnapshots),
+				Type: resp,
+			}
+		}
+
+		return resp.Status.Items, false, nil
+	}
+
+	ret, err := task.DoRetryWithTimeout(t, timeout, retryInterval)
+	if err != nil {
+		return nil, err
+	}
+
+	snapshots, ok := ret.(map[v1alpha1.SchedulePolicyType][]*v1alpha1.ScheduledVolumeSnapshotStatus)
+	if !ok {
+		return nil, fmt.Errorf("invalid type when checking snapshot schedules: %v", snapshots)
+	}
+
+	return snapshots, nil
+}
+
 // Snapshot APIs - END
 
 // GroupSnapshot APIs - BEGIN
@@ -3088,6 +3563,37 @@ func (k *k8sOps) GetSnapshotsForGroupSnapshot(name, namespace string) ([]*snap_v
 }
 
 // GroupSnapshot APIs - END
+
+// Restore Snapshot APIs - BEGIN
+func (k *k8sOps) CreateVolumeSnapshotRestore(snapRestore *v1alpha1.VolumeSnapshotRestore) (*v1alpha1.VolumeSnapshotRestore, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+	return k.storkClient.Stork().VolumeSnapshotRestores(snapRestore.Namespace).Create(snapRestore)
+}
+
+func (k *k8sOps) GetVolumeSnapshotRestore(name, namespace string) (*v1alpha1.VolumeSnapshotRestore, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+	return k.storkClient.Stork().VolumeSnapshotRestores(namespace).Get(name, meta_v1.GetOptions{})
+}
+
+func (k *k8sOps) ListVolumeSnapshotRestore(namespace string) (*v1alpha1.VolumeSnapshotRestoreList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+	return k.storkClient.Stork().VolumeSnapshotRestores(namespace).List(meta_v1.ListOptions{})
+}
+
+func (k *k8sOps) DeleteVolumeSnapshotRestore(name, namespace string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+	return k.storkClient.Stork().VolumeSnapshotRestores(namespace).Delete(name, &meta_v1.DeleteOptions{})
+}
+
+// Restore Snapshot APIs - END
 
 // Rule APIs - BEGIN
 func (k *k8sOps) GetRule(name, namespace string) (*v1alpha1.Rule, error) {
@@ -3250,7 +3756,7 @@ func (k *k8sOps) WatchConfigMap(configMap *v1.ConfigMap, fn WatchFunc) error {
 	}
 
 	// fire off watch function
-	go k.handleWatch(watchInterface, configMap, "", fn)
+	go k.handleWatch(watchInterface, configMap, "", fn, listOptions)
 	return nil
 }
 
@@ -3310,7 +3816,8 @@ func (k *k8sOps) ValidateClusterPair(name string, namespace string, timeout, ret
 		}
 
 		if clusterPair.Status.SchedulerStatus == v1alpha1.ClusterPairStatusReady &&
-			clusterPair.Status.StorageStatus == v1alpha1.ClusterPairStatusReady {
+			(clusterPair.Status.StorageStatus == v1alpha1.ClusterPairStatusReady ||
+				clusterPair.Status.StorageStatus == v1alpha1.ClusterPairStatusNotProvided) {
 			return "", false, nil
 		} else if clusterPair.Status.SchedulerStatus == v1alpha1.ClusterPairStatusError ||
 			clusterPair.Status.StorageStatus == v1alpha1.ClusterPairStatusError {
@@ -3662,7 +4169,7 @@ func (k *k8sOps) ValidateCRD(resource CustomResource, timeout, retryInterval tim
 	})
 }
 
-func (k *k8sOps) CreateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlacementStrategy) (*talisman_v1beta1.VolumePlacementStrategy, error) {
+func (k *k8sOps) CreateVolumePlacementStrategy(spec *talisman_v1beta2.VolumePlacementStrategy) (*talisman_v1beta2.VolumePlacementStrategy, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
@@ -3670,7 +4177,7 @@ func (k *k8sOps) CreateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlac
 	return k.talismanClient.Portworx().VolumePlacementStrategies().Create(spec)
 }
 
-func (k *k8sOps) UpdateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlacementStrategy) (*talisman_v1beta1.VolumePlacementStrategy, error) {
+func (k *k8sOps) UpdateVolumePlacementStrategy(spec *talisman_v1beta2.VolumePlacementStrategy) (*talisman_v1beta2.VolumePlacementStrategy, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
@@ -3678,7 +4185,7 @@ func (k *k8sOps) UpdateVolumePlacementStrategy(spec *talisman_v1beta1.VolumePlac
 	return k.talismanClient.Portworx().VolumePlacementStrategies().Update(spec)
 }
 
-func (k *k8sOps) ListVolumePlacementStrategies() (*talisman_v1beta1.VolumePlacementStrategyList, error) {
+func (k *k8sOps) ListVolumePlacementStrategies() (*talisman_v1beta2.VolumePlacementStrategyList, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
@@ -3695,7 +4202,7 @@ func (k *k8sOps) DeleteVolumePlacementStrategy(name string) error {
 	})
 }
 
-func (k *k8sOps) GetVolumePlacementStrategy(name string) (*talisman_v1beta1.VolumePlacementStrategy, error) {
+func (k *k8sOps) GetVolumePlacementStrategy(name string) (*talisman_v1beta2.VolumePlacementStrategy, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
@@ -3739,6 +4246,50 @@ func (k *k8sOps) DeleteClusterDomainsStatus(name string) error {
 	return k.storkClient.Stork().ClusterDomainsStatuses().Delete(name, &meta_v1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
+}
+
+func (k *k8sOps) ValidateClusterDomainsStatus(name string, domainMap map[string]bool, timeout, retryInterval time.Duration) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+	t := func() (interface{}, bool, error) {
+		cds, err := k.GetClusterDomainsStatus(name)
+		if err != nil {
+			return "", true, err
+		}
+
+		for _, domainInfo := range cds.Status.ClusterDomainInfos {
+			isActive, _ := domainMap[domainInfo.Name]
+			if isActive {
+				if domainInfo.State != v1alpha1.ClusterDomainActive {
+					return "", true, &ErrFailedToValidateCustomSpec{
+						Name: domainInfo.Name,
+						Cause: fmt.Sprintf("ClusterDomainsStatus mismatch. For domain %v "+
+							"expected to be active found inactive", domainInfo.Name),
+						Type: cds,
+					}
+				}
+			} else {
+				if domainInfo.State != v1alpha1.ClusterDomainInactive {
+					return "", true, &ErrFailedToValidateCustomSpec{
+						Name: domainInfo.Name,
+						Cause: fmt.Sprintf("ClusterDomainsStatus mismatch. For domain %v "+
+							"expected to be inactive found active", domainInfo.Name),
+						Type: cds,
+					}
+				}
+			}
+		}
+
+		return "", false, nil
+
+	}
+	if _, err := task.DoRetryWithTimeout(t, timeout, retryInterval); err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 // ListClusterDomainStatuses lists ClusterDomainsStatus
@@ -3878,10 +4429,290 @@ func (k *k8sOps) UpdateObject(object runtime.Object) (runtime.Object, error) {
 	return client.Update(unstructured, "")
 }
 
-// Object APIs - BEGIN
+// Object APIs - END
+
+// BackupLocation APIs - BEGIN
+
+func (k *k8sOps) GetBackupLocation(name string, namespace string) (*v1alpha1.BackupLocation, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	backupLocation, err := k.storkClient.Stork().BackupLocations(namespace).Get(name, meta_v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	err = backupLocation.UpdateFromSecret(k.client)
+	if err != nil {
+		return nil, err
+	}
+	return backupLocation, nil
+}
+
+func (k *k8sOps) ListBackupLocations(namespace string) (*v1alpha1.BackupLocationList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	backupLocations, err := k.storkClient.Stork().BackupLocations(namespace).List(meta_v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range backupLocations.Items {
+		err = backupLocations.Items[i].UpdateFromSecret(k.client)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return backupLocations, nil
+}
+
+func (k *k8sOps) CreateBackupLocation(backupLocation *v1alpha1.BackupLocation) (*v1alpha1.BackupLocation, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().BackupLocations(backupLocation.Namespace).Create(backupLocation)
+}
+
+func (k *k8sOps) DeleteBackupLocation(name string, namespace string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	return k.storkClient.Stork().BackupLocations(namespace).Delete(name, &meta_v1.DeleteOptions{
+		PropagationPolicy: &deleteForegroundPolicy,
+	})
+}
+
+func (k *k8sOps) UpdateBackupLocation(backupLocation *v1alpha1.BackupLocation) (*v1alpha1.BackupLocation, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().BackupLocations(backupLocation.Namespace).Update(backupLocation)
+}
+
+func (k *k8sOps) ValidateBackupLocation(name, namespace string, timeout, retryInterval time.Duration) error {
+	t := func() (interface{}, bool, error) {
+		if err := k.initK8sClient(); err != nil {
+			return "", true, err
+		}
+
+		resp, err := k.GetBackupLocation(name, namespace)
+		if err != nil {
+			return "", true, &ErrFailedToValidateCustomSpec{
+				Name:  name,
+				Cause: fmt.Sprintf("BackupLocation failed . Error: %v", err),
+				Type:  resp,
+			}
+		}
+		return "", false, nil
+	}
+
+	if _, err := task.DoRetryWithTimeout(t, timeout, retryInterval); err != nil {
+		return err
+	}
+	return nil
+}
+
+// BackupLocation APIs - END
+
+// ApplicationBackupRestore APIs - BEGIN
+
+func (k *k8sOps) GetApplicationBackup(name string, namespace string) (*v1alpha1.ApplicationBackup, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ApplicationBackups(namespace).Get(name, meta_v1.GetOptions{})
+}
+
+func (k *k8sOps) ListApplicationBackups(namespace string) (*v1alpha1.ApplicationBackupList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ApplicationBackups(namespace).List(meta_v1.ListOptions{})
+}
+
+func (k *k8sOps) CreateApplicationBackup(backup *v1alpha1.ApplicationBackup) (*v1alpha1.ApplicationBackup, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ApplicationBackups(backup.Namespace).Create(backup)
+}
+
+func (k *k8sOps) DeleteApplicationBackup(name string, namespace string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	return k.storkClient.Stork().ApplicationBackups(namespace).Delete(name, &meta_v1.DeleteOptions{
+		PropagationPolicy: &deleteForegroundPolicy,
+	})
+}
+
+func (k *k8sOps) UpdateApplicationBackup(backup *v1alpha1.ApplicationBackup) (*v1alpha1.ApplicationBackup, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ApplicationBackups(backup.Namespace).Update(backup)
+}
+
+func (k *k8sOps) ValidateApplicationBackup(name, namespace string, timeout, retryInterval time.Duration) error {
+	t := func() (interface{}, bool, error) {
+		if err := k.initK8sClient(); err != nil {
+			return "", true, err
+		}
+
+		applicationbackup, err := k.GetApplicationBackup(name, namespace)
+		if err != nil {
+			return "", true, err
+		}
+
+		if applicationbackup.Status.Status == v1alpha1.ApplicationBackupStatusSuccessful {
+			return "", false, nil
+		}
+
+		return "", true, &ErrFailedToValidateCustomSpec{
+			Name:  applicationbackup.Name,
+			Cause: fmt.Sprintf("Application backup failed . Error: %v .Expected status: %v Actual status: %v", err, v1alpha1.ApplicationBackupStatusSuccessful, applicationbackup.Status.Status),
+			Type:  applicationbackup,
+		}
+
+	}
+
+	if _, err := task.DoRetryWithTimeout(t, timeout, retryInterval); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (k *k8sOps) GetApplicationRestore(name string, namespace string) (*v1alpha1.ApplicationRestore, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ApplicationRestores(namespace).Get(name, meta_v1.GetOptions{})
+}
+
+func (k *k8sOps) ListApplicationRestores(namespace string) (*v1alpha1.ApplicationRestoreList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ApplicationRestores(namespace).List(meta_v1.ListOptions{})
+}
+
+func (k *k8sOps) CreateApplicationRestore(restore *v1alpha1.ApplicationRestore) (*v1alpha1.ApplicationRestore, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ApplicationRestores(restore.Namespace).Create(restore)
+}
+
+func (k *k8sOps) DeleteApplicationRestore(name string, namespace string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	return k.storkClient.Stork().ApplicationRestores(namespace).Delete(name, &meta_v1.DeleteOptions{
+		PropagationPolicy: &deleteForegroundPolicy,
+	})
+}
+
+func (k *k8sOps) ValidateApplicationRestore(name, namespace string, timeout, retryInterval time.Duration) error {
+	t := func() (interface{}, bool, error) {
+		if err := k.initK8sClient(); err != nil {
+			return "", true, err
+		}
+
+		applicationrestore, err := k.storkClient.Stork().ApplicationRestores(namespace).Get(name, meta_v1.GetOptions{})
+		if err != nil {
+			return "", true, err
+		}
+
+		if applicationrestore.Status.Status == v1alpha1.ApplicationRestoreStatusSuccessful {
+			return "", false, nil
+		}
+		return "", true, &ErrFailedToValidateCustomSpec{
+			Name:  applicationrestore.Name,
+			Cause: fmt.Sprintf("Application restore failed . Error: %v .Expected status: %v Actual status: %v", err, v1alpha1.ApplicationRestoreStatusSuccessful, applicationrestore.Status.Status),
+			Type:  applicationrestore,
+		}
+	}
+	if _, err := task.DoRetryWithTimeout(t, timeout, retryInterval); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (k *k8sOps) UpdateApplicationRestore(restore *v1alpha1.ApplicationRestore) (*v1alpha1.ApplicationRestore, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ApplicationRestores(restore.Namespace).Update(restore)
+}
+
+// ApplicationBackupRestore APIs - END
+
+// ApplicationClone APIs - BEGIN
+
+func (k *k8sOps) GetApplicationClone(name string, namespace string) (*v1alpha1.ApplicationClone, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ApplicationClones(namespace).Get(name, meta_v1.GetOptions{})
+}
+
+func (k *k8sOps) ListApplicationClones(namespace string) (*v1alpha1.ApplicationCloneList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ApplicationClones(namespace).List(meta_v1.ListOptions{})
+}
+
+func (k *k8sOps) CreateApplicationClone(clone *v1alpha1.ApplicationClone) (*v1alpha1.ApplicationClone, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ApplicationClones(clone.Namespace).Create(clone)
+}
+
+func (k *k8sOps) DeleteApplicationClone(name string, namespace string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	return k.storkClient.Stork().ApplicationClones(namespace).Delete(name, &meta_v1.DeleteOptions{
+		PropagationPolicy: &deleteForegroundPolicy,
+	})
+}
+
+func (k *k8sOps) UpdateApplicationClone(clone *v1alpha1.ApplicationClone) (*v1alpha1.ApplicationClone, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ApplicationClones(clone.Namespace).Update(clone)
+}
+
+// ApplicationClone APIs - END
 
 func (k *k8sOps) appsClient() v1beta2.AppsV1beta2Interface {
 	return k.client.AppsV1beta2()
+}
+
+func (k *k8sOps) ocpAppsClient() ocp_appsv1_client.AppsV1Interface {
+	return k.ocpClient.AppsV1()
 }
 
 // setK8sClient instantiates a k8s client
@@ -3963,6 +4794,10 @@ func (k *k8sOps) loadClientFor(config *rest.Config) error {
 		return err
 	}
 
+	k.ocpClient, err = ocp_clientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

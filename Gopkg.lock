@@ -161,7 +161,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ac9661c351bf34dd33c1d5f9a410f5537438143065341130b4f93c5bda727132"
+  digest = "1:3e805b7c451e217347357149868a034c8fed55f47317cd7fce1c9ae7e75bdee6"
   name = "github.com/libopenstorage/stork"
   packages = [
     "pkg/apis/stork",
@@ -171,7 +171,7 @@
     "pkg/client/clientset/versioned/typed/stork/v1alpha1",
   ]
   pruneopts = "UT"
-  revision = "e1c479e7ff2ff9d8dc3adccb40a6f532bc64c86f"
+  revision = "0525e3e34e1917abefb01eeae7df412bd9ab6956"
 
 [[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
@@ -196,6 +196,26 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "c48cc78d482608239f6c4c92a4abd87eb8761c90"
+
+[[projects]]
+  branch = "release-3.11"
+  digest = "1:21e11e06ebb4c8dbdfab6198acf6cd68ffe61d67c58c858f2218f048c557bf4f"
+  name = "github.com/openshift/api"
+  packages = ["apps/v1"]
+  pruneopts = "UT"
+  revision = "8741ff068a473be041d7bafb4502c12e4f10aab5"
+
+[[projects]]
+  branch = "release-3.11"
+  digest = "1:8f8c9a60a25a3d5e5981067f438ce42ecc4217d00c6cdb7ad1067f1e563666c6"
+  name = "github.com/openshift/client-go"
+  packages = [
+    "apps/clientset/versioned",
+    "apps/clientset/versioned/scheme",
+    "apps/clientset/versioned/typed/apps/v1",
+  ]
+  pruneopts = "UT"
+  revision = "431ec9a26e5021f35fa41ee9a89842db9bfdb370"
 
 [[projects]]
   digest = "1:bde6c3a610bd01ea7e2c8d9c7fd1116531fb6619f46f73f4f2ea16adb70da6be"
@@ -231,17 +251,19 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:cfe8d419eb553560ba1e297dc0430a161be3239372a9fd60111e63da3b75fdb8"
+  digest = "1:5b1a5dd8d7969a4476afbc74b4418888185f2f82184cd3a9640b3af044dcbba3"
   name = "github.com/portworx/talisman"
   packages = [
     "pkg/apis/portworx",
     "pkg/apis/portworx/v1beta1",
+    "pkg/apis/portworx/v1beta2",
     "pkg/client/clientset/versioned",
     "pkg/client/clientset/versioned/scheme",
     "pkg/client/clientset/versioned/typed/portworx/v1beta1",
+    "pkg/client/clientset/versioned/typed/portworx/v1beta2",
   ]
   pruneopts = "UT"
-  revision = "73c47f96b4178a49863212c1e3212a0c07678599"
+  revision = "81f70f63459acc2624772125c3223dc3401ff0d0"
 
 [[projects]]
   digest = "1:87c2e02fb01c27060ccc5ba7c5a407cc91147726f8f40b70cceeedbc52b1f3a8"
@@ -576,7 +598,10 @@
     "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client",
     "github.com/libopenstorage/stork/pkg/apis/stork/v1alpha1",
     "github.com/libopenstorage/stork/pkg/client/clientset/versioned",
-    "github.com/portworx/talisman/pkg/apis/portworx/v1beta1",
+    "github.com/openshift/api/apps/v1",
+    "github.com/openshift/client-go/apps/clientset/versioned",
+    "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1",
+    "github.com/portworx/talisman/pkg/apis/portworx/v1beta2",
     "github.com/portworx/talisman/pkg/client/clientset/versioned",
     "github.com/sirupsen/logrus",
     "github.com/stretchr/testify/require",

@@ -852,7 +852,7 @@ func (k *k8sOps) GetVersion() (*version.Info, error) {
 
 // Security Context Constraints APIs - BEGIN
 
-func (k *k8sOps) getOcpSccClient() ocp_securityv1_client.SecurityV1Interface {
+func (k *k8sOps) getOcpSecurityClient() ocp_securityv1_client.SecurityV1Interface {
 	return k.ocpSecurityClient.SecurityV1()
 }
 
@@ -861,7 +861,7 @@ func (k *k8sOps) ListSecurityContextConstraints() (result *ocp_securityv1_api.Se
 		return nil, err
 	}
 
-	return k.getOcpSccClient().SecurityContextConstraints().List(meta_v1.ListOptions{})
+	return k.getOcpSecurityClient().SecurityContextConstraints().List(meta_v1.ListOptions{})
 }
 
 func (k *k8sOps) GetSecurityContextConstraints(name string) (result *ocp_securityv1_api.SecurityContextConstraints, err error) {
@@ -869,7 +869,7 @@ func (k *k8sOps) GetSecurityContextConstraints(name string) (result *ocp_securit
 		return nil, err
 	}
 
-	return k.getOcpSccClient().SecurityContextConstraints().Get(name, meta_v1.GetOptions{})
+	return k.getOcpSecurityClient().SecurityContextConstraints().Get(name, meta_v1.GetOptions{})
 }
 
 func (k *k8sOps) UpdateSecurityContextConstraints(securityContextConstraints *ocp_securityv1_api.SecurityContextConstraints) (result *ocp_securityv1_api.SecurityContextConstraints, err error) {
@@ -877,7 +877,7 @@ func (k *k8sOps) UpdateSecurityContextConstraints(securityContextConstraints *oc
 		return nil, err
 	}
 
-	return k.getOcpSccClient().SecurityContextConstraints().Update(securityContextConstraints)
+	return k.getOcpSecurityClient().SecurityContextConstraints().Update(securityContextConstraints)
 }
 
 // Security Context Constraints APIs - END

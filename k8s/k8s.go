@@ -15,11 +15,11 @@ import (
 	"github.com/libopenstorage/stork/pkg/apis/stork/v1alpha1"
 	storkclientset "github.com/libopenstorage/stork/pkg/client/clientset/versioned"
 	ocp_appsv1_api "github.com/openshift/api/apps/v1"
-	ocp_sccv1_api "github.com/openshift/api/security/v1"
+	ocp_securityv1_api "github.com/openshift/api/security/v1"
 	ocp_clientset "github.com/openshift/client-go/apps/clientset/versioned"
 	ocp_appsv1_client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	ocp_scc_clientset "github.com/openshift/client-go/security/clientset/versioned"
-	ocp_sccv1_client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
+	ocp_security_clientset "github.com/openshift/client-go/security/clientset/versioned"
+	ocp_securityv1_client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	"github.com/portworx/sched-ops/task"
 	talisman_v1beta2 "github.com/portworx/talisman/pkg/apis/portworx/v1beta2"
 	talismanclientset "github.com/portworx/talisman/pkg/client/clientset/versioned"
@@ -105,7 +105,7 @@ type Ops interface {
 		apiExtensionClient apiextensionsclient.Interface,
 		dynamicInterface dynamic.Interface,
 		ocpClient ocp_clientset.Interface,
-		ocpSccClient ocp_scc_clientset.Interface,
+		ocpSecurityClient ocp_security_clientset.Interface,
 	)
 	SecurityContextConstraints
 
@@ -116,11 +116,11 @@ type Ops interface {
 // SecurityContextConstraints is an interface to list, get and update security context constraints
 type SecurityContextConstraints interface {
 	// ListSecurityContextConstraints returns the list of all SecurityContextConstraints, and an error if there is any.
-	ListSecurityContextConstraints() (*ocp_sccv1_api.SecurityContextConstraintsList, error)
+	ListSecurityContextConstraints() (*ocp_securityv1_api.SecurityContextConstraintsList, error)
 	// GetSecurityContextConstraints takes name of the securityContextConstraints and returns the corresponding securityContextConstraints object, and an error if there is any.
-	GetSecurityContextConstraints(string) (*ocp_sccv1_api.SecurityContextConstraints, error)
+	GetSecurityContextConstraints(string) (*ocp_securityv1_api.SecurityContextConstraints, error)
 	// UpdateSecurityContextConstraints takes the representation of a securityContextConstraints and updates it. Returns the server's representation of the securityContextConstraints, and an error, if there is any.
-	UpdateSecurityContextConstraints(*ocp_sccv1_api.SecurityContextConstraints) (*ocp_sccv1_api.SecurityContextConstraints, error)
+	UpdateSecurityContextConstraints(*ocp_securityv1_api.SecurityContextConstraints) (*ocp_securityv1_api.SecurityContextConstraints, error)
 }
 
 // EventOps is an interface to put and get k8s events
@@ -776,7 +776,7 @@ type k8sOps struct {
 	config             *rest.Config
 	dynamicInterface   dynamic.Interface
 	ocpClient          ocp_clientset.Interface
-	ocpSccClient       ocp_scc_clientset.Interface
+	ocpSecurityClient  ocp_security_clientset.Interface
 }
 
 // Instance returns a singleton instance of k8sOps type
@@ -812,7 +812,7 @@ func (k *k8sOps) SetClient(
 	apiExtensionClient apiextensionsclient.Interface,
 	dynamicInterface dynamic.Interface,
 	ocpClient ocp_clientset.Interface,
-	ocpSccClient ocp_scc_clientset.Interface,
+	ocpSecurityClient ocp_security_clientset.Interface,
 ) {
 
 	k.client = client
@@ -821,7 +821,7 @@ func (k *k8sOps) SetClient(
 	k.apiExtensionClient = apiExtensionClient
 	k.dynamicInterface = dynamicInterface
 	k.ocpClient = ocpClient
-	k.ocpSccClient = ocpSccClient
+	k.ocpSecurityClient = ocpSecurityClient
 }
 
 // Initialize the k8s client if uninitialized
@@ -852,11 +852,11 @@ func (k *k8sOps) GetVersion() (*version.Info, error) {
 
 // Security Context Constraints APIs - BEGIN
 
-func (k *k8sOps) getOcpSccClient() ocp_sccv1_client.SecurityV1Interface {
-	return k.ocpSccClient.SecurityV1()
+func (k *k8sOps) getOcpSccClient() ocp_securityv1_client.SecurityV1Interface {
+	return k.ocpSecurityClient.SecurityV1()
 }
 
-func (k *k8sOps) ListSecurityContextConstraints() (result *ocp_sccv1_api.SecurityContextConstraintsList, err error) {
+func (k *k8sOps) ListSecurityContextConstraints() (result *ocp_securityv1_api.SecurityContextConstraintsList, err error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
@@ -864,7 +864,7 @@ func (k *k8sOps) ListSecurityContextConstraints() (result *ocp_sccv1_api.Securit
 	return k.getOcpSccClient().SecurityContextConstraints().List(meta_v1.ListOptions{})
 }
 
-func (k *k8sOps) GetSecurityContextConstraints(name string) (result *ocp_sccv1_api.SecurityContextConstraints, err error) {
+func (k *k8sOps) GetSecurityContextConstraints(name string) (result *ocp_securityv1_api.SecurityContextConstraints, err error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
@@ -872,7 +872,7 @@ func (k *k8sOps) GetSecurityContextConstraints(name string) (result *ocp_sccv1_a
 	return k.getOcpSccClient().SecurityContextConstraints().Get(name, meta_v1.GetOptions{})
 }
 
-func (k *k8sOps) UpdateSecurityContextConstraints(securityContextConstraints *ocp_sccv1_api.SecurityContextConstraints) (result *ocp_sccv1_api.SecurityContextConstraints, err error) {
+func (k *k8sOps) UpdateSecurityContextConstraints(securityContextConstraints *ocp_securityv1_api.SecurityContextConstraints) (result *ocp_securityv1_api.SecurityContextConstraints, err error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
@@ -4908,7 +4908,7 @@ func (k *k8sOps) loadClientFor(config *rest.Config) error {
 		return err
 	}
 
-	k.ocpSccClient, err = ocp_scc_clientset.NewForConfig(config)
+	k.ocpSecurityClient, err = ocp_security_clientset.NewForConfig(config)
 	if err != nil {
 		return err
 	}

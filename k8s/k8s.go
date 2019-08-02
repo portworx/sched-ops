@@ -555,7 +555,10 @@ type ConfigMapOps interface {
 // CRDOps is an interface to perfrom k8s Customer Resource operations
 type CRDOps interface {
 	// CreateCRD creates the given custom resource
+	// This API will be deprecated soon. Use RegisterCRD instead
 	CreateCRD(resource CustomResource) error
+	// RegisterCRD creates the given custom resource
+	RegisterCRD(crdDefinition *apiextensionsv1beta1.CustomResourceDefinition) error
 	// ValidateCRD checks if the given CRD is registered
 	ValidateCRD(resource CustomResource, timeout, retryInterval time.Duration) error
 }
@@ -4222,6 +4225,18 @@ func (k *k8sOps) CreateCRD(resource CustomResource) error {
 		return err
 	}
 
+	return nil
+}
+
+func (k *k8sOps) RegisterCRD(crdDefinition *apiextensionsv1beta1.CustomResourceDefinition) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	_, err := k.apiExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crdDefinition)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

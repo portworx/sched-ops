@@ -161,7 +161,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:3e805b7c451e217347357149868a034c8fed55f47317cd7fce1c9ae7e75bdee6"
+  digest = "1:c55bc14c1fdd921b44f7dc4c6a55314c44c98b1110f902ffb9e56e1b79c0ba5c"
   name = "github.com/libopenstorage/stork"
   packages = [
     "pkg/apis/stork",
@@ -171,7 +171,7 @@
     "pkg/client/clientset/versioned/typed/stork/v1alpha1",
   ]
   pruneopts = "UT"
-  revision = "0525e3e34e1917abefb01eeae7df412bd9ab6956"
+  revision = "19da95bd7280434afa8455f027ffdd6b6ba7c6ca"
 
 [[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"

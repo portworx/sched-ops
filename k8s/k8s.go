@@ -719,6 +719,22 @@ type ApplicationBackupRestoreOps interface {
 	DeleteApplicationRestore(string, string) error
 	// ValidateApplicationRestore validates the ApplicationRestore
 	ValidateApplicationRestore(string, string, time.Duration, time.Duration) error
+	// GetApplicationBackupSchedule gets the ApplicationBackupSchedule
+	GetApplicationBackupSchedule(string, string) (*v1alpha1.ApplicationBackupSchedule, error)
+	// CreateApplicationBackupSchedule creates an ApplicationBackupSchedule
+	CreateApplicationBackupSchedule(*v1alpha1.ApplicationBackupSchedule) (*v1alpha1.ApplicationBackupSchedule, error)
+	// UpdateApplicationBackupSchedule updates the ApplicationBackupSchedule
+	UpdateApplicationBackupSchedule(*v1alpha1.ApplicationBackupSchedule) (*v1alpha1.ApplicationBackupSchedule, error)
+	// ListApplicationBackupSchedules lists all the ApplicationBackupSchedules
+	ListApplicationBackupSchedules(string) (*v1alpha1.ApplicationBackupScheduleList, error)
+	// DeleteApplicationBackupSchedule deletes the ApplicationBackupSchedule
+	DeleteApplicationBackupSchedule(string, string) error
+	// ValidateApplicationBackupSchedule validates the given ApplicationBackupSchedule. It checks the status of each of
+	// the backups triggered for this schedule and returns a map of successfull backups. The key of the
+	// map will be the schedule type and value will be list of backups for that schedule type.
+	// The caller is expected to validate if the returned map has all backups expected at that point of time
+	ValidateApplicationBackupSchedule(string, string, time.Duration, time.Duration) (
+		map[v1alpha1.SchedulePolicyType][]*v1alpha1.ScheduledApplicationBackupStatus, error)
 }
 
 // ApplicationCloneOps is an interface to perfrom k8s Application Clone operations
@@ -4755,6 +4771,130 @@ func (k *k8sOps) UpdateApplicationRestore(restore *v1alpha1.ApplicationRestore) 
 	}
 
 	return k.storkClient.Stork().ApplicationRestores(restore.Namespace).Update(restore)
+}
+
+func (k *k8sOps) GetApplicationBackupSchedule(name string, namespace string) (*v1alpha1.ApplicationBackupSchedule, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ApplicationBackupSchedules(namespace).Get(name, meta_v1.GetOptions{})
+}
+
+func (k *k8sOps) ListApplicationBackupSchedules(namespace string) (*v1alpha1.ApplicationBackupScheduleList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ApplicationBackupSchedules(namespace).List(meta_v1.ListOptions{})
+}
+
+func (k *k8sOps) CreateApplicationBackupSchedule(applicationBackupSchedule *v1alpha1.ApplicationBackupSchedule) (*v1alpha1.ApplicationBackupSchedule, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ApplicationBackupSchedules(applicationBackupSchedule.Namespace).Create(applicationBackupSchedule)
+}
+
+func (k *k8sOps) UpdateApplicationBackupSchedule(applicationBackupSchedule *v1alpha1.ApplicationBackupSchedule) (*v1alpha1.ApplicationBackupSchedule, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.storkClient.Stork().ApplicationBackupSchedules(applicationBackupSchedule.Namespace).Update(applicationBackupSchedule)
+}
+
+func (k *k8sOps) DeleteApplicationBackupSchedule(name string, namespace string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	return k.storkClient.Stork().ApplicationBackupSchedules(namespace).Delete(name, &meta_v1.DeleteOptions{
+		PropagationPolicy: &deleteForegroundPolicy,
+	})
+}
+
+func (k *k8sOps) ValidateApplicationBackupSchedule(name string, namespace string, timeout, retryInterval time.Duration) (
+	map[v1alpha1.SchedulePolicyType][]*v1alpha1.ScheduledApplicationBackupStatus, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+	t := func() (interface{}, bool, error) {
+		resp, err := k.GetApplicationBackupSchedule(name, namespace)
+		if err != nil {
+			return nil, true, err
+		}
+
+		if len(resp.Status.Items) == 0 {
+			return nil, true, &ErrFailedToValidateCustomSpec{
+				Name:  name,
+				Cause: fmt.Sprintf("0 backups have yet run for the backup schedule"),
+				Type:  resp,
+			}
+		}
+
+		failedBackups := make([]string, 0)
+		pendingBackups := make([]string, 0)
+		for _, backupStatuses := range resp.Status.Items {
+			// The check below assumes that the status will not have a failed
+			// backup if the last one succeeded so just get the last status
+			if len(backupStatuses) > 0 {
+				status := backupStatuses[len(backupStatuses)-1]
+				if status == nil {
+					return nil, true, &ErrFailedToValidateCustomSpec{
+						Name:  name,
+						Cause: "ApplicationBackupSchedule has an empty backup in it's most recent status",
+						Type:  resp,
+					}
+				}
+
+				if status.Status == v1alpha1.ApplicationBackupStatusSuccessful {
+					continue
+				}
+
+				if status.Status == v1alpha1.ApplicationBackupStatusFailed {
+					failedBackups = append(failedBackups,
+						fmt.Sprintf("backup: %s failed. status: %v", status.Name, status.Status))
+				} else {
+					pendingBackups = append(pendingBackups,
+						fmt.Sprintf("backup: %s is not done. status: %v", status.Name, status.Status))
+				}
+			}
+		}
+
+		if len(failedBackups) > 0 {
+			return nil, false, &ErrFailedToValidateCustomSpec{
+				Name: name,
+				Cause: fmt.Sprintf("ApplicationBackupSchedule failed as one or more backups have failed. %s",
+					failedBackups),
+				Type: resp,
+			}
+		}
+
+		if len(pendingBackups) > 0 {
+			return nil, true, &ErrFailedToValidateCustomSpec{
+				Name: name,
+				Cause: fmt.Sprintf("ApplicationBackupSchedule has certain migrations pending: %s",
+					pendingBackups),
+				Type: resp,
+			}
+		}
+
+		return resp.Status.Items, false, nil
+	}
+
+	ret, err := task.DoRetryWithTimeout(t, timeout, retryInterval)
+	if err != nil {
+		return nil, err
+	}
+
+	backups, ok := ret.(map[v1alpha1.SchedulePolicyType][]*v1alpha1.ScheduledApplicationBackupStatus)
+	if !ok {
+		return nil, fmt.Errorf("invalid type when checking backup schedules: %v", backups)
+	}
+
+	return backups, nil
 }
 
 // ApplicationBackupRestore APIs - END

@@ -24,7 +24,7 @@ import (
 	talisman_v1beta2 "github.com/portworx/talisman/pkg/apis/portworx/v1beta2"
 	talismanclientset "github.com/portworx/talisman/pkg/client/clientset/versioned"
 	"github.com/sirupsen/logrus"
-	apps_api "k8s.io/api/apps/v1beta2"
+	apps_api "k8s.io/api/apps/v1"
 	batch_v1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	rbac_v1 "k8s.io/api/rbac/v1"
@@ -44,7 +44,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/kubernetes/typed/apps/v1beta2"
+	appsv1_client "k8s.io/client-go/kubernetes/typed/apps/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
@@ -4993,8 +4993,8 @@ func (k *k8sOps) ValidateApplicationClone(name, namespace string, timeout, retry
 
 // ApplicationClone APIs - END
 
-func (k *k8sOps) appsClient() v1beta2.AppsV1beta2Interface {
-	return k.client.AppsV1beta2()
+func (k *k8sOps) appsClient() appsv1_client.AppsV1Interface {
+	return k.client.AppsV1()
 }
 
 func (k *k8sOps) ocpAppsClient() ocp_appsv1_client.AppsV1Interface {

@@ -26,9 +26,10 @@
 
 
 [[constraint]]
-  version = "v5.1.0-openstorage"
   name = "github.com/kubernetes-incubator/external-storage"
   source = "github.com/libopenstorage/external-storage"
+  branch = "openstorage-5.1"
+
 
 [[override]]
   branch = "master"

@@ -109,6 +109,7 @@ type Ops interface {
 		dynamicInterface dynamic.Interface,
 		ocpClient ocp_clientset.Interface,
 		ocpSecurityClient ocp_security_clientset.Interface,
+		autopilotClient autopilotclientset.Interface,
 	)
 	SecurityContextConstraints
 
@@ -4565,7 +4566,7 @@ func (k *k8sOps) UpdateAutopilotRule(rule *aut_v1alpaha1.AutopilotRule) (*aut_v1
 // DeleteAutopilotRule deletes the AutopilotRule of the given name
 func (k *k8sOps) DeleteAutopilotRule(name string) error {
 	if err := k.initK8sClient(); err != nil {
-		return nil, err
+		return err
 	}
 	return k.autopilotClient.AutopilotV1alpha1().AutopilotRules().Delete(name, &meta_v1.DeleteOptions{})
 }

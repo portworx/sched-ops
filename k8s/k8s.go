@@ -566,9 +566,11 @@ type CRDOps interface {
 	// This API will be deprecated soon. Use RegisterCRD instead
 	CreateCRD(resource CustomResource) error
 	// RegisterCRD creates the given custom resource
-	RegisterCRD(crdDefinition *apiextensionsv1beta1.CustomResourceDefinition) error
+	RegisterCRD(crd *apiextensionsv1beta1.CustomResourceDefinition) error
 	// ValidateCRD checks if the given CRD is registered
 	ValidateCRD(resource CustomResource, timeout, retryInterval time.Duration) error
+	// DeleteCRD deletes the CRD for the given complete name (plural.group)
+	DeleteCRD(fullName string) error
 }
 
 // ClusterPairOps is an interface to perfrom k8s ClusterPair operations
@@ -4289,12 +4291,12 @@ func (k *k8sOps) CreateCRD(resource CustomResource) error {
 	return nil
 }
 
-func (k *k8sOps) RegisterCRD(crdDefinition *apiextensionsv1beta1.CustomResourceDefinition) error {
+func (k *k8sOps) RegisterCRD(crd *apiextensionsv1beta1.CustomResourceDefinition) error {
 	if err := k.initK8sClient(); err != nil {
 		return err
 	}
 
-	_, err := k.apiExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crdDefinition)
+	_, err := k.apiExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
 	if err != nil {
 		return err
 	}
@@ -4326,6 +4328,16 @@ func (k *k8sOps) ValidateCRD(resource CustomResource, timeout, retryInterval tim
 		}
 		return false, nil
 	})
+}
+
+func (k *k8sOps) DeleteCRD(fullName string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	return k.apiExtensionClient.ApiextensionsV1beta1().
+		CustomResourceDefinitions().
+		Delete(fullName, &meta_v1.DeleteOptions{PropagationPolicy: &deleteForegroundPolicy})
 }
 
 func (k *k8sOps) CreateVolumePlacementStrategy(spec *talisman_v1beta2.VolumePlacementStrategy) (*talisman_v1beta2.VolumePlacementStrategy, error) {

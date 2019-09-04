@@ -5169,6 +5169,11 @@ func (k *k8sOps) loadClientFor(config *rest.Config) error {
 		return err
 	}
 
+	k.autopilotClient, err = autopilotclientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

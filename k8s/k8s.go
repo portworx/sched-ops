@@ -98,6 +98,7 @@ type Ops interface {
 	VolumeSnapshotRestoreOps
 	GetVersion() (*version.Info, error)
 	SetConfig(config *rest.Config)
+	SetTimeout(time.Duration)
 	SetClient(
 		client kubernetes.Interface,
 		snapClient rest.Interface,
@@ -800,6 +801,7 @@ type k8sOps struct {
 	dynamicInterface   dynamic.Interface
 	ocpClient          ocp_clientset.Interface
 	ocpSecurityClient  ocp_security_clientset.Interface
+	timeout            time.Duration
 }
 
 // Instance returns a singleton instance of k8sOps type
@@ -814,6 +816,10 @@ func (k *k8sOps) SetConfig(config *rest.Config) {
 	// Set the config and reset the client
 	k.config = config
 	k.client = nil
+}
+
+func (k *k8sOps) SetTimeout(timeout time.Duration) {
+	k.timeout = timeout
 }
 
 // NewInstance returns new instance of k8sOps by using given config
@@ -5052,6 +5058,10 @@ func (k *k8sOps) loadClientFromKubeconfig(kubeconfig string) error {
 
 func (k *k8sOps) loadClientFor(config *rest.Config) error {
 	var err error
+
+	if k.timeout > 0 {
+		config.Timeout = k.timeout
+	}
 	k.client, err = kubernetes.NewForConfig(config)
 	if err != nil {
 		return err

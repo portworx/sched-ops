@@ -8,7 +8,6 @@ import (
 	snap_client "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client"
 	autopilotclientset "github.com/libopenstorage/autopilot-api/pkg/client/clientset/versioned"
 	ostclientset "github.com/libopenstorage/operator/pkg/client/clientset/versioned"
-	storkclientset "github.com/libopenstorage/stork/pkg/client/clientset/versioned"
 	ocp_clientset "github.com/openshift/client-go/apps/clientset/versioned"
 	ocp_security_clientset "github.com/openshift/client-go/security/clientset/versioned"
 	talismanclientset "github.com/portworx/talisman/pkg/client/clientset/versioned"
@@ -29,7 +28,6 @@ type ClientSetter interface {
 	SetClient(
 		kubernetes.Interface,
 		rest.Interface,
-		storkclientset.Interface,
 		apiextensionsclient.Interface,
 		dynamic.Interface,
 		ocp_clientset.Interface,
@@ -40,8 +38,6 @@ type ClientSetter interface {
 	SetBaseClient(kubernetes.Interface)
 	// SetSnapshotClient sets the snapshot clientset
 	SetSnapshotClient(rest.Interface)
-	// SetStorkClient sets the stork clientset
-	SetStorkClient(storkclientset.Interface)
 	// SetOpenstorageOperatorClient sets the openstorage operator clientset
 	SetOpenstorageOperatorClient(ostclientset.Interface)
 	// SetAPIExtensionsClient sets the api extensions clientset
@@ -86,7 +82,6 @@ func (k *k8sOps) SetConfigFromPath(configPath string) error {
 func (k *k8sOps) SetClient(
 	client kubernetes.Interface,
 	snapClient rest.Interface,
-	storkClient storkclientset.Interface,
 	apiExtensionClient apiextensionsclient.Interface,
 	dynamicInterface dynamic.Interface,
 	ocpClient ocp_clientset.Interface,
@@ -95,7 +90,6 @@ func (k *k8sOps) SetClient(
 ) {
 	k.client = client
 	k.snapClient = snapClient
-	k.storkClient = storkClient
 	k.apiExtensionClient = apiExtensionClient
 	k.dynamicInterface = dynamicInterface
 	k.ocpClient = ocpClient
@@ -111,11 +105,6 @@ func (k *k8sOps) SetBaseClient(client kubernetes.Interface) {
 // SetSnapshotClient sets the snapshot clientset
 func (k *k8sOps) SetSnapshotClient(snapClient rest.Interface) {
 	k.snapClient = snapClient
-}
-
-// SetStorkClient sets the stork clientset
-func (k *k8sOps) SetStorkClient(storkClient storkclientset.Interface) {
-	k.storkClient = storkClient
 }
 
 // SetOpenstorageOperatorClient sets the openstorage operator clientset
@@ -241,11 +230,6 @@ func (k *k8sOps) loadClientFor(config *rest.Config) error {
 	}
 
 	k.snapClient, _, err = snap_client.NewClient(config)
-	if err != nil {
-		return err
-	}
-
-	k.storkClient, err = storkclientset.NewForConfig(config)
 	if err != nil {
 		return err
 	}

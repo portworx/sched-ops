@@ -10,9 +10,7 @@ import (
 
 	prometheusclient "github.com/coreos/prometheus-operator/pkg/client/versioned"
 	snap_v1 "github.com/kubernetes-incubator/external-storage/snapshot/pkg/apis/crd/v1"
-	autopilotclientset "github.com/libopenstorage/autopilot-api/pkg/client/clientset/versioned"
 	ostclientset "github.com/libopenstorage/operator/pkg/client/clientset/versioned"
-	storkclientset "github.com/libopenstorage/stork/pkg/client/clientset/versioned"
 	ocp_clientset "github.com/openshift/client-go/apps/clientset/versioned"
 	ocp_security_clientset "github.com/openshift/client-go/security/clientset/versioned"
 	"github.com/portworx/sched-ops/task"
@@ -67,25 +65,13 @@ type Ops interface {
 	PersistentVolumeClaimOps
 	VolumeAttachmentOps
 	SnapshotOps
-	SnapshotScheduleOps
-	GroupSnapshotOps
-	RuleOps
 	SecretOps
 	ConfigMapOps
 	EventOps
 	CRDOps
-	ClusterPairOps
-	MigrationOps
-	ClusterDomainsOps
-	AutopilotRuleOps
 	StorageClusterOps
 	ObjectOps
-	SchedulePolicyOps
 	VolumePlacementStrategyOps
-	BackupLocationOps
-	ApplicationBackupRestoreOps
-	ApplicationCloneOps
-	VolumeSnapshotRestoreOps
 	SecurityContextConstraintsOps
 	PrometheusOps
 	ClientSetter
@@ -485,10 +471,8 @@ var (
 type k8sOps struct {
 	client             kubernetes.Interface
 	snapClient         rest.Interface
-	storkClient        storkclientset.Interface
 	ostClient          ostclientset.Interface
 	talismanClient     talismanclientset.Interface
-	autopilotClient    autopilotclientset.Interface
 	apiExtensionClient apiextensionsclient.Interface
 	config             *rest.Config
 	dynamicInterface   dynamic.Interface

@@ -286,20 +286,6 @@
   source = "github.com/libopenstorage/external-storage"
 
 [[projects]]
-  branch = "master"
-  digest = "1:9a158cecac7b6a55c718b9e440c39e82985969d2cca08d43ab7a2efe532ba59b"
-  name = "github.com/libopenstorage/autopilot-api"
-  packages = [
-    "pkg/apis/autopilot",
-    "pkg/apis/autopilot/v1alpha1",
-    "pkg/client/clientset/versioned",
-    "pkg/client/clientset/versioned/scheme",
-    "pkg/client/clientset/versioned/typed/autopilot/v1alpha1",
-  ]
-  pruneopts = "UT"
-  revision = "87c09b775364fd1f8fba8f74fab475b3723b23d3"
-
-[[projects]]
   digest = "1:3a9ead4ea19cd9e47842688dcd97915ccaf66b3ad0604ce1581dd6b598648476"
   name = "github.com/libopenstorage/openstorage"
   packages = [
@@ -322,20 +308,6 @@
   ]
   pruneopts = "UT"
   revision = "8642de5d08120dbe23271afaf46fc6a4edc765f4"
-
-[[projects]]
-  branch = "master"
-  digest = "1:f7ddacb15f1a6b45b48ab4c13ce250571002a245a6d0077a26b57b71b9915841"
-  name = "github.com/libopenstorage/stork"
-  packages = [
-    "pkg/apis/stork",
-    "pkg/apis/stork/v1alpha1",
-    "pkg/client/clientset/versioned",
-    "pkg/client/clientset/versioned/scheme",
-    "pkg/client/clientset/versioned/typed/stork/v1alpha1",
-  ]
-  pruneopts = "UT"
-  revision = "6a3497c42b2a12fd5b6337a2b81d760b91cbb5f4"
 
 [[projects]]
   digest = "1:927762c6729b4e72957ba3310e485ed09cf8451c5a637a52fd016a9fe09e7936"
@@ -941,12 +913,8 @@
     "github.com/coreos/prometheus-operator/pkg/client/versioned",
     "github.com/kubernetes-incubator/external-storage/snapshot/pkg/apis/crd/v1",
     "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client",
-    "github.com/libopenstorage/autopilot-api/pkg/apis/autopilot/v1alpha1",
-    "github.com/libopenstorage/autopilot-api/pkg/client/clientset/versioned",
     "github.com/libopenstorage/operator/pkg/apis/core/v1alpha1",
     "github.com/libopenstorage/operator/pkg/client/clientset/versioned",
-    "github.com/libopenstorage/stork/pkg/apis/stork/v1alpha1",
-    "github.com/libopenstorage/stork/pkg/client/clientset/versioned",
     "github.com/openshift/api/apps/v1",
     "github.com/openshift/api/security/v1",
     "github.com/openshift/client-go/apps/clientset/versioned",

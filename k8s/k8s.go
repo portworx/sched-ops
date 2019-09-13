@@ -420,6 +420,8 @@ type PersistentVolumeClaimOps interface {
 	DeletePersistentVolumeClaim(name, namespace string) error
 	// ValidatePersistentVolumeClaim validates the given pvc
 	ValidatePersistentVolumeClaim(vv *v1.PersistentVolumeClaim, timeout, retryInterval time.Duration) error
+	// ValidatePersistentVolumeClaimSize validates the given pvc size
+	ValidatePersistentVolumeClaimSize(vv *v1.PersistentVolumeClaim, expectedPVCSize int64, timeout, retryInterval time.Duration) error
 	// GetPersistentVolumeClaim returns the PVC for given name and namespace
 	GetPersistentVolumeClaim(pvcName string, namespace string) (*v1.PersistentVolumeClaim, error)
 	// GetPersistentVolumeClaims returns all PVCs in given namespace and that match the optional labelSelector
@@ -3030,6 +3032,40 @@ func (k *k8sOps) ValidatePersistentVolumeClaim(pvc *v1.PersistentVolumeClaim, ti
 		return "", true, &ErrPVCNotReady{
 			ID:    result.Name,
 			Cause: fmt.Sprintf("PVC expected status: %v PVC actual status: %v", v1.ClaimBound, result.Status.Phase),
+		}
+	}
+
+	if _, err := task.DoRetryWithTimeout(t, timeout, retryInterval); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (k *k8sOps) ValidatePersistentVolumeClaimSize(pvc *v1.PersistentVolumeClaim, expectedPVCSize int64, timeout, retryInterval time.Duration) error {
+	t := func() (interface{}, bool, error) {
+		if err := k.initK8sClient(); err != nil {
+			return "", true, err
+		}
+
+		result, err := k.client.CoreV1().
+			PersistentVolumeClaims(pvc.Namespace).
+			Get(pvc.Name, meta_v1.GetOptions{})
+		if err != nil {
+			return "", true, err
+		}
+
+		capacity, ok := result.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]
+		if !ok {
+			return "", true, fmt.Errorf("failed to get storage size for pvc: %v", pvc.Name)
+		}
+
+		if capacity.Value() == expectedPVCSize {
+			return "", false, nil
+		}
+
+		return "", true, &ErrValidatePVCSize{
+			ID:    result.Name,
+			Cause: fmt.Sprintf("PVC expected size: %v actual size: %v", expectedPVCSize, capacity.Value()),
 		}
 	}
 

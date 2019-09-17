@@ -13,3 +13,4 @@ script:
   - go vet $(go list ./... 2>&1 | grep -v 'vendor')
   - go test $(go list ./... 2>&1 | grep -v 'vendor')
   - golint $(go list ./... 2>&1| grep  -v 'vendor')
+  - go list ./... 2>&1 | grep -v 'vendor'

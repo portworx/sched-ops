@@ -9,7 +9,7 @@ install:
   - go get -u golang.org/x/lint/golint
 script:
   - git-validation -run DCO,short-subject
-  - go fmt $(go list ./... | grep -v vendor) | wc -l | grep 0
-  - go vet $(go list ./... | grep -v vendor)
-  - go test $(go list ./... | grep -v vendor)
-  - golint $(go list ./... | grep  -v vendor)
+  - go fmt $(go list ./... 2>&1 | grep -v 'vendor') | wc -l | grep 0
+  - go vet $(go list ./... 2>&1 | grep -v 'vendor')
+  - go test $(go list ./... 2>&1 | grep -v 'vendor')
+  - golint $(go list ./... 2>&1| grep  -v 'vendor')

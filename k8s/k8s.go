@@ -47,6 +47,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	appsv1_client "k8s.io/client-go/kubernetes/typed/apps/v1"
+	_ "k8s.io/client-go/plugin/pkg/client/auth" // needed to initialize plugins on cloud providers
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"

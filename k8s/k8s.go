@@ -50,6 +50,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
+
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 const (

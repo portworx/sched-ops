@@ -31,6 +31,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	rbac_v1 "k8s.io/api/rbac/v1"
 	storage_api "k8s.io/api/storage/v1"
+	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -82,6 +83,7 @@ type Ops interface {
 	PodOps
 	StorageClassOps
 	PersistentVolumeClaimOps
+	VolumeAttachmentOps
 	SnapshotOps
 	GroupSnapshotOps
 	RuleOps
@@ -489,6 +491,14 @@ type SnapshotOps interface {
 	// The caller is expected to validate if the returned map has all snapshots expected at that point of time
 	ValidateSnapshotSchedule(string, string, time.Duration, time.Duration) (
 		map[v1alpha1.SchedulePolicyType][]*v1alpha1.ScheduledVolumeSnapshotStatus, error)
+}
+
+// VolumeAttachmentOps is an interface to perform k8s VolumeAttachmentOps operations
+type VolumeAttachmentOps interface {
+	// ListVolumeAttachments lists all volume attachments
+	ListVolumeAttachments() (*storagev1beta1.VolumeAttachmentList, error)
+	// DeleteVolumeAttachment deletes a given Volume Attachment by name
+	DeleteVolumeAttachment(name string) error
 }
 
 // GroupSnapshotOps is an interface to perform k8s GroupVolumeSnapshot operations
@@ -5108,6 +5118,26 @@ func (k *k8sOps) ValidateApplicationClone(name, namespace string, timeout, retry
 }
 
 // ApplicationClone APIs - END
+
+// VolumeAttachment APIs - START
+
+func (k *k8sOps) ListVolumeAttachments() (*storagev1beta1.VolumeAttachmentList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.StorageV1beta1().VolumeAttachments().List(meta_v1.ListOptions{})
+}
+
+func (k *k8sOps) DeleteVolumeAttachment(name string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	return k.client.StorageV1beta1().VolumeAttachments().Delete(name, &meta_v1.DeleteOptions{})
+}
+
+// VolumeAttachment APIs - END
 
 func (k *k8sOps) appsClient() appsv1_client.AppsV1Interface {
 	return k.client.AppsV1()

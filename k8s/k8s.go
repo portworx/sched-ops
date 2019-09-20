@@ -499,6 +499,12 @@ type VolumeAttachmentOps interface {
 	ListVolumeAttachments() (*storagev1beta1.VolumeAttachmentList, error)
 	// DeleteVolumeAttachment deletes a given Volume Attachment by name
 	DeleteVolumeAttachment(name string) error
+	// CreateVolumeAttachment creates a volume attachment
+	CreateVolumeAttachment(*storagev1beta1.VolumeAttachment) (*storagev1beta1.VolumeAttachment, error)
+	// UpdateVolumeAttachment updates a volume attachment
+	UpdateVolumeAttachment(*storagev1beta1.VolumeAttachment) (*storagev1beta1.VolumeAttachment, error)
+	// UpdateVolumeAttachmentStatus updates a volume attachment status
+	UpdateVolumeAttachmentStatus(*storagev1beta1.VolumeAttachment) (*storagev1beta1.VolumeAttachment, error)
 }
 
 // GroupSnapshotOps is an interface to perform k8s GroupVolumeSnapshot operations
@@ -5135,6 +5141,30 @@ func (k *k8sOps) DeleteVolumeAttachment(name string) error {
 	}
 
 	return k.client.StorageV1beta1().VolumeAttachments().Delete(name, &meta_v1.DeleteOptions{})
+}
+
+func (k *k8sOps) CreateVolumeAttachment(volumeAttachment *storagev1beta1.VolumeAttachment) (*storagev1beta1.VolumeAttachment, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.StorageV1beta1().VolumeAttachments().Create(volumeAttachment)
+}
+
+func (k *k8sOps) UpdateVolumeAttachment(volumeAttachment *storagev1beta1.VolumeAttachment) (*storagev1beta1.VolumeAttachment, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.StorageV1beta1().VolumeAttachments().Update(volumeAttachment)
+}
+
+func (k *k8sOps) UpdateVolumeAttachmentStatus(volumeAttachment *storagev1beta1.VolumeAttachment) (*storagev1beta1.VolumeAttachment, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.StorageV1beta1().VolumeAttachments().UpdateStatus(volumeAttachment)
 }
 
 // VolumeAttachment APIs - END

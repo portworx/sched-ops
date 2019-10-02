@@ -791,6 +791,8 @@ type ApplicationCloneOps interface {
 type ClientSetter interface {
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)
+	// SetConfigFromPath sets the config from a kubeconfig file
+	SetConfigFromPath(configPath string) error
 	// SetClient set the k8s clients
 	SetClient(
 		kubernetes.Interface,
@@ -891,6 +893,22 @@ func NewInstance(config string) (Ops, error) {
 func (k *k8sOps) SetConfig(config *rest.Config) {
 	k.config = config
 	k.client = nil
+}
+
+// SetConfigFromPath takes the path to a kubeconfig file
+// and then internally calls SetConfig to set it
+func (k *k8sOps) SetConfigFromPath(configPath string) error {
+	if configPath == "" {
+		k.SetConfig(nil)
+		return nil
+	}
+	config, err := clientcmd.BuildConfigFromFlags("", configPath)
+	if err != nil {
+		return err
+	}
+
+	k.SetConfig(config)
+	return nil
 }
 
 // SetClient set the k8s clients

@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	prometheusclient "github.com/coreos/prometheus-operator/pkg/client/versioned"
 	snap_v1 "github.com/kubernetes-incubator/external-storage/snapshot/pkg/apis/crd/v1"
 	snap_client "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client"
 	aut_v1alpaha1 "github.com/libopenstorage/autopilot/pkg/apis/autopilot/v1alpha1"
@@ -103,6 +104,7 @@ type Ops interface {
 	ApplicationCloneOps
 	VolumeSnapshotRestoreOps
 	SecurityContextConstraintsOps
+	PrometheusOps
 	ClientSetter
 	GetVersion() (*version.Info, error)
 	// private methods for unit tests
@@ -822,6 +824,8 @@ type ClientSetter interface {
 	SetTalismanClient(talismanclientset.Interface)
 	// SetAutopilotClient sets the autopilot clientset
 	SetAutopilotClient(autopilotclientset.Interface)
+	// SetPrometheusClient sets the prometheus clientset
+	SetPrometheusClient(prometheusclient.Interface)
 }
 
 type privateMethods interface {
@@ -868,6 +872,7 @@ type k8sOps struct {
 	dynamicInterface   dynamic.Interface
 	ocpClient          ocp_clientset.Interface
 	ocpSecurityClient  ocp_security_clientset.Interface
+	prometheusClient   prometheusclient.Interface
 }
 
 // Instance returns a singleton instance of k8sOps type
@@ -975,6 +980,11 @@ func (k *k8sOps) SetAutopilotClient(autopilotClient autopilotclientset.Interface
 // SetTalismanClient sets the talisman clientset
 func (k *k8sOps) SetTalismanClient(talismanClient talismanclientset.Interface) {
 	k.talismanClient = talismanClient
+}
+
+// SetPrometheusClient sets the prometheus clientset
+func (k *k8sOps) SetPrometheusClient(prometheusClient prometheusclient.Interface) {
+	k.prometheusClient = prometheusClient
 }
 
 // Initialize the k8s client if uninitialized
@@ -5362,6 +5372,11 @@ func (k *k8sOps) loadClientFor(config *rest.Config) error {
 	}
 
 	k.autopilotClient, err = autopilotclientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	k.prometheusClient, err = prometheusclient.NewForConfig(config)
 	if err != nil {
 		return err
 	}

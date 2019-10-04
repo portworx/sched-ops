@@ -41,8 +41,8 @@ type ClientSetter interface {
 	SetSnapshotClient(rest.Interface)
 	// SetStorkClient sets the stork clientset
 	SetStorkClient(storkclientset.Interface)
-	// SetApiExtensionsClient sets the api extensions clientset
-	SetApiExtensionsClient(apiextensionsclient.Interface)
+	// SetAPIExtensionsClient sets the api extensions clientset
+	SetAPIExtensionsClient(apiextensionsclient.Interface)
 	// SetDynamicClient sets the dynamic clientset
 	SetDynamicClient(dynamic.Interface)
 	// SetOpenshiftAppsClient sets the openshift apps clientset
@@ -115,8 +115,8 @@ func (k *k8sOps) SetStorkClient(storkClient storkclientset.Interface) {
 	k.storkClient = storkClient
 }
 
-// SetApiExtensionsClient sets the api extensions clientset
-func (k *k8sOps) SetApiExtensionsClient(apiExtensionsClient apiextensionsclient.Interface) {
+// SetAPIExtensionsClient sets the api extensions clientset
+func (k *k8sOps) SetAPIExtensionsClient(apiExtensionsClient apiextensionsclient.Interface) {
 	k.apiExtensionClient = apiExtensionsClient
 }
 

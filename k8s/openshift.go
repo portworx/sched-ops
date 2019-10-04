@@ -279,7 +279,7 @@ func (k *k8sOps) GetDeploymentConfigPods(deployment *ocp_appsv1_api.DeploymentCo
 		return nil, err
 	}
 
-	rSets, err := k.appsClient().ReplicaSets(deployment.Namespace).List(meta_v1.ListOptions{})
+	rSets, err := k.client.AppsV1().ReplicaSets(deployment.Namespace).List(meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

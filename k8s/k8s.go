@@ -12,8 +12,8 @@ import (
 
 	snap_v1 "github.com/kubernetes-incubator/external-storage/snapshot/pkg/apis/crd/v1"
 	snap_client "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client"
-	aut_v1alpaha1 "github.com/libopenstorage/autopilot/pkg/apis/autopilot/v1alpha1"
-	autopilotclientset "github.com/libopenstorage/autopilot/pkg/client/clientset/versioned"
+	aut_v1alpaha1 "github.com/libopenstorage/autopilot-api/pkg/apis/autopilot/v1alpha1"
+	autopilotclientset "github.com/libopenstorage/autopilot-api/pkg/client/clientset/versioned"
 	"github.com/libopenstorage/stork/pkg/apis/stork/v1alpha1"
 	storkclientset "github.com/libopenstorage/stork/pkg/client/clientset/versioned"
 	ocp_appsv1_api "github.com/openshift/api/apps/v1"

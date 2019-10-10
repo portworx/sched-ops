@@ -6,7 +6,7 @@ import (
 
 	prometheusclient "github.com/coreos/prometheus-operator/pkg/client/versioned"
 	snap_client "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client"
-	autopilotclientset "github.com/libopenstorage/autopilot/pkg/client/clientset/versioned"
+	autopilotclientset "github.com/libopenstorage/autopilot-api/pkg/client/clientset/versioned"
 	ostclientset "github.com/libopenstorage/operator/pkg/client/clientset/versioned"
 	storkclientset "github.com/libopenstorage/stork/pkg/client/clientset/versioned"
 	ocp_clientset "github.com/openshift/client-go/apps/clientset/versioned"

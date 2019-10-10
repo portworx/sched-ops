@@ -1,7 +1,7 @@
 package k8s
 
 import (
-	aut_v1alpaha1 "github.com/libopenstorage/autopilot/pkg/apis/autopilot/v1alpha1"
+	aut_v1alpaha1 "github.com/libopenstorage/autopilot-api/pkg/apis/autopilot/v1alpha1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

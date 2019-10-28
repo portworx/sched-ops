@@ -1258,8 +1258,13 @@ func (k *k8sOps) ValidateTerminatedDeployment(deployment *appsv1.Deployment, tim
 		if pods != nil && len(pods) > 0 {
 			var podNames []string
 			for _, pod := range pods {
-				podNames = append(podNames, pod.Name)
+				if len(pod.Spec.NodeName) > 0 {
+					podNames = append(podNames, fmt.Sprintf("%s (node=%s)", pod.Name, pod.Spec.NodeName))
+				} else {
+					podNames = append(podNames, pod.Name)
+				}
 			}
+
 			return "", true, &ErrAppNotTerminated{
 				ID:    dep.Name,
 				Cause: fmt.Sprintf("pods: %v are still present", podNames),
@@ -1689,7 +1694,11 @@ func (k *k8sOps) ValidateTerminatedStatefulSet(statefulset *appsv1.StatefulSet, 
 		if pods != nil && len(pods) > 0 {
 			var podNames []string
 			for _, pod := range pods {
-				podNames = append(podNames, pod.Name)
+				if len(pod.Spec.NodeName) > 0 {
+					podNames = append(podNames, fmt.Sprintf("%s (node=%s)", pod.Name, pod.Spec.NodeName))
+				} else {
+					podNames = append(podNames, pod.Name)
+				}
 			}
 			return "", true, &ErrAppNotTerminated{
 				ID:    sset.Name,

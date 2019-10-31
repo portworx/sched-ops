@@ -500,10 +500,23 @@ func Instance() Ops {
 	return instance
 }
 
-// NewInstance returns new instance of k8sOps by using given config
-func NewInstance(config string) (Ops, error) {
+// NewInstanceFromConfigFile returns new instance of k8sOps by using given
+// config file
+func NewInstanceFromConfigFile(config string) (Ops, error) {
 	newInstance := &k8sOps{}
 	err := newInstance.loadClientFromKubeconfig(config)
+	if err != nil {
+		logrus.Errorf("Unable to set new instance: %v", err)
+		return nil, err
+	}
+	return newInstance, nil
+}
+
+// NewInstanceFromConfigBytes returns new instance of k8sOps by using given
+// config bytes
+func NewInstanceFromConfigBytes(config []byte) (Ops, error) {
+	newInstance := &k8sOps{}
+	err := newInstance.loadClientFromConfigBytes(config)
 	if err != nil {
 		logrus.Errorf("Unable to set new instance: %v", err)
 		return nil, err

@@ -39,3 +39,20 @@ func TestDoRetry(t *testing.T) {
 	require.True(t, time.Now().After(retryTill) || time.Now().Equal(retryTill), "current time should be after expected timeout")
 
 }
+
+func TestDoRetryWithTimeoutSuccessAfter(t *testing.T) {
+	counter := 0
+	t4 := func() (interface{}, bool, error) {
+
+		if counter > 3 {
+			return "", false, nil
+		}
+
+		counter += 1
+		return nil, true, fmt.Errorf("task is failing")
+	}
+
+	output, err := DoRetryWithTimeout(t4, 100*time.Millisecond, 10*time.Millisecond)
+	require.NoError(t, err, "task must not fail")
+	require.NotNil(t, output, "result must not  be nil")
+}

@@ -56,3 +56,16 @@ func TestDoRetryWithTimeoutSuccessAfter(t *testing.T) {
 	require.NoError(t, err, "task must not fail")
 	require.NotNil(t, output, "result must not  be nil")
 }
+
+
+func TestDoRetryWithTimeoutSuccessNilReturn(t *testing.T) {
+	t4 := func() (interface{}, bool, error) {
+		t.Log("Hello")
+		return nil, true, nil
+	}
+
+	output, err := DoRetryWithTimeout(t4, 100*time.Millisecond, 10*time.Millisecond)
+
+	require.NoError(t, err, "task must not fail")
+	require.Nil(t, output, "result must not  be nil")
+}

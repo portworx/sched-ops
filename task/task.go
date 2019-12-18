@@ -50,10 +50,12 @@ func DoRetryWithTimeout(t func() (interface{}, bool, error), timeout, timeBefore
 				out, retry, err := t()
 				if err == nil || !retry {
 					resultChan <- out
+					return
 				}
 
 				if err != nil && !retry {
 					errChan <- err
+					return
 				}
 
 				log.Printf("%v Next retry in: %v", err, timeBeforeRetry)

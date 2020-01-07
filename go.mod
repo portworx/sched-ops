@@ -1,6 +1,6 @@
 module github.com/portworx/sched-ops
 
-go 1.12
+go 1.13
 
 require (
 	github.com/coreos/go-oidc v2.1.0+incompatible // indirect
@@ -17,7 +17,7 @@ require (
 	github.com/json-iterator/go v1.1.7 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kubernetes-incubator/external-storage v0.0.0-00010101000000-000000000000
-	github.com/libopenstorage/autopilot-api v0.6.0
+	github.com/libopenstorage/autopilot-api v0.6.1-0.20200107200318-b38e785ffb64
 	github.com/libopenstorage/openstorage v8.0.0+incompatible // indirect
 	github.com/libopenstorage/operator v0.0.0-20191009190641-8642de5d0812
 	github.com/libopenstorage/stork v0.0.0-20191009210244-6a3497c42b2a

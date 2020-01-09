@@ -216,8 +216,8 @@
   source = "github.com/libopenstorage/external-storage"
 
 [[projects]]
-  branch = "master"
-  digest = "1:b1a2174f403a649902689eb558b99f536e51fe65a268c1ac827ee9580d26769f"
+  branch = "add-status"
+  digest = "1:32277cc309523703e113d6ec7a23bde386a537f511f4bc8062f7d355ad2f28e4"
   name = "github.com/libopenstorage/autopilot-api"
   packages = [
     "pkg/apis/autopilot",
@@ -227,7 +227,7 @@
     "pkg/client/clientset/versioned/typed/autopilot/v1alpha1",
   ]
   pruneopts = "UT"
-  revision = "cfb5c56369046a09d692ebf62cca836f82866e16"
+  revision = "9075f3d99e958d5cd6d9f1d3528ed8be46d3ab77"
 
 [[projects]]
   digest = "1:3a9ead4ea19cd9e47842688dcd97915ccaf66b3ad0604ce1581dd6b598648476"

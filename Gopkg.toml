@@ -31,7 +31,7 @@
   branch = "openstorage-5.1"
 
 [[constraint]]
-  branch = "master"
+  branch = "add-status"
   name = "github.com/libopenstorage/autopilot-api"
 
 

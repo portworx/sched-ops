@@ -30,6 +30,10 @@
   source = "github.com/libopenstorage/external-storage"
   branch = "openstorage-5.1"
 
+[[constraint]]
+  branch = "master"
+  name = "github.com/libopenstorage/autopilot-api"
+
 
 [[override]]
   branch = "master"

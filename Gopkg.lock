@@ -2,37 +2,6 @@
 
 
 [[projects]]
-  digest = "1:26ee1e365ea8f312ee11e170fc6675bac0dd3d4adf2406e753d0a43527e1afb8"
-  name = "cloud.google.com/go"
-  packages = ["compute/metadata"]
-  pruneopts = "UT"
-  revision = "264def2dd949cdb8a803bb9f50fa29a67b798a6a"
-  version = "v0.46.3"
-
-[[projects]]
-  digest = "1:6b1426cad7057b717351eacf5b6fe70f053f11aac1ce254bbf2fd72c031719eb"
-  name = "contrib.go.opencensus.io/exporter/ocagent"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "dcb33c7f3b7cfe67e8a2cea10207ede1b7c40764"
-  version = "v0.4.12"
-
-[[projects]]
-  digest = "1:3826dc28d63eeb12d73f892a8d51c89019404473614a7959acfa1454a8f1b566"
-  name = "github.com/Azure/go-autorest"
-  packages = [
-    "autorest",
-    "autorest/adal",
-    "autorest/azure",
-    "autorest/date",
-    "logger",
-    "tracing",
-  ]
-  pruneopts = "UT"
-  revision = "562d3769ef2f0f56bc52749babd3e88367e28588"
-  version = "v11.9.0"
-
-[[projects]]
   digest = "1:a2682518d905d662d984ef9959984ef87cecb777d379bfa9d9fe40e78069b3e4"
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
@@ -47,21 +16,6 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
-
-[[projects]]
-  digest = "1:8f5acd4d4462b5136af644d25101f0968a7a94ee90fcb2059cec5b7cc42e0b20"
-  name = "github.com/census-instrumentation/opencensus-proto"
-  packages = [
-    "gen-go/agent/common/v1",
-    "gen-go/agent/metrics/v1",
-    "gen-go/agent/trace/v1",
-    "gen-go/metrics/v1",
-    "gen-go/resource/v1",
-    "gen-go/trace/v1",
-  ]
-  pruneopts = "UT"
-  revision = "d89fa54de508111353cb0b06403c00569be780d8"
-  version = "v0.2.1"
 
 [[projects]]
   digest = "1:d64c893fc7d2c3d395f421b00d21f0adb8ceffc4d3c90299e732b3985ca16eb4"
@@ -214,22 +168,6 @@
   version = "v0.3.1"
 
 [[projects]]
-  digest = "1:98996125fe832b116f882df3e55624bc481c88b436728ecbdf477534f3eb639f"
-  name = "github.com/gophercloud/gophercloud"
-  packages = [
-    ".",
-    "openstack",
-    "openstack/identity/v2/tenants",
-    "openstack/identity/v2/tokens",
-    "openstack/identity/v3/tokens",
-    "openstack/utils",
-    "pagination",
-  ]
-  pruneopts = "UT"
-  revision = "a84f8b330d669c6dff53ee9743a7579ac9541b69"
-  version = "v0.4.0"
-
-[[projects]]
   digest = "1:e03ebb3114d926b71fb8f52cefa8045e71c37f62096f7c99794d87b223d5f21f"
   name = "github.com/grpc-ecosystem/grpc-gateway"
   packages = [
@@ -240,14 +178,6 @@
   pruneopts = "UT"
   revision = "ece8fdf051b731392b407fdb9a9b1b9ffb6f9793"
   version = "v1.11.3"
-
-[[projects]]
-  digest = "1:7fae9ec96d10b2afce0da23c378c8b3389319b7f92fa092f2621bba3078cfb4b"
-  name = "github.com/hashicorp/golang-lru"
-  packages = ["simplelru"]
-  pruneopts = "UT"
-  revision = "7f827b33c0f158ec5dfbba01bb0b14a4541fd81d"
-  version = "v0.5.3"
 
 [[projects]]
   digest = "1:78d28d5b84a26159c67ea51996a230da4bc07cac648adaae1dfb5fc0ec8e40d3"
@@ -284,6 +214,20 @@
   pruneopts = "UT"
   revision = "9394ee8dd5361cfe8fee25c233721e4060ff0473"
   source = "github.com/libopenstorage/external-storage"
+
+[[projects]]
+  branch = "master"
+  digest = "1:b1a2174f403a649902689eb558b99f536e51fe65a268c1ac827ee9580d26769f"
+  name = "github.com/libopenstorage/autopilot-api"
+  packages = [
+    "pkg/apis/autopilot",
+    "pkg/apis/autopilot/v1alpha1",
+    "pkg/client/clientset/versioned",
+    "pkg/client/clientset/versioned/scheme",
+    "pkg/client/clientset/versioned/typed/autopilot/v1alpha1",
+  ]
+  pruneopts = "UT"
+  revision = "cfb5c56369046a09d692ebf62cca836f82866e16"
 
 [[projects]]
   digest = "1:3a9ead4ea19cd9e47842688dcd97915ccaf66b3ad0604ce1581dd6b598648476"
@@ -372,14 +316,6 @@
   revision = "431ec9a26e5021f35fa41ee9a89842db9bfdb370"
 
 [[projects]]
-  digest = "1:bde6c3a610bd01ea7e2c8d9c7fd1116531fb6619f46f73f4f2ea16adb70da6be"
-  name = "github.com/operator-framework/operator-sdk"
-  packages = ["pkg/util/k8sutil"]
-  pruneopts = "UT"
-  revision = "e5a0ab096e1a7c0e6b937d2b41707eccb82c3c77"
-  version = "v0.0.7"
-
-[[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
@@ -442,33 +378,6 @@
   version = "v1.4.0"
 
 [[projects]]
-  digest = "1:4c93890bbbb5016505e856cb06b5c5a2ff5b7217584d33f2a9071ebef4b5d473"
-  name = "go.opencensus.io"
-  packages = [
-    ".",
-    "internal",
-    "internal/tagencoding",
-    "metric/metricdata",
-    "metric/metricproducer",
-    "plugin/ocgrpc",
-    "plugin/ochttp",
-    "plugin/ochttp/propagation/b3",
-    "plugin/ochttp/propagation/tracecontext",
-    "resource",
-    "stats",
-    "stats/internal",
-    "stats/view",
-    "tag",
-    "trace",
-    "trace/internal",
-    "trace/propagation",
-    "trace/tracestate",
-  ]
-  pruneopts = "UT"
-  revision = "43463a80402d8447b7fce0d2c58edf1687ff0b58"
-  version = "v0.19.3"
-
-[[projects]]
   branch = "master"
   digest = "1:08644aeff6284192f9b529821257b83245e3a3a48e216074929629f62c3c5799"
   name = "golang.org/x/crypto"
@@ -500,25 +409,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:31e33f76456ccf54819ab4a646cf01271d1a99d7712ab84bf1a9e7b61cd2031b"
+  digest = "1:8d1c112fb1679fa097e9a9255a786ee47383fa2549a3da71bcb1334a693ebcfe"
   name = "golang.org/x/oauth2"
   packages = [
     ".",
-    "google",
     "internal",
-    "jws",
-    "jwt",
   ]
   pruneopts = "UT"
   revision = "0f29369cfe4552d0e4bcddc57cc75f4d7e672a33"
-
-[[projects]]
-  branch = "master"
-  digest = "1:382bb5a7fb4034db3b6a2d19e5a4a6bcf52f4750530603c01ca18a172fa3089b"
-  name = "golang.org/x/sync"
-  packages = ["semaphore"]
-  pruneopts = "UT"
-  revision = "cd5d95a43a6e21273425c7ae415d3df9ea832eeb"
 
 [[projects]]
   branch = "master"
@@ -566,24 +464,13 @@
   revision = "c4c64cad1fd0a1a8dab2523e04e61d35308e131e"
 
 [[projects]]
-  digest = "1:5f003878aabe31d7f6b842d4de32b41c46c214bb629bb485387dbcce1edf5643"
-  name = "google.golang.org/api"
-  packages = ["support/bundler"]
-  pruneopts = "UT"
-  revision = "d7605a20bfcb4659ee2ea347b1f8f5be12b8a5b7"
-  version = "v0.11.0"
-
-[[projects]]
-  digest = "1:3c03b58f57452764a4499c55c582346c0ee78c8a5033affe5bdfd9efd3da5bd1"
+  digest = "1:e0a1881f9e0564bebdeac98c75e59f07acdde6ed3a5396e0e613eaad31194866"
   name = "google.golang.org/appengine"
   packages = [
-    ".",
     "internal",
-    "internal/app_identity",
     "internal/base",
     "internal/datastore",
     "internal/log",
-    "internal/modules",
     "internal/remote_api",
     "internal/urlfetch",
     "urlfetch",
@@ -784,7 +671,7 @@
   version = "kubernetes-1.14.7"
 
 [[projects]]
-  digest = "1:02bcea22c6d8000edfb626f3f13b6b2be2b1174cd5706ac03f570ec205a0ce98"
+  digest = "1:f0668083028e370cb8f9d1d4db1362a03fee4af133621f7e0a0319981c14d700"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -831,15 +718,9 @@
     "pkg/apis/clientauthentication/v1alpha1",
     "pkg/apis/clientauthentication/v1beta1",
     "pkg/version",
-    "plugin/pkg/client/auth",
-    "plugin/pkg/client/auth/azure",
     "plugin/pkg/client/auth/exec",
-    "plugin/pkg/client/auth/gcp",
-    "plugin/pkg/client/auth/oidc",
-    "plugin/pkg/client/auth/openstack",
     "rest",
     "rest/watch",
-    "third_party/forked/golang/template",
     "tools/auth",
     "tools/clientcmd",
     "tools/clientcmd/api",
@@ -855,7 +736,6 @@
     "util/exec",
     "util/flowcontrol",
     "util/homedir",
-    "util/jsonpath",
     "util/keyutil",
   ]
   pruneopts = "UT"
@@ -913,6 +793,8 @@
     "github.com/coreos/prometheus-operator/pkg/client/versioned",
     "github.com/kubernetes-incubator/external-storage/snapshot/pkg/apis/crd/v1",
     "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client",
+    "github.com/libopenstorage/autopilot-api/pkg/apis/autopilot/v1alpha1",
+    "github.com/libopenstorage/autopilot-api/pkg/client/clientset/versioned",
     "github.com/libopenstorage/operator/pkg/apis/core/v1alpha1",
     "github.com/libopenstorage/operator/pkg/client/clientset/versioned",
     "github.com/openshift/api/apps/v1",
@@ -945,7 +827,6 @@
     "k8s.io/client-go/dynamic",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
-    "k8s.io/client-go/plugin/pkg/client/auth",
     "k8s.io/client-go/rest",
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/client-go/tools/remotecommand",

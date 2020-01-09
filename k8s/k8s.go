@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	autopilotclientset "github.com/libopenstorage/autopilot-api/pkg/client/clientset/versioned"
+
 	prometheusclient "github.com/coreos/prometheus-operator/pkg/client/versioned"
 	snap_v1 "github.com/kubernetes-incubator/external-storage/snapshot/pkg/apis/crd/v1"
 	ostclientset "github.com/libopenstorage/operator/pkg/client/clientset/versioned"
@@ -69,6 +71,7 @@ type Ops interface {
 	ConfigMapOps
 	EventOps
 	CRDOps
+	AutopilotRuleOps
 	StorageClusterOps
 	ObjectOps
 	VolumePlacementStrategyOps
@@ -479,6 +482,7 @@ type k8sOps struct {
 	ocpClient          ocp_clientset.Interface
 	ocpSecurityClient  ocp_security_clientset.Interface
 	prometheusClient   prometheusclient.Interface
+	autopilotClient    autopilotclientset.Interface
 }
 
 // Instance returns a singleton instance of k8sOps type

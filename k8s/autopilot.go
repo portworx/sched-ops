@@ -9,6 +9,8 @@ import (
 type AutopilotRuleOps interface {
 	// CreateAutopilotRule creates the AutopilotRule object
 	CreateAutopilotRule(*aut_v1alpaha1.AutopilotRule) (*aut_v1alpaha1.AutopilotRule, error)
+	// UpdateAutopilotRuleStatus will only update the status section in the autopilot rule
+	UpdateAutopilotRuleStatus(rule *aut_v1alpaha1.AutopilotRule) (*aut_v1alpaha1.AutopilotRule, error)
 	// GetAutopilotRule gets the AutopilotRule for the provided name
 	GetAutopilotRule(string) (*aut_v1alpaha1.AutopilotRule, error)
 	// UpdateAutopilotRule updates the AutopilotRule
@@ -21,12 +23,19 @@ type AutopilotRuleOps interface {
 
 // AutopilotRule CRD - BEGIN
 
-// CreateAutopilotRule creates the AutopilotRule object
 func (k *k8sOps) CreateAutopilotRule(rule *aut_v1alpaha1.AutopilotRule) (*aut_v1alpaha1.AutopilotRule, error) {
 	if err := k.initK8sClient(); err != nil {
 		return nil, err
 	}
 	return k.autopilotClient.AutopilotV1alpha1().AutopilotRules().Create(rule)
+}
+
+func (k *k8sOps) UpdateAutopilotRuleStatus(rule *aut_v1alpaha1.AutopilotRule) (*aut_v1alpaha1.AutopilotRule, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.autopilotClient.AutopilotV1alpha1().AutopilotRules().UpdateStatus(rule)
 }
 
 // GetAutopilotRule gets the AutopilotRule for the provided name

@@ -18,6 +18,7 @@ import (
 	"github.com/portworx/sched-ops/task"
 	talismanclientset "github.com/portworx/talisman/pkg/client/clientset/versioned"
 	"github.com/sirupsen/logrus"
+	hook "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	batch_v1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
@@ -88,6 +89,7 @@ type Ops interface {
 	VolumeSnapshotRestoreOps
 	SecurityContextConstraintsOps
 	PrometheusOps
+	MutatingWebhookConfigurationOps
 	ClientSetter
 	GetVersion() (*version.Info, error)
 	// private methods for unit tests
@@ -471,6 +473,18 @@ type ObjectOps interface {
 	GetObject(object runtime.Object) (runtime.Object, error)
 	// UpdateObject updates a generic Object
 	UpdateObject(object runtime.Object) (runtime.Object, error)
+}
+
+// MutatingWebhookConfigurationOps is interface to perform CRUD ops on mutatting webhook controller
+type MutatingWebhookConfigurationOps interface {
+	// GetMutatingWebhookConfiguration returns a given MutatingWebhookConfiguration
+	GetMutatingWebhookConfiguration(name string) (*hook.MutatingWebhookConfiguration, error)
+	// CreateMutatingWebhookConfiguration creates given MutatingWebhookConfiguration
+	CreateMutatingWebhookConfiguration(req *hook.MutatingWebhookConfiguration) (*hook.MutatingWebhookConfiguration, error)
+	// UpdateMutatingWebhookConfiguration updates given MutatingWebhookConfiguration
+	UpdateMutatingWebhookConfiguration(*hook.MutatingWebhookConfiguration) (*hook.MutatingWebhookConfiguration, error)
+	// DeleteMutatingWebhookConfiguration deletes given MutatingWebhookConfiguration
+	DeleteMutatingWebhookConfiguration(name string) error
 }
 
 type privateMethods interface {
@@ -3115,6 +3129,42 @@ func (k *k8sOps) UpdateVolumeAttachmentStatus(volumeAttachment *storagev1beta1.V
 }
 
 // VolumeAttachment APIs - END
+
+// MutatingWebhookConfig APIS - START
+
+// GetMutatingWebhookConfiguration returns a given MutatingWebhookConfiguration
+func (k *k8sOps) GetMutatingWebhookConfiguration(name string) (*hook.MutatingWebhookConfiguration, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+	return k.client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(name, meta_v1.GetOptions{})
+}
+
+// CreateMutatingWebhookConfiguration creates given MutatingWebhookConfiguration
+func (k *k8sOps) CreateMutatingWebhookConfiguration(cfg *hook.MutatingWebhookConfiguration) (*hook.MutatingWebhookConfiguration, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+	return k.client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(cfg)
+}
+
+// UpdateMutatingWebhookConfiguration updates given MutatingWebhookConfiguration
+func (k *k8sOps) UpdateMutatingWebhookConfiguration(cfg *hook.MutatingWebhookConfiguration) (*hook.MutatingWebhookConfiguration, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+	return k.client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Update(cfg)
+}
+
+// DeleteMutatingWebhookConfiguration deletes given MutatingWebhookConfiguration
+func (k *k8sOps) DeleteMutatingWebhookConfiguration(name string) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+	return k.client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(name, &meta_v1.DeleteOptions{})
+}
+
+// MutatingWebhookConfig APIS - END
 
 // isAnyVolumeUsingVolumePlugin returns true if any of the given volumes is using a storage class for the given plugin
 //	In case errors are found while looking up a particular volume, the function ignores the errors as the goal is to

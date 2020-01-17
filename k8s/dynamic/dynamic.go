@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -103,6 +104,21 @@ func (c *Client) UpdateObject(object runtime.Object) (runtime.Object, error) {
 	}
 
 	return client.Update(unstructured, metav1.UpdateOptions{}, "")
+}
+
+// ListObjects returns a list of generic Objects using the options
+func (c *Client) ListObjects(options *metav1.ListOptions, namespace string) (*unstructured.UnstructuredList, error) {
+	var client dynamic.ResourceInterface
+	gvk := schema.FromAPIVersionAndKind(options.APIVersion, options.Kind)
+	resourceInterface := c.client.Resource(gvk.GroupVersion().WithResource(strings.ToLower(gvk.Kind) + "s"))
+
+	if namespace != "" {
+		client = resourceInterface.Namespace(namespace)
+	} else {
+		client = resourceInterface
+	}
+
+	return client.List(*options)
 }
 
 func (c *Client) getDynamicClient(object runtime.Object) (dynamic.ResourceInterface, error) {

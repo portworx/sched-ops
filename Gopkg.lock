@@ -572,7 +572,7 @@
   version = "v2.2.4"
 
 [[projects]]
-  digest = "1:74142cd2275f77547c35ac51514108d9798a09aa0cf377a5c1084718ef7aa225"
+  digest = "1:d937c84b21107b248846522386d8813a47537f28d60f1d7685cd15c1afe20ea6"
   name = "k8s.io/api"
   packages = [
     "admissionregistration/v1alpha1",
@@ -606,8 +606,8 @@
     "storage/v1beta1",
   ]
   pruneopts = "UT"
-  revision = "072894a440bdee3a891dea811fe42902311cd2a3"
-  version = "kubernetes-1.11.0"
+  revision = "7544f9db76f64c09e0e280c39b8d17c55958bb2b"
+  version = "kubernetes-1.11.9"
 
 [[projects]]
   digest = "1:145647b653ff6a6882bbc2c4701ebcbce7be643007231d545560e4ce612ad5cb"
@@ -624,7 +624,7 @@
   version = "kubernetes-1.11.0"
 
 [[projects]]
-  digest = "1:4b8c9d1d8fd33e12510863c4b1a32362cb094f02e1142123c8b2b1fc2510f1ef"
+  digest = "1:5131968702832ae3e70b54a3243578f10604ce5771ff033a1da5161f602281a1"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -668,8 +668,8 @@
     "third_party/forked/golang/reflect",
   ]
   pruneopts = "UT"
-  revision = "103fd098999dc9c0c88536f5c9ad2e5da39373ae"
-  version = "kubernetes-1.11.0"
+  revision = "c182ff3b98419e7305cc361fd1811988591656cf"
+  version = "kubernetes-1.11.9"
 
 [[projects]]
   digest = "1:fd1e6d7ac9acac5b246ac82a0e446ee9a90dd8d950d421f027e712409710d071"
@@ -777,6 +777,7 @@
     "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured",
     "k8s.io/apimachinery/pkg/fields",
     "k8s.io/apimachinery/pkg/runtime",
+    "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/types",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/apimachinery/pkg/version",

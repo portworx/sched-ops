@@ -519,6 +519,30 @@ func Instance() Ops {
 	return instance
 }
 
+// NewInstanceFromClients returns new instance of k8sOps by using given
+// clients
+func NewInstanceFromClients(
+	kubernetesClient kubernetes.Interface,
+	snapClient rest.Interface,
+	storkClient storkclientset.Interface,
+	apiExtensionClient apiextensionsclient.Interface,
+	dynamicClient dynamic.Interface,
+	ocpClient ocp_clientset.Interface,
+	ocpSecurityClient ocp_security_clientset.Interface,
+	autopilotClient autopilotclientset.Interface,
+) Ops {
+	return &k8sOps{
+		client:             kubernetesClient,
+		snapClient:         snapClient,
+		storkClient:        storkClient,
+		apiExtensionClient: apiExtensionClient,
+		dynamicInterface:   dynamicClient,
+		ocpClient:          ocpClient,
+		ocpSecurityClient:  ocpSecurityClient,
+		autopilotClient:    autopilotClient,
+	}
+}
+
 // NewInstanceFromConfigFile returns new instance of k8sOps by using given
 // config file
 func NewInstanceFromConfigFile(config string) (Ops, error) {

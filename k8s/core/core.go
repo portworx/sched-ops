@@ -11,7 +11,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/kubernetes"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	storagev1client "k8s.io/client-go/kubernetes/typed/storage/v1"
 	"k8s.io/client-go/rest"
@@ -44,6 +46,8 @@ type Ops interface {
 
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)
+	// GetVersion gets the version from the kubernetes cluster
+	GetVersion() (*version.Info, error)
 }
 
 // Instance returns a singleton instance of the client.
@@ -60,10 +64,11 @@ func SetInstance(i Ops) {
 }
 
 // New builds a new client.
-func New(core corev1client.CoreV1Interface, storage storagev1client.StorageV1Interface) *Client {
+func New(kubernetes kubernetes.Interface, core corev1client.CoreV1Interface, storage storagev1client.StorageV1Interface) *Client {
 	return &Client{
-		core:    core,
-		storage: storage,
+		kubernetes: kubernetes,
+		core:       core,
+		storage:    storage,
 	}
 }
 
@@ -87,9 +92,10 @@ func NewForConfig(c *rest.Config) (*Client, error) {
 
 // Client is a wrapper for kubernetes core client.
 type Client struct {
-	config  *rest.Config
-	core    corev1client.CoreV1Interface
-	storage storagev1client.StorageV1Interface
+	config     *rest.Config
+	core       corev1client.CoreV1Interface
+	storage    storagev1client.StorageV1Interface
+	kubernetes kubernetes.Interface
 }
 
 // SetConfig sets the config and resets the client.
@@ -97,6 +103,14 @@ func (c *Client) SetConfig(cfg *rest.Config) {
 	c.config = cfg
 	c.core = nil
 	c.storage = nil
+}
+
+func (c *Client) GetVersion() (*version.Info, error) {
+	if err := c.initClient(); err != nil {
+		return nil, err
+	}
+
+	return c.kubernetes.Discovery().ServerVersion()
 }
 
 // initClient the k8s client if uninitialized
@@ -154,6 +168,11 @@ func (c *Client) loadClient() error {
 	}
 
 	var err error
+
+	c.kubernetes, err = kubernetes.NewForConfig(c.config)
+	if err != nil {
+		return err
+	}
 
 	c.core, err = corev1client.NewForConfig(c.config)
 	if err != nil {

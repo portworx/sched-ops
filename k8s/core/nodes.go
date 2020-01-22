@@ -176,7 +176,7 @@ func (c *Client) SearchNodeByAddresses(addresses []string) (*corev1.Node, error)
 
 	// sweep #3 - locating based on labels
 	for _, node := range nodes.Items {
-		if hn, has := node.GetLabels()[corev1.LabelHostname]; has {
+		if hn, has := node.GetLabels()[labelHostname]; has {
 			for _, ip := range addresses {
 				if hn == ip {
 					return &node, nil

@@ -20,19 +20,26 @@ var (
 	deleteForegroundPolicy = metav1.DeletePropagationForeground
 )
 
-// Ops is an interface to openshift operations.
+// Ops is an interface to the openshift client wrapper.
 type Ops interface {
-	DeploymentConfigOps
-	SecurityContextConstraintsOps
+	Interface
 
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)
 }
 
+// Interface is an interface to openshift operations.
+type Interface interface {
+	DeploymentConfigOps
+	SecurityContextConstraintsOps
+}
+
 // Instance returns a singleton instance of the client.
 func Instance() Ops {
 	once.Do(func() {
-		instance = &Client{}
+		if instance == nil {
+			instance = &Client{}
+		}
 	})
 	return instance
 }

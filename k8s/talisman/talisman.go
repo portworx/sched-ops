@@ -18,18 +18,25 @@ var (
 	deleteForegroundPolicy = metav1.DeletePropagationForeground
 )
 
-// Ops is an interface to Talisman operations.
+// Ops is an interface to the talisman client wrapper.
 type Ops interface {
-	VolumePlacementStrategyOps
+	Interface
 
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)
 }
 
+// Interface is an interface to Talisman operations.
+type Interface interface {
+	VolumePlacementStrategyOps
+}
+
 // Instance returns a singleton instance of the client.
 func Instance() Ops {
 	once.Do(func() {
-		instance = &Client{}
+		if instance == nil {
+			instance = &Client{}
+		}
 	})
 	return instance
 }

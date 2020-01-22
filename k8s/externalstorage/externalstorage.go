@@ -15,18 +15,25 @@ var (
 	once     sync.Once
 )
 
-// Ops is an interface to perform operations on external storage resources.
+// Ops is an interface to the external storage client wrapper.
 type Ops interface {
-	SnapshotOps
+	Interface
 
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)
 }
 
+// Interface is an interface to perform operations on external storage resources.
+type Interface interface {
+	SnapshotOps
+}
+
 // Instance returns a singleton instance of the client.
 func Instance() Ops {
 	once.Do(func() {
-		instance = &Client{}
+		if instance == nil {
+			instance = &Client{}
+		}
 	})
 	return instance
 }

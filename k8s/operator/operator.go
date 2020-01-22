@@ -18,18 +18,25 @@ var (
 	deleteForegroundPolicy = metav1.DeletePropagationForeground
 )
 
-// Ops is an interface to Operator operations.
+// Ops is an interface to the operator client wrapper.
 type Ops interface {
-	StorageClusterOps
+	Interface
 
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)
 }
 
+// Interface is an interface to operator methods.
+type Interface interface {
+	StorageClusterOps
+}
+
 // Instance returns a singleton instance of the client.
 func Instance() Ops {
 	once.Do(func() {
-		instance = &Client{}
+		if instance == nil {
+			instance = &Client{}
+		}
 	})
 	return instance
 }

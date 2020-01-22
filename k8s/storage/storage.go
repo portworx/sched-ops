@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	storagev1client "k8s.io/client-go/kubernetes/typed/storage/v1"
+	storagebetaclient "k8s.io/client-go/kubernetes/typed/storage/v1beta1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -15,19 +16,26 @@ var (
 	once     sync.Once
 )
 
-// Ops is an interface to perform kubernetes related operations on the core resources.
+// Ops is an interface to the storage client wrapper.
 type Ops interface {
-	StorageClassOps
-	VolumeAttachmentOps
+	Interface
 
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)
 }
 
+// Interface is an interface to perform kubernetes related operations on the core resources.
+type Interface interface {
+	StorageClassOps
+	VolumeAttachmentOps
+}
+
 // Instance returns a singleton instance of the client.
 func Instance() Ops {
 	once.Do(func() {
-		instance = &Client{}
+		if instance == nil {
+			instance = &Client{}
+		}
 	})
 	return instance
 }
@@ -38,9 +46,10 @@ func SetInstance(i Ops) {
 }
 
 // New creates a new client.
-func New(storage storagev1client.StorageV1Interface) *Client {
+func New(storage storagev1client.StorageV1Interface, storagebeta storagebetaclient.StorageV1beta1Interface) *Client {
 	return &Client{
-		storage: storage,
+		storage:     storage,
+		storagebeta: storagebeta,
 	}
 }
 
@@ -51,8 +60,14 @@ func NewForConfig(c *rest.Config) (*Client, error) {
 		return nil, err
 	}
 
+	storagebeta, err := storagebetaclient.NewForConfig(c)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
-		storage: storage,
+		storage:     storage,
+		storagebeta: storagebeta,
 	}, nil
 }
 
@@ -69,8 +84,9 @@ func NewInstanceFromConfigFile(config string) (Ops, error) {
 
 // Client is a wrapper for the kubernetes storage client.
 type Client struct {
-	config  *rest.Config
-	storage storagev1client.StorageV1Interface
+	config      *rest.Config
+	storage     storagev1client.StorageV1Interface
+	storagebeta storagebetaclient.StorageV1beta1Interface
 }
 
 // SetConfig sets the config and resets the client
@@ -135,6 +151,11 @@ func (c *Client) loadClient() error {
 
 	var err error
 	c.storage, err = storagev1client.NewForConfig(c.config)
+	if err != nil {
+		return err
+	}
+
+	c.storagebeta, err = storagebetaclient.NewForConfig(c.config)
 	if err != nil {
 		return err
 	}

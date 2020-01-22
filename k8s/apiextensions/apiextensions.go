@@ -18,7 +18,7 @@ var (
 	deleteForegroundPolicy = metav1.DeletePropagationForeground
 )
 
-// Ops is an interface to perform kubernetes related operations on the crd resources.
+// Ops is an interface to the apiextensions client wrapper.
 type Ops interface {
 	CRDOps
 
@@ -26,10 +26,17 @@ type Ops interface {
 	SetConfig(config *rest.Config)
 }
 
+// Interface is an interface to perform kubernetes related operations on the crd resources.
+type Interface interface {
+	CRDOps
+}
+
 // Instance returns a singleton instance of the client.
 func Instance() Ops {
 	once.Do(func() {
-		instance = &Client{}
+		if instance == nil {
+			instance = &Client{}
+		}
 	})
 	return instance
 }

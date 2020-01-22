@@ -1,11 +1,13 @@
-package admissionregistration
+package discovery
 
 import (
 	"fmt"
 	"os"
 	"sync"
 
-	apiadmissionsclient "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/version"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -13,19 +15,22 @@ import (
 var (
 	instance Ops
 	once     sync.Once
+
+	deleteForegroundPolicy = metav1.DeletePropagationForeground
 )
 
-// Ops is an interface to the admission client wrapper.
+// Ops is an interface to the discovery client wrapper.
 type Ops interface {
 	Interface
 
-	// SetConfig sets the config and resets the client.
+	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)
 }
 
-// Interface is an interface to perform kubernetes related operations admissionregistration resources.
+// Interface is an interface to perform kubernetes related operations on the discovery interface.
 type Interface interface {
-	MutatingWebhookConfigurationOps
+	// GetVersion gets the version from the kubernetes cluster
+	GetVersion() (*version.Info, error)
 }
 
 // Instance returns a singleton instance of the client.
@@ -43,51 +48,48 @@ func SetInstance(i Ops) {
 	instance = i
 }
 
-// New builds a new admissionregistration client.
-func New(client apiadmissionsclient.AdmissionregistrationV1beta1Interface) *Client {
+// New builds a new client.
+func New(c discovery.DiscoveryInterface) *Client {
 	return &Client{
-		admission: client,
+		discovery: c,
 	}
 }
 
-// NewForConfig builds a new admissionregistration client for the given config.
+// NewForConfig builds a new client for the given config.
 func NewForConfig(c *rest.Config) (*Client, error) {
-	client, err := apiadmissionsclient.NewForConfig(c)
+	discovery, err := discovery.NewDiscoveryClientForConfig(c)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Client{
-		admission: client,
+		discovery: discovery,
 	}, nil
 }
 
-// NewInstanceFromConfigFile returns new instance of client by using given
-// config file
-func NewInstanceFromConfigFile(config string) (Ops, error) {
-	newInstance := &Client{}
-	err := newInstance.loadClientFromKubeconfig(config)
-	if err != nil {
-		return nil, err
-	}
-	return newInstance, nil
-}
-
-// Client provides a wrapper for kubernetes admission interface.
+// Client is a wrapper for kubernetes discovery client.
 type Client struct {
 	config    *rest.Config
-	admission apiadmissionsclient.AdmissionregistrationV1beta1Interface
+	discovery discovery.DiscoveryInterface
 }
 
 // SetConfig sets the config and resets the client.
 func (c *Client) SetConfig(cfg *rest.Config) {
 	c.config = cfg
-	c.admission = nil
+	c.discovery = nil
+}
+
+func (c *Client) GetVersion() (*version.Info, error) {
+	if err := c.initClient(); err != nil {
+		return nil, err
+	}
+
+	return c.discovery.ServerVersion()
 }
 
 // initClient the k8s client if uninitialized
 func (c *Client) initClient() error {
-	if c.admission != nil {
+	if c.discovery != nil {
 		return nil
 	}
 
@@ -141,7 +143,7 @@ func (c *Client) loadClient() error {
 
 	var err error
 
-	c.admission, err = apiadmissionsclient.NewForConfig(c.config)
+	c.discovery, err = discovery.NewDiscoveryClientForConfig(c.config)
 	if err != nil {
 		return err
 	}

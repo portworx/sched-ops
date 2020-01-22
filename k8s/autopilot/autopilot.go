@@ -15,18 +15,25 @@ var (
 	once     sync.Once
 )
 
-// Ops provides an interface to Autopilot operations.
+// Ops provides an interface to the autopilot client wrapper.
 type Ops interface {
-	RuleOps
+	Interface
 
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)
 }
 
+// Interface provides an interface to Autopilot operations.
+type Interface interface {
+	RuleOps
+}
+
 // Instance returns a singleton instance of the client.
 func Instance() Ops {
 	once.Do(func() {
-		instance = &Client{}
+		if instance == nil {
+			instance = &Client{}
+		}
 	})
 	return instance
 }

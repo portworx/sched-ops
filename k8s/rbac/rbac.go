@@ -18,21 +18,28 @@ var (
 	deleteForegroundPolicy = metav1.DeletePropagationForeground
 )
 
-// Ops is an interface to perform kubernetes related operations on the rbac resources.
+// Ops is an interface to the rbac client wrapper.
 type Ops interface {
-	ClusterRoleBindingOps
-	ClusterRoleOps
-	RoleBindingOps
-	RoleOps
+	Interface
 
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)
 }
 
+// Interface is an interface to perform kubernetes related operations on the rbac resources.
+type Interface interface {
+	ClusterRoleBindingOps
+	ClusterRoleOps
+	RoleBindingOps
+	RoleOps
+}
+
 // Instance returns a singleton instance of the client.
 func Instance() Ops {
 	once.Do(func() {
-		instance = &Client{}
+		if instance == nil {
+			instance = &Client{}
+		}
 	})
 	return instance
 }

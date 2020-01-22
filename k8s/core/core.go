@@ -24,6 +24,7 @@ const (
 	masterLabelKey           = "node-role.kubernetes.io/master"
 	pvcStorageProvisionerKey = "volume.beta.kubernetes.io/storage-provisioner"
 	labelUpdateMaxRetries    = 5
+	labelHostname            = "kubernetes.io/hostname"
 )
 
 var (
@@ -33,10 +34,17 @@ var (
 	deleteForegroundPolicy = metav1.DeletePropagationForeground
 )
 
-// Ops is an interface to perform kubernetes related operations on the core resources.
+// Ops is an interface to the core client wrapper.
 type Ops interface {
+	Interface
+
+	// SetConfig sets the config and resets the client
+	SetConfig(config *rest.Config)
+}
+
+// Interface is an interface to perform kubernetes related operations on the core resources.
+type Interface interface {
 	ConfigMapOps
-	EventOps
 	NamespaceOps
 	NodeOps
 	PersistentVolumeClaimOps
@@ -45,8 +53,6 @@ type Ops interface {
 	ServiceOps
 	ServiceAccountOps
 
-	// SetConfig sets the config and resets the client
-	SetConfig(config *rest.Config)
 	// GetVersion gets the version from the kubernetes cluster
 	GetVersion() (*version.Info, error)
 }
@@ -97,17 +103,6 @@ func NewForConfig(c *rest.Config) (*Client, error) {
 	}, nil
 }
 
-// NewInstanceFromConfigFile returns new instance of client by using given
-// config file
-func NewInstanceFromConfigFile(config string) (Ops, error) {
-	newInstance := &Client{}
-	err := newInstance.loadClientFromKubeconfig(config)
-	if err != nil {
-		return nil, err
-	}
-	return newInstance, nil
-}
-
 // Client is a wrapper for kubernetes core client.
 type Client struct {
 	config     *rest.Config
@@ -123,7 +118,6 @@ func (c *Client) SetConfig(cfg *rest.Config) {
 	c.storage = nil
 }
 
-// GetVersion returns server version
 func (c *Client) GetVersion() (*version.Info, error) {
 	if err := c.initClient(); err != nil {
 		return nil, err

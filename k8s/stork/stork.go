@@ -20,8 +20,16 @@ var (
 	deleteForegroundPolicy = metav1.DeletePropagationForeground
 )
 
-// Ops is an interface to Stork operations.
+// Ops is an interface to the stork client wrapper.
 type Ops interface {
+	Interface
+
+	// SetConfig sets the config and resets the client
+	SetConfig(config *rest.Config)
+}
+
+// Interface is an interface to Stork operations.
+type Interface interface {
 	SnapshotScheduleOps
 	GroupSnapshotOps
 	RuleOps
@@ -33,15 +41,14 @@ type Ops interface {
 	ApplicationBackupRestoreOps
 	ApplicationCloneOps
 	VolumeSnapshotRestoreOps
-
-	// SetConfig sets the config and resets the client
-	SetConfig(config *rest.Config)
 }
 
 // Instance returns a singleton instance of the client.
 func Instance() Ops {
 	once.Do(func() {
-		instance = &Client{}
+		if instance == nil {
+			instance = &Client{}
+		}
 	})
 	return instance
 }

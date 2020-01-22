@@ -21,21 +21,33 @@ var (
 	once     sync.Once
 )
 
-// Ops is an interface to perform generic Object operations
+// Ops is an interface to the dynamic client wrapper.
 type Ops interface {
-	// GetObject returns the latest object given a generic Object
-	GetObject(object runtime.Object) (runtime.Object, error)
-	// UpdateObject updates a generic Object
-	UpdateObject(object runtime.Object) (runtime.Object, error)
+	Interface
 
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)
 }
 
+// Interface is an interface to perform generic operations
+type Interface interface {
+	ObjectOps
+}
+
+// Ops is an interface to perform generic Object operations
+type ObjectOps interface {
+	// GetObject returns the latest object given a generic Object
+	GetObject(object runtime.Object) (runtime.Object, error)
+	// UpdateObject updates a generic Object
+	UpdateObject(object runtime.Object) (runtime.Object, error)
+}
+
 // Instance returns a singleton instance of the client.
 func Instance() Ops {
 	once.Do(func() {
-		instance = &Client{}
+		if instance == nil {
+			instance = &Client{}
+		}
 	})
 	return instance
 }

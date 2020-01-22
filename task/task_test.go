@@ -48,7 +48,7 @@ func TestDoRetryWithTimeoutSuccessAfter(t *testing.T) {
 			return "", false, nil
 		}
 
-		counter += 1
+		counter++
 		return nil, true, fmt.Errorf("task is failing")
 	}
 

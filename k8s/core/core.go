@@ -74,6 +74,11 @@ func New(kubernetes kubernetes.Interface, core corev1client.CoreV1Interface, sto
 
 // NewForConfig builds a new client for the given config.
 func NewForConfig(c *rest.Config) (*Client, error) {
+	kubernetes, err := kubernetes.NewForConfig(c)
+	if err != nil {
+		return nil, err
+	}
+
 	core, err := corev1client.NewForConfig(c)
 	if err != nil {
 		return nil, err
@@ -85,8 +90,9 @@ func NewForConfig(c *rest.Config) (*Client, error) {
 	}
 
 	return &Client{
-		core:    core,
-		storage: storage,
+		kubernetes: kubernetes,
+		core:       core,
+		storage:    storage,
 	}, nil
 }
 

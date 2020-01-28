@@ -106,8 +106,7 @@ func (c *Client) IsNodeReady(name string) error {
 				return fmt.Errorf("node: %v is not ready as condition: %v (%v) is %v. Reason: %v",
 					name, condition.Type, condition.Message, condition.Status, condition.Reason)
 			}
-		case corev1.NodeConditionType(corev1.NodeOutOfDisk),
-			corev1.NodeConditionType(corev1.NodeMemoryPressure),
+		case corev1.NodeConditionType(corev1.NodeMemoryPressure),
 			corev1.NodeConditionType(corev1.NodeDiskPressure),
 			corev1.NodeConditionType(corev1.NodeNetworkUnavailable):
 			// only checks if condition is true, ignoring condition Unknown

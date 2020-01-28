@@ -123,6 +123,7 @@ func (c *Client) SetConfig(cfg *rest.Config) {
 	c.storage = nil
 }
 
+// GetVersion returns server version
 func (c *Client) GetVersion() (*version.Info, error) {
 	if err := c.initClient(); err != nil {
 		return nil, err

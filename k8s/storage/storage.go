@@ -5,6 +5,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/sirupsen/logrus"
 	storagev1client "k8s.io/client-go/kubernetes/typed/storage/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -54,6 +55,18 @@ func NewForConfig(c *rest.Config) (*Client, error) {
 	return &Client{
 		storage: storage,
 	}, nil
+}
+
+// NewInstanceFromConfigFile returns new instance of client by using given
+// config file
+func NewInstanceFromConfigFile(config string) (Ops, error) {
+	newInstance := &Client{}
+	err := newInstance.loadClientFromKubeconfig(config)
+	if err != nil {
+		logrus.Errorf("Unable to set new instance: %v", err)
+		return nil, err
+	}
+	return newInstance, nil
 }
 
 // Client is a wrapper for the kubernetes storage client.

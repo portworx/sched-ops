@@ -5,6 +5,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	appsv1client "k8s.io/client-go/kubernetes/typed/apps/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -67,6 +68,18 @@ func NewForConfig(c *rest.Config) (*Client, error) {
 		apps: apps,
 		core: core,
 	}, nil
+}
+
+// NewInstanceFromConfigFile returns new instance of client by using given
+// config file
+func NewInstanceFromConfigFile(config string) (Ops, error) {
+	newInstance := &Client{}
+	err := newInstance.loadClientFromKubeconfig(config)
+	if err != nil {
+		logrus.Errorf("Unable to set new instance: %v", err)
+		return nil, err
+	}
+	return newInstance, nil
 }
 
 // Client provides a wrapper for the kubernetes apps client.

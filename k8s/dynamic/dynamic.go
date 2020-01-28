@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -63,6 +64,18 @@ func NewForConfig(c *rest.Config) (*Client, error) {
 	return &Client{
 		client: client,
 	}, nil
+}
+
+// NewInstanceFromConfigFile returns new instance of client by using given
+// config file
+func NewInstanceFromConfigFile(config string) (Ops, error) {
+	newInstance := &Client{}
+	err := newInstance.loadClientFromKubeconfig(config)
+	if err != nil {
+		logrus.Errorf("Unable to set new instance: %v", err)
+		return nil, err
+	}
+	return newInstance, nil
 }
 
 // Client is a wrapper for the kubernetes dynamic client.

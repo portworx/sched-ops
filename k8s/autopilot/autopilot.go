@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	autopilotclientset "github.com/libopenstorage/autopilot-api/pkg/client/clientset/versioned"
+	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -53,6 +54,18 @@ func NewForConfig(cfg *rest.Config) (*Client, error) {
 	return &Client{
 		autopilot: client,
 	}, nil
+}
+
+// NewInstanceFromConfigFile returns new instance of client by using given
+// config file
+func NewInstanceFromConfigFile(config string) (Ops, error) {
+	newInstance := &Client{}
+	err := newInstance.loadClientFromKubeconfig(config)
+	if err != nil {
+		logrus.Errorf("Unable to set new instance: %v", err)
+		return nil, err
+	}
+	return newInstance, nil
 }
 
 // Client provides a wrapper for the autopilot client.

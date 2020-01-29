@@ -2,6 +2,7 @@ package k8s
 
 import (
 	prometheusclient "github.com/coreos/prometheus-operator/pkg/client/versioned"
+	snap_client "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client"
 	autopilotclientset "github.com/libopenstorage/autopilot-api/pkg/client/clientset/versioned"
 	ostclientset "github.com/libopenstorage/operator/pkg/client/clientset/versioned"
 	storkclientset "github.com/libopenstorage/stork/pkg/client/clientset/versioned"
@@ -13,7 +14,6 @@ import (
 	"github.com/portworx/sched-ops/k8s/autopilot"
 	"github.com/portworx/sched-ops/k8s/batch"
 	"github.com/portworx/sched-ops/k8s/core"
-	"github.com/portworx/sched-ops/k8s/discovery"
 	"github.com/portworx/sched-ops/k8s/dynamic"
 	"github.com/portworx/sched-ops/k8s/externalstorage"
 	"github.com/portworx/sched-ops/k8s/openshift"
@@ -24,6 +24,7 @@ import (
 	"github.com/portworx/sched-ops/k8s/stork"
 	"github.com/portworx/sched-ops/k8s/talisman"
 	talismanclientset "github.com/portworx/talisman/pkg/client/clientset/versioned"
+	"github.com/sirupsen/logrus"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	dynamicclient "k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -74,22 +75,9 @@ type ClientSetter interface {
 
 // SetConfig sets the config and resets the client
 func (k *k8sOps) SetConfig(config *rest.Config) {
-	admissionregistration.Instance().SetConfig(config)
-	apiextensions.Instance().SetConfig(config)
-	apps.Instance().SetConfig(config)
-	autopilot.Instance().SetConfig(config)
-	batch.Instance().SetConfig(config)
-	core.Instance().SetConfig(config)
-	discovery.Instance().SetConfig(config)
-	dynamic.Instance().SetConfig(config)
-	externalstorage.Instance().SetConfig(config)
-	openshift.Instance().SetConfig(config)
-	operator.Instance().SetConfig(config)
-	prometheus.Instance().SetConfig(config)
-	rbac.Instance().SetConfig(config)
-	storage.Instance().SetConfig(config)
-	stork.Instance().SetConfig(config)
-	talisman.Instance().SetConfig(config)
+	if err := k.loadClientFor(config); err != nil {
+		logrus.Warnf("Failed to setup k8sOps client: %v", err)
+	}
 }
 
 // SetConfigFromPath takes the path to a kubeconfig file
@@ -198,20 +186,80 @@ func (k *k8sOps) SetPrometheusClient(prometheusClient prometheusclient.Interface
 }
 
 func (k *k8sOps) setClients() {
-	admissionregistration.SetInstance(admissionregistration.New(k.client.AdmissionregistrationV1beta1()))
-	apiextensions.SetInstance(apiextensions.New(k.apiExtensionClient))
-	apps.SetInstance(apps.New(k.client.AppsV1(), k.client.CoreV1()))
-	autopilot.SetInstance(autopilot.New(k.autopilotClient))
-	batch.SetInstance(batch.New(k.client.BatchV1()))
-	core.SetInstance(core.New(k.client.CoreV1(), k.client.StorageV1()))
-	discovery.SetInstance(discovery.New(k.client.Discovery()))
-	dynamic.SetInstance(dynamic.New(k.dynamicInterface))
-	externalstorage.SetInstance(externalstorage.New(k.snapClient))
-	openshift.SetInstance(openshift.New(k.client, k.ocpClient, k.ocpSecurityClient))
-	operator.SetInstance(operator.New(k.ostClient))
-	prometheus.SetInstance(prometheus.New(k.prometheusClient))
-	rbac.SetInstance(rbac.New(k.client.RbacV1()))
-	storage.SetInstance(storage.New(k.client.StorageV1(), k.client.StorageV1beta1()))
-	stork.SetInstance(stork.New(k.client, k.storkClient, k.snapClient))
-	talisman.SetInstance(talisman.New(k.talismanClient))
+	k.AdmissionOps = admissionregistration.New(k.client.AdmissionregistrationV1beta1())
+	k.ApiextensionsOps = apiextensions.New(k.apiExtensionClient)
+	k.AppsOps = apps.New(k.client.AppsV1(), k.client.CoreV1())
+	k.AutopilotOps = autopilot.New(k.autopilotClient)
+	k.BatchOps = batch.New(k.client.BatchV1())
+	k.CoreOps = core.New(k.client, k.client.CoreV1(), k.client.StorageV1())
+	k.DynamicOps = dynamic.New(k.dynamicInterface)
+	k.ExternalstorageOps = externalstorage.New(k.snapClient)
+	k.OpenshiftOps = openshift.New(k.client, k.ocpClient, k.ocpSecurityClient)
+	k.OperatorOps = operator.New(k.ostClient)
+	k.PrometheusOps = prometheus.New(k.prometheusClient)
+	k.RbacOps = rbac.New(k.client.RbacV1())
+	k.StorageOps = storage.New(k.client.StorageV1(), k.client.StorageV1beta1())
+	k.StorkOps = stork.New(k.client, k.storkClient, k.snapClient)
+	k.TalismanOps = talisman.New(k.talismanClient)
+}
+
+func (k *k8sOps) loadClientFor(config *rest.Config) error {
+	var err error
+	k.client, err = kubernetes.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	k.snapClient, _, err = snap_client.NewClient(config)
+	if err != nil {
+		return err
+	}
+
+	k.storkClient, err = storkclientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	k.ostClient, err = ostclientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	k.talismanClient, err = talismanclientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	k.apiExtensionClient, err = apiextensionsclient.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	k.dynamicInterface, err = dynamicclient.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	k.ocpClient, err = ocp_clientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	k.ocpSecurityClient, err = ocp_security_clientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	k.autopilotClient, err = autopilotclientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	k.prometheusClient, err = prometheusclient.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	k.setClients()
+	return nil
 }

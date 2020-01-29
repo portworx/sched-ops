@@ -45,6 +45,7 @@ type Ops interface {
 // Interface is an interface to perform kubernetes related operations on the core resources.
 type Interface interface {
 	ConfigMapOps
+	EventOps
 	NamespaceOps
 	NodeOps
 	PersistentVolumeClaimOps
@@ -52,7 +53,6 @@ type Interface interface {
 	SecretOps
 	ServiceOps
 	ServiceAccountOps
-
 	// GetVersion gets the version from the kubernetes cluster
 	GetVersion() (*version.Info, error)
 }
@@ -60,7 +60,9 @@ type Interface interface {
 // Instance returns a singleton instance of the client.
 func Instance() Ops {
 	once.Do(func() {
-		instance = &Client{}
+		if instance == nil {
+			instance = &Client{}
+		}
 	})
 	return instance
 }
@@ -103,6 +105,17 @@ func NewForConfig(c *rest.Config) (*Client, error) {
 	}, nil
 }
 
+// NewInstanceFromConfigFile returns new instance of client by using given
+// config file
+func NewInstanceFromConfigFile(config string) (Ops, error) {
+	newInstance := &Client{}
+	err := newInstance.loadClientFromKubeconfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return newInstance, nil
+}
+
 // Client is a wrapper for kubernetes core client.
 type Client struct {
 	config     *rest.Config
@@ -118,6 +131,7 @@ func (c *Client) SetConfig(cfg *rest.Config) {
 	c.storage = nil
 }
 
+// GetVersion returns server version
 func (c *Client) GetVersion() (*version.Info, error) {
 	if err := c.initClient(); err != nil {
 		return nil, err

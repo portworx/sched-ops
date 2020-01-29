@@ -40,6 +40,8 @@ type ObjectOps interface {
 	GetObject(object runtime.Object) (runtime.Object, error)
 	// UpdateObject updates a generic Object
 	UpdateObject(object runtime.Object) (runtime.Object, error)
+	// ListObjects returns a list of generic Objects using the options
+	ListObjects(options *metav1.ListOptions, namespace string) (*unstructured.UnstructuredList, error)
 }
 
 // Instance returns a singleton instance of the client.
@@ -131,6 +133,10 @@ func (c *Client) UpdateObject(object runtime.Object) (runtime.Object, error) {
 
 // ListObjects returns a list of generic Objects using the options
 func (c *Client) ListObjects(options *metav1.ListOptions, namespace string) (*unstructured.UnstructuredList, error) {
+	if err := c.initClient(); err != nil {
+		return nil, err
+	}
+
 	var client dynamic.ResourceInterface
 	gvk := schema.FromAPIVersionAndKind(options.APIVersion, options.Kind)
 	resourceInterface := c.client.Resource(gvk.GroupVersion().WithResource(strings.ToLower(gvk.Kind) + "s"))
@@ -145,6 +151,9 @@ func (c *Client) ListObjects(options *metav1.ListOptions, namespace string) (*un
 }
 
 func (c *Client) getDynamicClient(object runtime.Object) (dynamic.ResourceInterface, error) {
+	if err := c.initClient(); err != nil {
+		return nil, err
+	}
 
 	objectType, err := meta.TypeAccessor(object)
 	if err != nil {

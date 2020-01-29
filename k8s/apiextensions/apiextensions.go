@@ -20,7 +20,7 @@ var (
 
 // Ops is an interface to the apiextensions client wrapper.
 type Ops interface {
-	CRDOps
+	Interface
 
 	// SetConfig sets the config and resets the client.
 	SetConfig(config *rest.Config)

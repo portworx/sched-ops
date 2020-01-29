@@ -26,7 +26,9 @@ type Ops interface {
 // Instance returns a singleton instance of the client.
 func Instance() Ops {
 	once.Do(func() {
-		instance = &Client{}
+		if instance == nil {
+			instance = &Client{}
+		}
 	})
 	return instance
 }
@@ -53,6 +55,17 @@ func NewForConfig(c *rest.Config) (*Client, error) {
 	return &Client{
 		snap: snap,
 	}, nil
+}
+
+// NewInstanceFromConfigFile returns new instance of client by using given
+// config file
+func NewInstanceFromConfigFile(config string) (Ops, error) {
+	newInstance := &Client{}
+	err := newInstance.loadClientFromKubeconfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return newInstance, nil
 }
 
 // Client is a wrapper for the external-storage client.

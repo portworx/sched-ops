@@ -1,12 +1,11 @@
-package apiextentions
+package admissionregistration
 
 import (
 	"fmt"
 	"os"
 	"sync"
 
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apiadmissionsclient "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -14,13 +13,11 @@ import (
 var (
 	instance Ops
 	once     sync.Once
-
-	deleteForegroundPolicy = metav1.DeletePropagationForeground
 )
 
-// Ops is an interface to perform kubernetes related operations on the crd resources.
+// Ops is an interface to the admission client wrapper.
 type Ops interface {
-	CRDOps
+	MutatingWebhookConfigurationOps
 
 	// SetConfig sets the config and resets the client.
 	SetConfig(config *rest.Config)
@@ -29,7 +26,9 @@ type Ops interface {
 // Instance returns a singleton instance of the client.
 func Instance() Ops {
 	once.Do(func() {
-		instance = &Client{}
+		if instance == nil {
+			instance = &Client{}
+		}
 	})
 	return instance
 }
@@ -39,40 +38,51 @@ func SetInstance(i Ops) {
 	instance = i
 }
 
-// New builds a new apiextentions client.
-func New(client apiextensionsclient.Interface) *Client {
+// New builds a new admissionregistration client.
+func New(client apiadmissionsclient.AdmissionregistrationV1beta1Interface) *Client {
 	return &Client{
-		extension: client,
+		admission: client,
 	}
 }
 
-// NewForConfig builds a new apiextentions client for the given config.
+// NewForConfig builds a new admissionregistration client for the given config.
 func NewForConfig(c *rest.Config) (*Client, error) {
-	client, err := apiextensionsclient.NewForConfig(c)
+	client, err := apiadmissionsclient.NewForConfig(c)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Client{
-		extension: client,
+		admission: client,
 	}, nil
 }
 
-// Client provides a wrapper for kubernetes extension interface.
+// NewInstanceFromConfigFile returns new instance of client by using given
+// config file
+func NewInstanceFromConfigFile(config string) (Ops, error) {
+	newInstance := &Client{}
+	err := newInstance.loadClientFromKubeconfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return newInstance, nil
+}
+
+// Client provides a wrapper for kubernetes admission interface.
 type Client struct {
 	config    *rest.Config
-	extension apiextensionsclient.Interface
+	admission apiadmissionsclient.AdmissionregistrationV1beta1Interface
 }
 
 // SetConfig sets the config and resets the client.
 func (c *Client) SetConfig(cfg *rest.Config) {
 	c.config = cfg
-	c.extension = nil
+	c.admission = nil
 }
 
 // initClient the k8s client if uninitialized
 func (c *Client) initClient() error {
-	if c.extension != nil {
+	if c.admission != nil {
 		return nil
 	}
 
@@ -126,7 +136,7 @@ func (c *Client) loadClient() error {
 
 	var err error
 
-	c.extension, err = apiextensionsclient.NewForConfig(c.config)
+	c.admission, err = apiadmissionsclient.NewForConfig(c.config)
 	if err != nil {
 		return err
 	}

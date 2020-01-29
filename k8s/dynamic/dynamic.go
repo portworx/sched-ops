@@ -27,6 +27,8 @@ type Ops interface {
 	GetObject(object runtime.Object) (runtime.Object, error)
 	// UpdateObject updates a generic Object
 	UpdateObject(object runtime.Object) (runtime.Object, error)
+	// ListObjects returns a list of generic Objects using the options
+	ListObjects(options *metav1.ListOptions, namespace string) (*unstructured.UnstructuredList, error)
 
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)
@@ -35,7 +37,9 @@ type Ops interface {
 // Instance returns a singleton instance of the client.
 func Instance() Ops {
 	once.Do(func() {
-		instance = &Client{}
+		if instance == nil {
+			instance = &Client{}
+		}
 	})
 	return instance
 }
@@ -63,6 +67,17 @@ func NewForConfig(c *rest.Config) (*Client, error) {
 	return &Client{
 		client: client,
 	}, nil
+}
+
+// NewInstanceFromConfigFile returns new instance of client by using given
+// config file
+func NewInstanceFromConfigFile(config string) (Ops, error) {
+	newInstance := &Client{}
+	err := newInstance.loadClientFromKubeconfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return newInstance, nil
 }
 
 // Client is a wrapper for the kubernetes dynamic client.

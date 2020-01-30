@@ -1,4 +1,4 @@
-package apiextentions
+package apiextensions
 
 import (
 	"fmt"

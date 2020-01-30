@@ -1,4 +1,4 @@
-package apiextentions
+package apiextensions
 
 import (
 	"fmt"
@@ -39,14 +39,14 @@ func SetInstance(i Ops) {
 	instance = i
 }
 
-// New builds a new apiextentions client.
+// New builds a new apiextensions client.
 func New(client apiextensionsclient.Interface) *Client {
 	return &Client{
 		extension: client,
 	}
 }
 
-// NewForConfig builds a new apiextentions client for the given config.
+// NewForConfig builds a new apiextensions client for the given config.
 func NewForConfig(c *rest.Config) (*Client, error) {
 	client, err := apiextensionsclient.NewForConfig(c)
 	if err != nil {

@@ -36,6 +36,7 @@ var (
 // Ops is an interface to perform kubernetes related operations on the core resources.
 type Ops interface {
 	ConfigMapOps
+	EventOps
 	NamespaceOps
 	NodeOps
 	PersistentVolumeClaimOps
@@ -96,6 +97,17 @@ func NewForConfig(c *rest.Config) (*Client, error) {
 	}, nil
 }
 
+// NewInstanceFromConfigFile returns new instance of client by using given
+// config file
+func NewInstanceFromConfigFile(config string) (Ops, error) {
+	newInstance := &Client{}
+	err := newInstance.loadClientFromKubeconfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return newInstance, nil
+}
+
 // Client is a wrapper for kubernetes core client.
 type Client struct {
 	config     *rest.Config
@@ -111,6 +123,7 @@ func (c *Client) SetConfig(cfg *rest.Config) {
 	c.storage = nil
 }
 
+// GetVersion returns server version
 func (c *Client) GetVersion() (*version.Info, error) {
 	if err := c.initClient(); err != nil {
 		return nil, err

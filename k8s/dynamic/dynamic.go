@@ -6,7 +6,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -72,7 +71,6 @@ func NewInstanceFromConfigFile(config string) (Ops, error) {
 	newInstance := &Client{}
 	err := newInstance.loadClientFromKubeconfig(config)
 	if err != nil {
-		logrus.Errorf("Unable to set new instance: %v", err)
 		return nil, err
 	}
 	return newInstance, nil

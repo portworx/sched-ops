@@ -57,6 +57,17 @@ func NewForConfig(c *rest.Config) (*Client, error) {
 	}, nil
 }
 
+// NewInstanceFromConfigFile returns new instance of client by using given
+// config file
+func NewInstanceFromConfigFile(config string) (Ops, error) {
+	newInstance := &Client{}
+	err := newInstance.loadClientFromKubeconfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return newInstance, nil
+}
+
 // Client provides a wrapper for kubernetes admission interface.
 type Client struct {
 	config    *rest.Config

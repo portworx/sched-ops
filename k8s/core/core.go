@@ -36,6 +36,7 @@ var (
 // Ops is an interface to perform kubernetes related operations on the core resources.
 type Ops interface {
 	ConfigMapOps
+	EventOps
 	NamespaceOps
 	NodeOps
 	PersistentVolumeClaimOps
@@ -102,7 +103,6 @@ func NewInstanceFromConfigFile(config string) (Ops, error) {
 	newInstance := &Client{}
 	err := newInstance.loadClientFromKubeconfig(config)
 	if err != nil {
-		logrus.Errorf("Unable to set new instance: %v", err)
 		return nil, err
 	}
 	return newInstance, nil

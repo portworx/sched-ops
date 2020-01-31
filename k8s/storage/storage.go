@@ -5,7 +5,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/sirupsen/logrus"
 	storagev1client "k8s.io/client-go/kubernetes/typed/storage/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -63,7 +62,6 @@ func NewInstanceFromConfigFile(config string) (Ops, error) {
 	newInstance := &Client{}
 	err := newInstance.loadClientFromKubeconfig(config)
 	if err != nil {
-		logrus.Errorf("Unable to set new instance: %v", err)
 		return nil, err
 	}
 	return newInstance, nil

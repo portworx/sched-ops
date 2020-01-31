@@ -5,7 +5,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
@@ -68,7 +67,6 @@ func NewInstanceFromConfigFile(config string) (Ops, error) {
 	newInstance := &Client{}
 	err := newInstance.loadClientFromKubeconfig(config)
 	if err != nil {
-		logrus.Errorf("Unable to set new instance: %v", err)
 		return nil, err
 	}
 	return newInstance, nil

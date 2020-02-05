@@ -10,6 +10,9 @@ import (
 )
 
 func mapToCSV(in map[string]string) string {
+	if len(in) == 0 {
+		return ""
+	}
 	return labels.FormatLabels(in)
 }
 

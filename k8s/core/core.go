@@ -54,7 +54,9 @@ type Ops interface {
 // Instance returns a singleton instance of the client.
 func Instance() Ops {
 	once.Do(func() {
-		instance = &Client{}
+		if instance == nil {
+			instance = &Client{}
+		}
 	})
 	return instance
 }
@@ -121,6 +123,7 @@ func (c *Client) SetConfig(cfg *rest.Config) {
 	c.config = cfg
 	c.core = nil
 	c.storage = nil
+	c.kubernetes = nil
 }
 
 // GetVersion returns server version

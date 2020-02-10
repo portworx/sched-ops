@@ -27,6 +27,8 @@ type Ops interface {
 	GetObject(object runtime.Object) (runtime.Object, error)
 	// UpdateObject updates a generic Object
 	UpdateObject(object runtime.Object) (runtime.Object, error)
+	// ListObjects returns a list of generic Objects using the options
+	ListObjects(options *metav1.ListOptions, namespace string) (*unstructured.UnstructuredList, error)
 
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)

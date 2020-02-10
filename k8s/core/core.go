@@ -24,6 +24,11 @@ const (
 	masterLabelKey           = "node-role.kubernetes.io/master"
 	pvcStorageProvisionerKey = "volume.beta.kubernetes.io/storage-provisioner"
 	labelUpdateMaxRetries    = 5
+
+	// keep this label locally as it is stored differently:
+	//   * up to v1.13.0: k8s.io/kubernetes/pkg/kubelet/apis/well_known_labels.go:26: LabelHostname = "kubernetes.io/hostname"
+	//   * after v1.14.0: k8s.io/api/core/v1/well_known_labels.go:20: LabelHostname = "kubernetes.io/hostname"
+	labelHostname = "kubernetes.io/hostname"
 )
 
 var (

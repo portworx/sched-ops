@@ -94,6 +94,10 @@ func (c *Client) SetConfig(cfg *rest.Config) {
 
 // GetObject returns the latest object given a generic Object
 func (c *Client) GetObject(object runtime.Object) (runtime.Object, error) {
+	if err := c.initClient(); err != nil {
+		return nil, err
+	}
+
 	client, err := c.getDynamicClient(object)
 	if err != nil {
 		return nil, err
@@ -108,6 +112,10 @@ func (c *Client) GetObject(object runtime.Object) (runtime.Object, error) {
 
 // UpdateObject updates a generic Object
 func (c *Client) UpdateObject(object runtime.Object) (runtime.Object, error) {
+	if err := c.initClient(); err != nil {
+		return nil, err
+	}
+
 	unstructured, ok := object.(*unstructured.Unstructured)
 	if !ok {
 		return nil, fmt.Errorf("Unable to cast object to unstructured: %v", object)
@@ -123,6 +131,10 @@ func (c *Client) UpdateObject(object runtime.Object) (runtime.Object, error) {
 
 // ListObjects returns a list of generic Objects using the options
 func (c *Client) ListObjects(options *metav1.ListOptions, namespace string) (*unstructured.UnstructuredList, error) {
+	if err := c.initClient(); err != nil {
+		return nil, err
+	}
+
 	var client dynamic.ResourceInterface
 	gvk := schema.FromAPIVersionAndKind(options.APIVersion, options.Kind)
 	resourceInterface := c.client.Resource(gvk.GroupVersion().WithResource(strings.ToLower(gvk.Kind) + "s"))

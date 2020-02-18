@@ -13,6 +13,10 @@ import (
 type ServiceOps interface {
 	// GetService gets the service by the name
 	GetService(string, string) (*corev1.Service, error)
+	// ListServices list services using filters or list all if options are empty
+	ListServices(string, metav1.ListOptions) (*corev1.ServiceList, error)
+	// GetServiceEndpoint gets the externalIP if service is a LoadBalancer or ClusterIP otherwise
+	GetServiceEndpoint(string, string) (string, error)
 	// CreateService creates the given service
 	CreateService(*corev1.Service) (*corev1.Service, error)
 	// DeleteService deletes the given service
@@ -61,6 +65,38 @@ func (c *Client) GetService(svcName string, svcNS string) (*corev1.Service, erro
 	}
 
 	return c.core.Services(svcNS).Get(svcName, metav1.GetOptions{})
+}
+
+// ListServices list services using filters or list all if options are empty
+func (c *Client) ListServices(svcNamespace string, listOptions metav1.ListOptions) (*corev1.ServiceList, error) {
+	if err := c.initClient(); err != nil {
+		return nil, err
+	}
+
+	return c.core.Services(svcNamespace).List(listOptions)
+}
+
+// GetServiceEndpoint gets the externalIP if service is a LoadBalancer or ClusterIP otherwise
+func (c *Client) GetServiceEndpoint(svcName, namespace string) (string, error) {
+	if err := c.initClient(); err != nil {
+		return "", err
+	}
+	svc, err := c.GetService(svcName, namespace)
+	if err != nil {
+		return "", err
+	}
+	if len(svc.Status.LoadBalancer.Ingress) != 0 {
+		ingressHostname := svc.Status.LoadBalancer.Ingress[0].Hostname
+		ingressIP := svc.Status.LoadBalancer.Ingress[0].IP
+		if len(ingressHostname) != 0 {
+			return ingressHostname, nil
+		} else if len(ingressIP) != 0 {
+			return ingressIP, nil
+		}
+	} else if len(svc.Spec.LoadBalancerIP) != 0 {
+		return svc.Spec.LoadBalancerIP, nil
+	}
+	return svc.Spec.ClusterIP, nil
 }
 
 // DescribeService gets the service status

@@ -143,6 +143,10 @@ type NodeOps interface {
 type ServiceOps interface {
 	// GetService gets the service by the name
 	GetService(string, string) (*v1.Service, error)
+	// ListServices list services using filters or list all if options are empty
+	ListServices(string, meta_v1.ListOptions) (*v1.ServiceList, error)
+	// GetServiceEndpoint gets the externalIP if service is a LoadBalancer or ClusterIP otherwise
+	GetServiceEndpoint(string, string) (string, error)
 	// CreateService creates the given service
 	CreateService(*v1.Service) (*v1.Service, error)
 	// DeleteService deletes the given service
@@ -1079,6 +1083,38 @@ func (k *k8sOps) GetService(svcName string, svcNS string) (*v1.Service, error) {
 	}
 
 	return k.client.CoreV1().Services(svcNS).Get(svcName, meta_v1.GetOptions{})
+}
+
+// ListServices list services using filters or list all if options are empty
+func (k *k8sOps) ListServices(svcNamespace string, listOptions meta_v1.ListOptions) (*v1.ServiceList, error) {
+	if err := k.initK8sClient(); err != nil {
+		return nil, err
+	}
+
+	return k.client.CoreV1().Services(svcNamespace).List(listOptions)
+}
+
+// GetServiceEndpoint gets the externalIP if service is a LoadBalancer or ClusterIP otherwise
+func (k *k8sOps) GetServiceEndpoint(svcName, namespace string) (string, error) {
+	if err := k.initK8sClient(); err != nil {
+		return "", err
+	}
+	svc, err := k.GetService(svcName, namespace)
+	if err != nil {
+		return "", err
+	}
+	if len(svc.Status.LoadBalancer.Ingress) != 0 {
+		ingressHostname := svc.Status.LoadBalancer.Ingress[0].Hostname
+		ingressIP := svc.Status.LoadBalancer.Ingress[0].IP
+		if len(ingressHostname) != 0 {
+			return ingressHostname, nil
+		} else if len(ingressIP) != 0 {
+			return ingressIP, nil
+		}
+	} else if len(svc.Spec.LoadBalancerIP) != 0 {
+		return svc.Spec.LoadBalancerIP, nil
+	}
+	return svc.Spec.ClusterIP, nil
 }
 
 func (k *k8sOps) DescribeService(svcName string, svcNamespace string) (*v1.ServiceStatus, error) {

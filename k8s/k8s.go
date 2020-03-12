@@ -540,6 +540,8 @@ type SecretOps interface {
 	UpdateSecretData(string, string, map[string][]byte) (*v1.Secret, error)
 	// DeleteSecret deletes the given secret
 	DeleteSecret(name, namespace string) error
+	// WatchSecret changes and callback fn
+	WatchSecret(*v1.Secret, WatchFunc) error
 }
 
 // ConfigMapOps is an interface to perform k8s ConfigMap operations
@@ -1173,6 +1175,8 @@ func (k *k8sOps) handleWatch(
 						err = k.WatchConfigMap(cm, fn)
 					} else if _, ok := object.(*v1.Pod); ok {
 						err = k.WatchPods(namespace, fn, listOptions)
+					} else if sc, ok := object.(*v1.Secret); ok {
+						err = k.WatchSecret(sc, fn)
 					} else {
 						return "", false, fmt.Errorf("unsupported object: %v given to handle watch", object)
 					}
@@ -3811,6 +3815,27 @@ func (k *k8sOps) DeleteSecret(name, namespace string) error {
 	return k.client.CoreV1().Secrets(namespace).Delete(name, &meta_v1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
+}
+
+func (k *k8sOps) WatchSecret(secret *v1.Secret, fn WatchFunc) error {
+	if err := k.initK8sClient(); err != nil {
+		return err
+	}
+
+	listOptions := meta_v1.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector("metadata.name", secret.Name).String(),
+		Watch:         true,
+	}
+
+	watchInterface, err := k.client.CoreV1().Secrets(secret.Namespace).Watch(listOptions)
+	if err != nil {
+		logrus.WithError(err).Error("error invoking the watch api for config maps")
+		return err
+	}
+
+	// fire off watch function
+	go k.handleWatch(watchInterface, secret, "", fn, listOptions)
+	return nil
 }
 
 // Secret APIs - END

@@ -118,6 +118,7 @@ func (c *Client) GetVersion() (*version.Info, error) {
 	return c.kubernetes.Discovery().ServerVersion()
 }
 
+// ResourceExists checks if resource already exists
 func (c *Client) ResourceExists(gvk schema.GroupVersionKind) (bool, error) {
 	if err := c.initClient(); err != nil {
 		return false, err

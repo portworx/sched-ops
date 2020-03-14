@@ -17,6 +17,10 @@ type CRDOps interface {
 	CreateCRD(resource CustomResource) error
 	// RegisterCRD creates the given custom resource
 	RegisterCRD(crd *apiextensionsv1beta1.CustomResourceDefinition) error
+	// UpdateCRD updates the existing crd
+	UpdateCRD(crd *apiextensionsv1beta1.CustomResourceDefinition) (*apiextensionsv1beta1.CustomResourceDefinition, error)
+	// GetCRD returns a crd by name
+	GetCRD(name string, options metav1.GetOptions) (*apiextensionsv1beta1.CustomResourceDefinition, error)
 	// ValidateCRD checks if the given CRD is registered
 	ValidateCRD(resource CustomResource, timeout, retryInterval time.Duration) error
 	// DeleteCRD deletes the CRD for the given complete name (plural.group)
@@ -85,6 +89,23 @@ func (c *Client) RegisterCRD(crd *apiextensionsv1beta1.CustomResourceDefinition)
 		return err
 	}
 	return nil
+}
+
+// UpdateCRD updates the existing crd
+func (c *Client) UpdateCRD(crd *apiextensionsv1beta1.CustomResourceDefinition) (*apiextensionsv1beta1.CustomResourceDefinition, error) {
+	if err := c.initClient(); err != nil {
+		return nil, err
+	}
+
+	return c.extension.ApiextensionsV1beta1().CustomResourceDefinitions().Update(crd)
+}
+
+// GetCRD returns a crd by name
+func (c *Client) GetCRD(name string, options metav1.GetOptions) (*apiextensionsv1beta1.CustomResourceDefinition, error) {
+	if err := c.initClient(); err != nil {
+		return nil, err
+	}
+	return c.extension.ApiextensionsV1beta1().CustomResourceDefinitions().Get(name, options)
 }
 
 // ValidateCRD checks if the given CRD is registered

@@ -229,6 +229,8 @@ func (c *Client) handleWatch(
 						err = c.WatchConfigMap(cm, fn)
 					} else if _, ok := object.(*corev1.Pod); ok {
 						err = c.WatchPods(namespace, fn, listOptions)
+					} else if sc, ok := object.(*corev1.Secret); ok {
+						err = c.WatchSecret(sc, fn)
 					} else {
 						return "", false, fmt.Errorf("unsupported object: %v given to handle watch", object)
 					}

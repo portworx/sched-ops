@@ -163,7 +163,6 @@ func (c *Client) setClient() error {
 		}
 
 	}
-
 	return err
 }
 

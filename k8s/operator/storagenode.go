@@ -19,6 +19,9 @@ type StorageNodeOps interface {
 	DeleteStorageNode(string, string) error
 	// UpdateStorageNodeStatus update the status of given StorageNode
 	UpdateStorageNodeStatus(*corev1alpha1.StorageNode) (*corev1alpha1.StorageNode, error)
+	// UpdateStorageNodeCondition updates or creates the given condition in node status.
+	// Returns true if the condition is new or was changed.
+	UpdateStorageNodeCondition(*corev1alpha1.NodeStatus, *corev1alpha1.NodeCondition) bool
 }
 
 // CreateStorageNode creates the given StorageNode
@@ -76,4 +79,62 @@ func (c *Client) UpdateStorageNodeStatus(node *corev1alpha1.StorageNode) (*corev
 		return nil, err
 	}
 	return c.ost.CoreV1alpha1().StorageNodes(node.Namespace).UpdateStatus(node)
+}
+
+// UpdateStorageNodeCondition updates or creates the given condition in node status.
+// Returns true if the condition is new or was changed.
+func (c *Client) UpdateStorageNodeCondition(
+	status *corev1alpha1.NodeStatus,
+	condition *corev1alpha1.NodeCondition,
+) bool {
+	condition.LastTransitionTime = metav1.Now()
+
+	conditionIndex, oldCondition := getStorageNodeCondition(status, condition.Type)
+
+	if oldCondition == nil {
+		status.Conditions = append(status.Conditions, *condition)
+		return true
+	}
+
+	if condition.Status == oldCondition.Status {
+		condition.LastTransitionTime = oldCondition.LastTransitionTime
+	}
+
+	isEqual := condition.Status == oldCondition.Status &&
+		condition.Reason == oldCondition.Reason &&
+		condition.Message == oldCondition.Message &&
+		condition.LastTransitionTime.Equal(&oldCondition.LastTransitionTime)
+
+	status.Conditions[conditionIndex] = *condition
+	// Return true if one of the fields have changed.
+	return !isEqual
+}
+
+// getStorageNodeCondition returns the index and the condition based on the type
+// from the given node status
+func getStorageNodeCondition(
+	status *corev1alpha1.NodeStatus,
+	conditionType corev1alpha1.NodeConditionType,
+) (int, *corev1alpha1.NodeCondition) {
+	if status == nil {
+		return -1, nil
+	}
+	return getStorageNodeConditionFromList(status.Conditions, conditionType)
+}
+
+// getStorageNodeConditionFromList returns the index and the condition based
+// on the type from the given list of node conditions
+func getStorageNodeConditionFromList(
+	conditions []corev1alpha1.NodeCondition,
+	conditionType corev1alpha1.NodeConditionType,
+) (int, *corev1alpha1.NodeCondition) {
+	if conditions == nil {
+		return -1, nil
+	}
+	for i := range conditions {
+		if conditions[i].Type == conditionType {
+			return i, &conditions[i]
+		}
+	}
+	return -1, nil
 }

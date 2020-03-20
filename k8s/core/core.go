@@ -17,6 +17,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/record"
 )
 
 const (
@@ -36,6 +37,7 @@ var (
 type Ops interface {
 	ConfigMapOps
 	EventOps
+	RecorderOps
 	NamespaceOps
 	NodeOps
 	PersistentVolumeClaimOps
@@ -101,6 +103,10 @@ func NewInstanceFromConfigFile(config string) (Ops, error) {
 type Client struct {
 	config     *rest.Config
 	kubernetes kubernetes.Interface
+	// eventRecorders is a map of component to event recorders
+	eventRecorders     map[string]record.EventRecorder
+	eventRecordersLock sync.Mutex
+	eventBroadcaster   record.EventBroadcaster
 }
 
 // SetConfig sets the config and resets the client.

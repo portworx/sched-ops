@@ -42,6 +42,9 @@ type RecorderOps interface {
 }
 
 func (c *Client) RecordEvent(source v1.EventSource, object runtime.Object, eventtype, reason, message string) {
+	if err := c.initClient(); err != nil {
+		return
+	}
 	c.eventRecordersLock.Lock()
 	if len(c.eventRecorders) == 0 {
 		c.eventRecorders = make(map[string]record.EventRecorder)

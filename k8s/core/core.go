@@ -36,6 +36,7 @@ var (
 // Ops is an interface to perform kubernetes related operations on the core resources.
 type Ops interface {
 	ConfigMapOps
+	EndpointsOps
 	EventOps
 	RecorderOps
 	NamespaceOps

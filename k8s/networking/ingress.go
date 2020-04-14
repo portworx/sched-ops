@@ -1,8 +1,11 @@
 package networking
 
 import (
+	"fmt"
 	"time"
 
+	schederrors "github.com/portworx/sched-ops/k8s/errors"
+	"github.com/portworx/sched-ops/task"
 	v1beta1 "k8s.io/api/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -23,6 +26,7 @@ type IngressOps interface {
 
 var NamespaceDefault = "default"
 
+// CreateIngress creates the given ingress
 func (c *Client) CreateIngress(ingress *v1beta1.Ingress) (*v1beta1.Ingress, error) {
 	if err := c.initClient(); err != nil {
 		return nil, err
@@ -36,6 +40,7 @@ func (c *Client) CreateIngress(ingress *v1beta1.Ingress) (*v1beta1.Ingress, erro
 	return c.networking.Ingresses(ns).Create(ingress)
 }
 
+// UpdateIngress creates the given ingress
 func (c *Client) UpdateIngress(ingress *v1beta1.Ingress) (*v1beta1.Ingress, error) {
 	if err := c.initClient(); err != nil {
 		return nil, err
@@ -44,6 +49,7 @@ func (c *Client) UpdateIngress(ingress *v1beta1.Ingress) (*v1beta1.Ingress, erro
 	return c.networking.Ingresses(ingress.Namespace).Update(ingress)
 }
 
+// GetIngress returns the ingress given name and namespace
 func (c *Client) GetIngress(name, namespace string) (*v1beta1.Ingress, error) {
 	if err := c.initClient(); err != nil {
 		return nil, err
@@ -52,6 +58,7 @@ func (c *Client) GetIngress(name, namespace string) (*v1beta1.Ingress, error) {
 	return c.networking.Ingresses(namespace).Get(name, metav1.GetOptions{})
 }
 
+// DeleteIngress deletes the given ingress
 func (c *Client) DeleteIngress(name, namespace string) error {
 	if err := c.initClient(); err != nil {
 		return err
@@ -60,13 +67,26 @@ func (c *Client) DeleteIngress(name, namespace string) error {
 	return c.networking.Ingresses(namespace).Delete(name, &metav1.DeleteOptions{})
 }
 
+// ValidateIngress validates the given ingress
 func (c *Client) ValidateIngress(ingress *v1beta1.Ingress, timeout, retryInterval time.Duration) error {
-	if err := c.initClient(); err != nil {
-		return err
-	}
+	t := func() (interface{}, bool, error) {
+		if err := c.initClient(); err != nil {
+			return "", true, err
+		}
 
-	result, err := c.networking.Ingresses(ingress.Namespace).Get(ingress.Name, metav1.GetOptions{})
-	if result == nil {
+		result, err := c.networking.Ingresses(ingress.Namespace).Get(ingress.Name, metav1.GetOptions{})
+		if result == nil {
+			return "", true, err
+		}
+		if len(result.Status.LoadBalancer.Ingress) < 1 {
+			return "", true, &schederrors.ErrAppNotReady{
+				ID:    ingress.Name,
+				Cause: fmt.Sprintf("Failed to set load balancer for ingress. %sErr: %v", ingress.Name, err),
+			}
+		}
+		return "", false, nil
+	}
+	if _, err := task.DoRetryWithTimeout(t, timeout, retryInterval); err != nil {
 		return err
 	}
 	return nil

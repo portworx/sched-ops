@@ -7,6 +7,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	batchv1client "k8s.io/client-go/kubernetes/typed/batch/v1"
+	batchv1beta1client "k8s.io/client-go/kubernetes/typed/batch/v1beta1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -73,8 +74,9 @@ func NewInstanceFromConfigFile(config string) (Ops, error) {
 
 // Client is a wrapper for the kubernetes batch client.
 type Client struct {
-	config *rest.Config
-	batch  batchv1client.BatchV1Interface
+	config       *rest.Config
+	batch        batchv1client.BatchV1Interface
+	batchv1beta1 batchv1beta1client.BatchV1beta1Interface
 }
 
 // SetConfig sets the config and resets the client.

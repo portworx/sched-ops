@@ -11,8 +11,8 @@ import (
 
 // Ops is an interface to perform kubernetes related operations on the crd resources.
 type CronOps interface {
-	// CreateCron creates the given cronJob
-	CreateCron(cronJob *v1beta1.CronJob) (*v1beta1.CronJob, error)
+	// CreateCronJob creates the given cronJob
+	CreateCronJob(cronJob *v1beta1.CronJob) (*v1beta1.CronJob, error)
 	// UpdateCronJob creates the given cronJob
 	UpdateCronJob(cronJob *v1beta1.CronJob) (*v1beta1.CronJob, error)
 	// GetCronJob returns the cronJob given name and namespace

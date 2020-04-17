@@ -22,6 +22,7 @@ var (
 // Ops is an interface to perform kubernetes related operations on the batch resources.
 type Ops interface {
 	JobOps
+	CronOps
 
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)

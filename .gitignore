@@ -1,3 +1,4 @@
 .gitignore
 .idea
 vendor
+*.sw*

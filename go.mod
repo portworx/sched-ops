@@ -17,7 +17,7 @@ require (
 	github.com/kubernetes-incubator/external-storage v0.0.0-00010101000000-000000000000
 	github.com/libopenstorage/autopilot-api v0.6.0
 	github.com/libopenstorage/openstorage v8.0.0+incompatible // indirect
-	github.com/libopenstorage/operator v0.0.0-20200723201727-e65b6d9f4e97
+	github.com/libopenstorage/operator v0.0.0-20200725001727-48d03e197117
 	github.com/libopenstorage/stork v1.3.0-beta1.0.20200630005842-9255e7a98775
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect

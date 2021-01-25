@@ -15,7 +15,7 @@ require (
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kubernetes-csi/external-snapshotter/v2 v2.1.1
 	github.com/kubernetes-incubator/external-storage v0.0.0-00010101000000-000000000000
-	github.com/libopenstorage/autopilot-api v0.6.0
+	github.com/libopenstorage/autopilot-api v0.6.1-0.20210128210103-5fbb67948648
 	github.com/libopenstorage/openstorage v8.0.0+incompatible // indirect
 	github.com/libopenstorage/operator v0.0.0-20200725001727-48d03e197117
 	github.com/libopenstorage/stork v1.3.0-beta1.0.20200630005842-9255e7a98775
@@ -23,7 +23,6 @@ require (
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/openshift/api v0.0.0-20190322043348-8741ff068a47
 	github.com/openshift/client-go v0.0.0-20180830153425-431ec9a26e50
-	github.com/operator-framework/operator-sdk v0.0.7 // indirect
 	github.com/portworx/talisman v0.0.0-20191007232806-837747f38224
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
 	github.com/sirupsen/logrus v1.4.2

@@ -393,8 +393,8 @@ github.com/kubernetes-csi/external-snapshotter/v2 v2.1.1/go.mod h1:dV5oB3U62KBdl
 github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348/go.mod h1:B69LEHPfb2qLo0BaaOLcbitczOKLWTsrBG9LczfCD4k=
 github.com/leanovate/gopter v0.2.4/go.mod h1:gNcbPWNEWRe4lm+bycKqxUYoH5uoVje5SkOJ3uoLer8=
 github.com/lib/pq v1.0.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
-github.com/libopenstorage/autopilot-api v0.6.0 h1:xPB47jeWA7j0kyzlnR5vKBQCFVxyafULpQiSKn08ceQ=
-github.com/libopenstorage/autopilot-api v0.6.0/go.mod h1:6JLrPbR3ZJQFbUY/+QJMl/aF00YdIrLf8/GWAplgvJs=
+github.com/libopenstorage/autopilot-api v0.6.1-0.20210128210103-5fbb67948648 h1:PpwnWKh2Fa8JIXFbSEKci8k67f/jHPU4J+S0DFRrJYQ=
+github.com/libopenstorage/autopilot-api v0.6.1-0.20210128210103-5fbb67948648/go.mod h1:6JLrPbR3ZJQFbUY/+QJMl/aF00YdIrLf8/GWAplgvJs=
 github.com/libopenstorage/external-storage v5.1.1-0.20190919185747-9394ee8dd536+incompatible h1:HmWu2hsQCysqdwGpW5XjQ2HpleRAIv9LekxB631EE2g=
 github.com/libopenstorage/external-storage v5.1.1-0.20190919185747-9394ee8dd536+incompatible/go.mod h1:H0Gzy0h36rbJPxu3lKdrIPw1h0k0c4YFtTGGlBEBPc8=
 github.com/libopenstorage/openstorage v1.0.0/go.mod h1:Sp1sIObHjat1BeXhfMqLZ14wnOzEhNx2YQedreMcUyc=
@@ -507,8 +507,6 @@ github.com/opentracing-contrib/go-stdlib v0.0.0-20170113013457-1de4cc2120e7/go.m
 github.com/opentracing/basictracer-go v1.0.0/go.mod h1:QfBfYuafItcjQuMwinw9GhYKwFXS9KnPs5lxoYwgW74=
 github.com/opentracing/opentracing-go v1.0.2/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/openzipkin/zipkin-go v0.1.6/go.mod h1:QgAqvLzwWbR/WpD4A3cGpPtJrZXNIiJc5AZX7/PBEpw=
-github.com/operator-framework/operator-sdk v0.0.7 h1:feujqHLhibLBbDVrSAFswpSzTVS5mEuarvywJ079mYE=
-github.com/operator-framework/operator-sdk v0.0.7/go.mod h1:iVyukRkam5JZa8AnjYf+/G3rk7JI1+M6GsU0sq0B9NA=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pborman/uuid v0.0.0-20170612153648-e790cca94e6c/go.mod h1:VyrYX9gd7irzKovcSS6BIIEwPRkP2Wm2m9ufcdFSJ34=
 github.com/pborman/uuid v1.2.0 h1:J7Q5mO4ysT1dv8hyrUGHb9+ooztCXu1D8MY8DZYsu3g=

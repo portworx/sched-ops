@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,6 +28,8 @@ type CRDOps interface {
 	DeleteCRD(fullName string) error
 	// ListCRDs list all the CRDs
 	ListCRDs() (*apiextensionsv1beta1.CustomResourceDefinitionList, error)
+	// WatchCRDs sets up a watcher that listens for changes on the new registered crd
+	WatchCRDs(fn WatchFunc, listOptions metav1.ListOptions) error
 }
 
 // CustomResource is for creating a Kubernetes TPR/CRD
@@ -160,4 +163,28 @@ func (c *Client) ListCRDs() (*apiextensionsv1beta1.CustomResourceDefinitionList,
 	return c.extension.ApiextensionsV1beta1().
 		CustomResourceDefinitions().
 		List(metav1.ListOptions{})
+}
+
+// WatchCRDs sets up a watcher that listens for changes on the new registered crd
+func (c *Client) WatchCRDs(fn WatchFunc, listOptions metav1.ListOptions) error {
+	if err := c.initClient(); err != nil {
+		return err
+	}
+
+	listOptions.Watch = true
+	watchInterface, err := c.extension.ApiextensionsV1beta1().CustomResourceDefinitions().Watch(metav1.ListOptions{})
+	if err != nil {
+		logrus.WithError(err).Error("error invoking the watch api for crds")
+		return err
+	}
+
+	// fire off watch function
+	go c.handleWatch(
+		watchInterface,
+		&apiextensionsv1beta1.CustomResourceDefinition{},
+		"",
+		fn,
+		listOptions)
+
+	return nil
 }

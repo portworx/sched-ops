@@ -4,9 +4,14 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
+	"github.com/portworx/sched-ops/task"
+	"github.com/sirupsen/logrus"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/pkg/runtime"
+	"k8s.io/client-go/pkg/watch"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -145,4 +150,47 @@ func (c *Client) loadClient() error {
 	}
 
 	return nil
+}
+
+// WatchFunc is a callback provided to the Watch functions
+// which is invoked when the given object is changed.
+type WatchFunc func(object runtime.Object) error
+
+// handleWatch is internal function that handles the watch.  On channel shutdown (ie. stop watch),
+// it'll attempt to reestablish its watch function.
+func (c *Client) handleWatch(
+	watchInterface watch.Interface,
+	object runtime.Object,
+	namespace string,
+	fn WatchFunc,
+	listOptions metav1.ListOptions) {
+	defer watchInterface.Stop()
+	for {
+		select {
+		case event, more := <-watchInterface.ResultChan():
+			if !more {
+				logrus.Debug("Kubernetes watch closed (attempting to re-establish)")
+
+				t := func() (interface{}, bool, error) {
+					var err error
+					if _, ok := object.(*apiextensionsv1beta1.CustomResourceDefinition); ok {
+						err = c.WatchCRDs(fn, listOptions)
+					} else {
+						return "", false, fmt.Errorf("unsupported object: %v given to handle watch", object)
+					}
+
+					return "", true, err
+				}
+
+				if _, err := task.DoRetryWithTimeout(t, 10*time.Minute, 10*time.Second); err != nil {
+					logrus.WithError(err).Error("Could not re-establish the watch")
+				} else {
+					logrus.Debug("watch re-established")
+				}
+				return
+			}
+
+			fn(event.Object)
+		}
+	}
 }

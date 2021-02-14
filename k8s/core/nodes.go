@@ -44,6 +44,8 @@ type NodeOps interface {
 	// DrainPodsFromNode drains given pods from given node. If timeout is set to
 	// a non-zero value, it waits for timeout duration for each pod to get deleted
 	DrainPodsFromNode(nodeName string, pods []corev1.Pod, timeout, retryInterval time.Duration) error
+	// DeleteNode deletes the given node
+	DeleteNode(name string) error
 }
 
 // CreateNode creates the given node
@@ -53,6 +55,16 @@ func (c *Client) CreateNode(n *corev1.Node) (*corev1.Node, error) {
 	}
 
 	return c.kubernetes.CoreV1().Nodes().Create(n)
+}
+
+// DeleteNode deletes a node
+func (c *Client) DeleteNode(name string) error {
+	if err := c.initClient(); err != nil {
+		return err
+	}
+
+	err := c.kubernetes.CoreV1().Nodes().Delete(name, &metav1.DeleteOptions{})
+	return err
 }
 
 // UpdateNode updates the given node

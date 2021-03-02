@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	snapv1 "github.com/kubernetes-incubator/external-storage/snapshot/pkg/apis/crd/v1"
+	snapv1 "github.com/libopenstorage/external-storage/snapshot/pkg/apis/crd/v1"
 	schederrors "github.com/portworx/sched-ops/k8s/errors"
 	"github.com/portworx/sched-ops/task"
 	corev1 "k8s.io/api/core/v1"

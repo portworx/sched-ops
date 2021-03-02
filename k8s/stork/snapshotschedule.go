@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	snapv1 "github.com/libopenstorage/external-storage/snapshot/pkg/apis/crd/v1"
+	snapv1 "github.com/kubernetes-incubator/external-storage/snapshot/pkg/apis/crd/v1"
 	storkv1alpha1 "github.com/libopenstorage/stork/pkg/apis/stork/v1alpha1"
 	"github.com/portworx/sched-ops/k8s/errors"
 	"github.com/portworx/sched-ops/task"

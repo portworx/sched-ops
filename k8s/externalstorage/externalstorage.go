@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	snapclient "github.com/libopenstorage/external-storage/snapshot/pkg/client"
+	snapclient "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )

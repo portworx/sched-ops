@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	snapclient "github.com/libopenstorage/external-storage/snapshot/pkg/client"
+	snapclient "github.com/kubernetes-incubator/external-storage/snapshot/pkg/client"
 	storkv1 "github.com/libopenstorage/stork/pkg/apis/stork/v1alpha1"
 	storkclientset "github.com/libopenstorage/stork/pkg/client/clientset/versioned"
 	"github.com/portworx/sched-ops/task"

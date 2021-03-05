@@ -6,7 +6,7 @@ require (
 	github.com/kubernetes-csi/external-snapshotter/client/v4 v4.0.0
 	github.com/kubernetes-incubator/external-storage v0.20.4-openstorage-rc2
 	github.com/libopenstorage/autopilot-api v1.3.0
-	github.com/libopenstorage/operator v0.0.0-20200725001727-48d03e197117
+	github.com/libopenstorage/operator v0.0.0-20210303221358-0bb211a9908c
 	github.com/libopenstorage/stork v1.3.0-beta1.0.20200630005842-9255e7a98775
 	github.com/openshift/api v0.0.0-20210105115604-44119421ec6b
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47

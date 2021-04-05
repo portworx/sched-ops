@@ -45,7 +45,7 @@ func (c *Client) ListServiceAccount(namespace string, opts metav1.ListOptions) (
 		return nil, err
 	}
 
-	return c.kubernetes.CoreV1().ServiceAccounts(namespace).List(opts)
+	return c.kubernetes.CoreV1().ServiceAccounts(namespace).List(context.TODO(), opts)
 }
 
 // UpdateServiceAccount updates the given service account

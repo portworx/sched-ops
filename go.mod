@@ -7,7 +7,7 @@ require (
 	github.com/kubernetes-incubator/external-storage v0.20.4-openstorage-rc2
 	github.com/libopenstorage/autopilot-api v1.3.0
 	github.com/libopenstorage/operator v0.0.0-20210303221358-0bb211a9908c
-	github.com/libopenstorage/stork v1.3.0-beta1.0.20200630005842-9255e7a98775
+	github.com/libopenstorage/stork v1.3.0-beta1.0.20210503014041-fb328e234db7
 	github.com/openshift/api v0.0.0-20210105115604-44119421ec6b
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
 	github.com/portworx/talisman v0.0.0-20210302012732-8af4564777f7
@@ -24,7 +24,6 @@ require (
 replace (
 	github.com/kubernetes-incubator/external-storage => github.com/libopenstorage/external-storage v0.20.4-openstorage-rc2
 	github.com/libopenstorage/autopilot-api => github.com/libopenstorage/autopilot-api v0.6.1-0.20210301232050-ca2633c6e114
-	github.com/libopenstorage/stork => github.com/libopenstorage/stork v0.20.4-k8s-client-upgrade
 	github.com/portworx/torpedo => github.com/portworx/torpedo v0.20.4-rc1
 
 	k8s.io/api => k8s.io/api v0.20.4

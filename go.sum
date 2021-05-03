@@ -781,8 +781,12 @@ github.com/libopenstorage/operator v0.0.0-20210303221358-0bb211a9908c h1:DX4cO8v
 github.com/libopenstorage/operator v0.0.0-20210303221358-0bb211a9908c/go.mod h1:+83bY859mKGwHmWW8TPNYGrXAgt/hXOX2Ia7EytK17I=
 github.com/libopenstorage/secrets v0.0.0-20190403224602-c282e8dc17bf/go.mod h1:4QOUUeRMHtTniKPj+biL3wlusahU/7OnMsGKc4FN/EY=
 github.com/libopenstorage/secrets v0.0.0-20200207034622-cdb443738c67/go.mod h1:4QOUUeRMHtTniKPj+biL3wlusahU/7OnMsGKc4FN/EY=
+github.com/libopenstorage/stork v0.0.0-20191009210244-6a3497c42b2a/go.mod h1:qBSzYTJVHlOMg5RINNiHD1kBzlasnrc2uKLPZLgu1Qs=
 github.com/libopenstorage/stork v0.20.4-k8s-client-upgrade h1:ghwf5/lbPG1b3lXnFkwoR+oQwN0jOL2aIcIu4yQ6EO0=
 github.com/libopenstorage/stork v0.20.4-k8s-client-upgrade/go.mod h1:yIT7em2QTQYHJWDRc8r8ld0w7lsULd+CTS5ler7B+0s=
+github.com/libopenstorage/stork v1.3.0-beta1.0.20200630005842-9255e7a98775/go.mod h1:qBSzYTJVHlOMg5RINNiHD1kBzlasnrc2uKLPZLgu1Qs=
+github.com/libopenstorage/stork v1.3.0-beta1.0.20210503014041-fb328e234db7 h1:Zv0csN6rtkn4/saTKrGISpf5oCbWHgOV/+MMDVAegeg=
+github.com/libopenstorage/stork v1.3.0-beta1.0.20210503014041-fb328e234db7/go.mod h1:Z38BxJx7Al1BVEX0RLa9BtqEzU3QQjwDu9FEspIuXck=
 github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de/go.mod h1:zAbeS9B/r2mtpb6U+EI2rYA5OAXxsYw6wTamcNW+zcE=
 github.com/lightstep/lightstep-tracer-common/golang/gogo v0.0.0-20190605223551-bc2310a04743/go.mod h1:qklhhLq1aX+mtWk9cPHPzaBjWImj5ULL6C7HFJtXQMM=
 github.com/lightstep/lightstep-tracer-go v0.15.6/go.mod h1:6AMpwZpsyCFwSovxzM78e+AsYxE8sGwiM6C3TytaWeI=
@@ -993,6 +997,7 @@ github.com/portworx/px-backup-api v1.0.1-0.20200915150042-274508e876ef/go.mod h1
 github.com/portworx/sched-ops v0.0.0-20200123020607-b0799c4686f5/go.mod h1:yb1ypNIiZQAmM7xAWGzO6dydwl/+vNC0WjUm5IvHUEY=
 github.com/portworx/sched-ops v0.0.0-20200723032629-257aba0944dc/go.mod h1:RbeNADz/3p8a/qNGyy7nUTWC8Yx7DMW9xL11JbYh9Ag=
 github.com/portworx/sched-ops v0.0.0-20210301232128-6cd5f08740bf/go.mod h1:nl2AP/W8sWmhmW7ScwNQrm5OCHiHjLYQ2NmO3TUjIhE=
+github.com/portworx/sched-ops v0.20.4-openstorage-rc3.0.20210325150944-0b2c202335f7/go.mod h1:DpRDDqXWQrReFJ5SHWWrURuZdzVKjrh2OxbAfwnrAyk=
 github.com/portworx/sched-ops v1.20.0-rc1/go.mod h1:nl2AP/W8sWmhmW7ScwNQrm5OCHiHjLYQ2NmO3TUjIhE=
 github.com/portworx/talisman v0.0.0-20191007232806-837747f38224 h1:r4LpGHxnh3tliXnaJcciROXU/snARMN6/OXhGPJyzGA=
 github.com/portworx/talisman v0.0.0-20191007232806-837747f38224/go.mod h1:OjpMH9Uh5o9ntVGktm4FbjLNwubJ3ITih2OfYrAeWtA=

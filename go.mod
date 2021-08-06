@@ -18,7 +18,7 @@ require (
 	k8s.io/api v0.20.4
 	k8s.io/apiextensions-apiserver v0.20.4
 	k8s.io/apimachinery v0.20.4
-	k8s.io/client-go v12.0.0+incompatible
+	k8s.io/client-go v0.20.4
 )
 
 replace (
@@ -51,4 +51,20 @@ replace (
 	k8s.io/metrics => k8s.io/metrics v0.20.4
 	k8s.io/mount-utils => k8s.io/mount-utils v0.20.4
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.20.4
+)
+
+exclude (
+	k8s.io/client-go v1.4.0
+	k8s.io/client-go v1.5.0
+	k8s.io/client-go v1.5.1
+	k8s.io/client-go v1.5.2
+	k8s.io/client-go v10.0.0+incompatible
+	k8s.io/client-go v11.0.0+incompatible
+	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
+	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
+	k8s.io/client-go v12.0.0+incompatible
+	// Exclude pre-go-mod kubernetes tags, because they are older
+	// than v0.x releases but are picked when updating dependencies.
+	k8s.io/client-go v2.0.0-alpha.0.0.20181121191925-a47917edff34+incompatible
+	k8s.io/client-go v9.0.0+incompatible
 )

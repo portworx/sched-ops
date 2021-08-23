@@ -26,6 +26,8 @@ type CRDOps interface {
 	DeleteCRD(name string) error
 	// ListCRDs list all the CRDs
 	ListCRDs() (*apiextensionsv1.CustomResourceDefinitionList, error)
+	// CreateCRD creates the given custom resource
+	CreateCRD(resource CustomResource) error
 }
 
 // RegisterCRD creates the given custom resource
@@ -108,4 +110,49 @@ func (c *Client) ListCRDs() (*apiextensionsv1.CustomResourceDefinitionList, erro
 	return c.extension.ApiextensionsV1().
 		CustomResourceDefinitions().
 		List(context.TODO(), metav1.ListOptions{})
+}
+
+// CreateCRDV1 creates the given custom resource
+// should be used for registering crds with x-preserver-unknown flag set
+func (c *Client) CreateCRD(resource CustomResource) error {
+	if err := c.initClient(); err != nil {
+		return err
+	}
+	scope := apiextensionsv1.NamespaceScoped
+	if string(resource.Scope) == string(apiextensionsv1.ClusterScoped) {
+		scope = apiextensionsv1.ClusterScoped
+	}
+	ignoreSchemaValidation := true
+	crdName := fmt.Sprintf("%s.%s", resource.Plural, resource.Group)
+	crd := &apiextensionsv1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: crdName,
+		},
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+			Group: resource.Group,
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+				{Name: resource.Version,
+					Served:  true,
+					Storage: true,
+					Schema: &apiextensionsv1.CustomResourceValidation{
+						OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+							XPreserveUnknownFields: &ignoreSchemaValidation,
+						},
+					},
+				},
+			},
+			Scope: scope,
+			Names: apiextensionsv1.CustomResourceDefinitionNames{
+				Singular:   resource.Name,
+				Plural:     resource.Plural,
+				Kind:       resource.Kind,
+				ShortNames: resource.ShortNames,
+			},
+		},
+	}
+	_, err := c.extension.ApiextensionsV1().CustomResourceDefinitions().Create(context.TODO(), crd, metav1.CreateOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
 }

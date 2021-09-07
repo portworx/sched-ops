@@ -55,7 +55,7 @@ func (c *Client) DeleteVolumeBackup(name string, namespace string) error {
 	})
 }
 
-// UpdateVolumeBackup deletes the VolumeBackup CR
+// UpdateVolumeBackup updates the VolumeBackup CR
 func (c *Client) UpdateVolumeBackup(backup *kdmpv1alpha1.VolumeBackup) (*kdmpv1alpha1.VolumeBackup, error) {
 	if err := c.initClient(); err != nil {
 		return nil, err

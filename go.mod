@@ -7,13 +7,14 @@ require (
 	github.com/kubernetes-incubator/external-storage v0.20.4-openstorage-rc2
 	github.com/libopenstorage/autopilot-api v1.3.0
 	github.com/libopenstorage/operator v0.0.0-20210303221358-0bb211a9908c
-	github.com/libopenstorage/stork v1.3.0-beta1.0.20210503014041-fb328e234db7
+	github.com/libopenstorage/stork v1.4.1-0.20210903185636-5a1f8a4142bf
 	github.com/openshift/api v0.0.0-20210105115604-44119421ec6b
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
+	github.com/portworx/kdmp v0.4.1-0.20210907103225-5bf7fe9467ec
 	github.com/portworx/talisman v0.0.0-20210302012732-8af4564777f7
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.46.0
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.46.0
-	github.com/sirupsen/logrus v1.7.0
+	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
 	k8s.io/api v0.20.4
 	k8s.io/apiextensions-apiserver v0.20.4

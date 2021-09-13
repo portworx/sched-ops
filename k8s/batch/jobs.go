@@ -21,6 +21,8 @@ type JobOps interface {
 	// ValidateJob validates if the job with given namespace and name succeeds.
 	// It waits for timeout duration for job to succeed
 	ValidateJob(name, namespace string, timeout time.Duration) error
+	// GetAllJobs returns the jobs from given namespace
+	GetAllJobs(namespace string) (*batchv1.JobList, error)
 }
 
 // CreateJob creates the given job
@@ -81,4 +83,13 @@ func (c *Client) ValidateJob(name, namespace string, timeout time.Duration) erro
 	}
 
 	return nil
+}
+
+// GetAllJobs returns the jobs from given namespace
+func (c *Client) GetAllJobs(namespace string) (*batchv1.JobList, error) {
+	if err := c.initClient(); err != nil {
+		return nil, err
+	}
+
+	return c.batch.Jobs(namespace).List(context.TODO(), metav1.ListOptions{})
 }

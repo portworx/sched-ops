@@ -125,32 +125,22 @@ func (c *Client) ValidateDaemonSet(name, namespace string, timeout time.Duration
 			}
 		}
 
-		if ds.Status.DesiredNumberScheduled != ds.Status.NumberReady {
-			return "", true, &schederrors.ErrAppNotReady{
-				ID: name,
-				Cause: fmt.Sprintf("Expected ready: %v Actual ready:%v Current pods overview:\n%s",
-					ds.Status.DesiredNumberScheduled, ds.Status.NumberReady, podsOverviewString),
-			}
-		}
-
-		var notReadyPods []string
 		var readyCount int32
 		for _, pod := range pods {
-			if !common.IsPodReady(pod) {
-				notReadyPods = append(notReadyPods, pod.Name)
-			} else {
+			if common.IsPodReady(pod) {
 				readyCount++
 			}
 		}
 
-		if readyCount == ds.Status.DesiredNumberScheduled {
-			return "", false, nil
+		if ds.Status.DesiredNumberScheduled != readyCount {
+			return "", true, &schederrors.ErrAppNotReady{
+				ID: name,
+				Cause: fmt.Sprintf("Expected ready: %v Actual ready:%v Current pods overview:\n%s",
+					ds.Status.DesiredNumberScheduled, readyCount, podsOverviewString),
+			}
 		}
 
-		return "", true, &schederrors.ErrAppNotReady{
-			ID:    ds.Name,
-			Cause: fmt.Sprintf("Pod(s): %#v not yet ready", notReadyPods),
-		}
+		return "", false, nil
 	}
 
 	if _, err := task.DoRetryWithTimeout(t, timeout, 15*time.Second); err != nil {

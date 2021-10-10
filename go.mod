@@ -7,11 +7,11 @@ require (
 	github.com/kubernetes-incubator/external-storage v0.20.4-openstorage-rc2
 	github.com/libopenstorage/autopilot-api v1.3.0
 	github.com/libopenstorage/operator v0.0.0-20210303221358-0bb211a9908c
-	github.com/libopenstorage/stork v1.4.1-0.20210903185636-5a1f8a4142bf
+	github.com/libopenstorage/stork v1.4.1-0.20211010042604-43435331a288
 	github.com/openshift/api v0.0.0-20210105115604-44119421ec6b
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
 	// TODO: Vendor from pb-1874 branch. Need to change it to master.
-	github.com/portworx/kdmp v0.4.1-0.20210929095959-dbee7f98b06f
+	github.com/portworx/kdmp v0.4.1-0.20211007020540-ca77d6d2ade1
 	github.com/portworx/talisman v0.0.0-20210302012732-8af4564777f7
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.46.0
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.46.0

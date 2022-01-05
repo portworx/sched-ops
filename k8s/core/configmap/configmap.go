@@ -47,6 +47,11 @@ func New(
 		return nil, fmt.Errorf("Failed to create configmap %v: %v",
 			name, err)
 	}
+
+	if lockK8sLockTTL == 0 {
+		lockK8sLockTTL = v2DefaultK8sLockTTL
+	}
+
 	return &configMap{
 		name:                name,
 		lockTimeout:         lockTimeout,

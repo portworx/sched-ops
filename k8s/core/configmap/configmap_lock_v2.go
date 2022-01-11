@@ -236,10 +236,7 @@ func (c *configMap) checkAndTakeLock(owner, key string, refresh bool,
 	if ownerOK != expOK {
 		return "", fmt.Errorf("inconsistent lock ID and expiration")
 	}
-	k8sTTL := v2DefaultK8sLockTTL
-	if c.lockK8sLockTTL > 0 {
-		k8sTTL = c.lockK8sLockTTL
-	}
+	k8sTTL := c.lockK8sLockTTL
 
 	// Now that we've parsed all the lock lines, let's check the specific key we're taking
 	if !ownerOK {

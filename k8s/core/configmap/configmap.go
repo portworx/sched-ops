@@ -21,8 +21,8 @@ func New(
 	data map[string]string,
 	lockTimeout time.Duration,
 	lockAttempts uint,
-	lockRefreshDuration time.Duration,
-	lockK8sLockTTL time.Duration,
+	v2LockRefreshDuration time.Duration,
+	v2LockK8sLockTTL time.Duration,
 ) (ConfigMap, error) {
 	if data == nil {
 		data = make(map[string]string)
@@ -48,8 +48,12 @@ func New(
 			name, err)
 	}
 
-	if lockK8sLockTTL == 0 {
-		lockK8sLockTTL = v2DefaultK8sLockTTL
+	if v2LockK8sLockTTL == 0 {
+		v2LockK8sLockTTL = v2DefaultK8sLockTTL
+	}
+
+	if v2LockRefreshDuration == 0 {
+		v2LockRefreshDuration = v2DefaultK8sLockRefreshDuration
 	}
 
 	return &configMap{
@@ -57,8 +61,8 @@ func New(
 		lockTimeout:         lockTimeout,
 		kLocksV2:            map[string]*k8sLock{},
 		lockAttempts:        lockAttempts,
-		lockRefreshDuration: lockRefreshDuration,
-		lockK8sLockTTL:      lockK8sLockTTL,
+		lockRefreshDuration: v2LockRefreshDuration,
+		lockK8sLockTTL:      v2LockK8sLockTTL,
 	}, nil
 }
 

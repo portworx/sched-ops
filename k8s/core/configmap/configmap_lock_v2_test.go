@@ -110,20 +110,25 @@ func TestMultilock(t *testing.T) {
 	fatalLockCb := func(format string, args ...interface{}) {
 		fmt.Println("\tLock timeout called.")
 		lockTimedout = true
-		err := cm.UnlockWithKey(key1)
-		require.NoError(t, err, "Unexpected error from Unlock")
 	}
 	SetFatalCb(fatalLockCb)
 
 	// Check lock expiration
 	err = cm.LockWithKey(id1, key1)
 	require.NoError(t, err, "Unexpected error in lock")
+
+	// Locking again with same owner should not throw error
+	err = cm.LockWithKey(id1, key1)
+	require.NoError(t, err, "Unexpected error in lock")
 	time.Sleep((v2DefaultK8sLockRefreshDuration * 3) + time.Second)
 	require.True(t, lockTimedout, "Lock hold timeout not triggered")
 
-	locked, owner, err = cm.IsKeyLocked(key1)
-	require.NoError(t, err)
-	require.False(t, locked)
+	// Locking again with expired lock should not throw error
+	err = cm.LockWithKey(id1, key1)
+	require.NoError(t, err, "Unexpected error in lock")
+
+	err = cm.UnlockWithKey(key1)
+	require.NoError(t, err, "Unexpected no error in unlock")
 
 	err = cm.LockWithKey(id2, key1)
 	require.NoError(t, err, "Lock should have expired")

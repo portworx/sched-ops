@@ -136,23 +136,6 @@ func GetPodByName(client v1.CoreV1Interface, podName string, namespace string) (
 	return pod, nil
 }
 
-// GetPodByUID returns pod for the given pod UID and namespace
-func GetPodByUID(client v1.CoreV1Interface, uid types.UID, namespace string) (*corev1.Pod, error) {
-	pods, err := client.Pods(namespace).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return nil, schederrors.ErrPodsNotFound
-	}
-
-	pUID := types.UID(uid)
-	for _, pod := range pods.Items {
-		if pod.UID == pUID {
-			return &pod, nil
-		}
-	}
-
-	return nil, schederrors.ErrPodsNotFound
-}
-
 // IsPodReady checks if all containers in a pod are ready (passed readiness probe).
 func IsPodReady(pod corev1.Pod) bool {
 	if pod.Status.Phase != corev1.PodRunning && pod.Status.Phase != corev1.PodSucceeded {

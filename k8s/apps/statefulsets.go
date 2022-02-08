@@ -343,19 +343,12 @@ func (c *Client) DeleteStatefulSetPods(name, namespace string, timeout time.Dura
 		return err
 	}
 
-	var podsNamesToDelete []string
-	var podsToDelete []corev1.Pod
-	for _, pod := range pods {
-		podsNamesToDelete = append(podsNamesToDelete, pod.Name)
-		podsToDelete = append(podsToDelete, pod)
-	}
-
 	if err := common.DeletePods(c.core, pods, false); err != nil {
 		return err
 	}
 
-	if err := common.WaitForPodsToBeDeleted(c.core, podsToDelete, timeout); err != nil {
-		return fmt.Errorf("Failed to wait for pods to be deleted: %s, Err: %v", podsNamesToDelete, err)
+	if err := common.WaitForPodsToBeDeleted(c.core, pods, timeout); err != nil {
+		return fmt.Errorf("Failed to wait for pods to be deleted, Err: %v", err)
 	}
 
 	return nil

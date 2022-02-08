@@ -78,7 +78,7 @@ func WaitForPodsToBeDeleted(client v1.CoreV1Interface, podsToDelete []corev1.Pod
 		wg.Add(1)
 		go func(pod corev1.Pod, index int) {
 			defer wg.Done()
-			if err := WaitForPodDeletion(client, pod.Name, pod.Namespace, timeout); err != nil {
+			if err := WaitForPodDeletion(client, pod.UID, pod.Namespace, timeout); err != nil {
 				errChan <- fmt.Errorf("Failed to delete pod %s, Err: %v", pod.Name, err)
 			}
 		}(pod, index)
@@ -101,9 +101,9 @@ func WaitForPodsToBeDeleted(client v1.CoreV1Interface, podsToDelete []corev1.Pod
 }
 
 // WaitForPodDeletion waits for given timeout for given pod to be deleted
-func WaitForPodDeletion(client v1.CoreV1Interface, name string, namespace string, timeout time.Duration) error {
+func WaitForPodDeletion(client v1.CoreV1Interface, uid types.UID, namespace string, timeout time.Duration) error {
 	t := func() (interface{}, bool, error) {
-		p, err := GetPodByName(client, name, namespace)
+		p, err := GetPodByUID(client, uid, namespace)
 		if err != nil {
 			if err == schederrors.ErrPodsNotFound {
 				return nil, false, nil
@@ -134,6 +134,23 @@ func GetPodByName(client v1.CoreV1Interface, podName string, namespace string) (
 	}
 
 	return pod, nil
+}
+
+// GetPodByUID returns pod for the given pod UID and namespace
+func GetPodByUID(client v1.CoreV1Interface, uid types.UID, namespace string) (*corev1.Pod, error) {
+	pods, err := client.Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, schederrors.ErrPodsNotFound
+	}
+
+	pUID := types.UID(uid)
+	for _, pod := range pods.Items {
+		if pod.UID == pUID {
+			return &pod, nil
+		}
+	}
+
+	return nil, schederrors.ErrPodsNotFound
 }
 
 // IsPodReady checks if all containers in a pod are ready (passed readiness probe).

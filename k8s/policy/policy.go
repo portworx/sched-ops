@@ -18,6 +18,7 @@ var (
 // Ops is an interface to perform kubernetes related operations on the policy resources.
 type Ops interface {
 	PodSecurityPolicyOps
+	PodDisruptionBudgetOps
 
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)

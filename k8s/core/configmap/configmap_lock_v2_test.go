@@ -120,7 +120,7 @@ func TestMultilock(t *testing.T) {
 	// Locking again with same owner should not throw error
 	err = cm.LockWithKey(id1, key1)
 	require.NoError(t, err, "Unexpected error in lock")
-	time.Sleep((v2DefaultK8sLockRefreshDuration * 3) + time.Second)
+	time.Sleep((v2DefaultK8sLockRefreshDuration * 3) + (3 * time.Second))
 	require.True(t, lockTimedout, "Lock hold timeout not triggered")
 
 	// Locking again with expired lock should not throw error

@@ -6,27 +6,28 @@ require (
 	github.com/kubernetes-csi/external-snapshotter/client/v4 v4.0.0
 	github.com/kubernetes-incubator/external-storage v0.20.4-openstorage-rc7
 	github.com/libopenstorage/autopilot-api v1.3.0
-	github.com/libopenstorage/openstorage v8.0.1-0.20211105030910-665c2f474186+incompatible
+	github.com/libopenstorage/openstorage v9.4.20+incompatible
 	github.com/libopenstorage/operator v0.0.0-20210303221358-0bb211a9908c
-	github.com/libopenstorage/stork v1.4.1-0.20220323180113-0ea773109d05
+	github.com/libopenstorage/stork v1.4.1-0.20220414104250-3c18fd21ed95
 	github.com/openshift/api v0.0.0-20210105115604-44119421ec6b
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
 	// TODO: Vendor from pb-1874 branch. Need to change it to master.
-	github.com/portworx/kdmp v0.4.1-0.20220309093511-f7b925b9e53e
+	github.com/portworx/kdmp v0.4.1-0.20220710173715-5d42efc7d149
 	github.com/portworx/talisman v0.0.0-20210302012732-8af4564777f7
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.46.0
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.46.0
 	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.7.0
-	k8s.io/api v0.21.4
+	github.com/stretchr/testify v1.7.2-0.20220317124727-77977386932a
+	k8s.io/api v0.24.0
 	k8s.io/apiextensions-apiserver v0.21.4
-	k8s.io/apimachinery v0.21.4
+	k8s.io/apimachinery v0.24.3
 	k8s.io/client-go v12.0.0+incompatible
 )
 
 replace (
 	github.com/kubernetes-incubator/external-storage => github.com/libopenstorage/external-storage v0.20.4-openstorage-rc2
 	github.com/libopenstorage/autopilot-api => github.com/libopenstorage/autopilot-api v0.6.1-0.20210301232050-ca2633c6e114
+	github.com/libopenstorage/stork => github.com/libopenstorage/stork v1.4.1-0.20220818154556-7457272a06d9
 	github.com/portworx/torpedo => github.com/portworx/torpedo v0.20.4-rc1
 
 	k8s.io/api => k8s.io/api v0.21.4

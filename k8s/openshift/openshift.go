@@ -7,6 +7,7 @@ import (
 
 	ocpclientset "github.com/openshift/client-go/apps/clientset/versioned"
 	ocpsecurityclientset "github.com/openshift/client-go/security/clientset/versioned"
+	"github.com/portworx/sched-ops/k8s/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -161,7 +162,10 @@ func (c *Client) loadClient() error {
 	}
 
 	var err error
-
+	err = common.SetRateLimiter(c.config)
+	if err != nil {
+		return err
+	}
 	c.kube, err = kubernetes.NewForConfig(c.config)
 	if err != nil {
 		return err

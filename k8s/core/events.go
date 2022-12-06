@@ -53,6 +53,7 @@ type RecorderOps interface {
 	RecordEvent(source v1.EventSource, object runtime.Object, eventtype, reason, message string)
 }
 
+// RecordEvent records an event into k8s using client-go's EventRecorder inteface
 func (c *Client) RecordEvent(source v1.EventSource, object runtime.Object, eventtype, reason, message string) {
 	if err := c.initClient(); err != nil {
 		return

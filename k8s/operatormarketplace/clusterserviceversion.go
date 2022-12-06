@@ -72,7 +72,7 @@ func (c *Client) ListClusterServiceVersions(namespace string) (*v1alpha1.Cluster
 		return nil, err
 	}
 
-	var clusterServiceVersionList *v1alpha1.ClusterServiceVersionList
+	clusterServiceVersionList := &v1alpha1.ClusterServiceVersionList{}
 	if err := c.crClient.List(
 		context.TODO(),
 		clusterServiceVersionList,

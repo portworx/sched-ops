@@ -72,7 +72,7 @@ func (c *Client) ListSubscriptions(namespace string) (*v1alpha1.SubscriptionList
 		return nil, err
 	}
 
-	var subscriptionList *v1alpha1.SubscriptionList
+	subscriptionList := &v1alpha1.SubscriptionList{}
 	if err := c.crClient.List(
 		context.TODO(),
 		subscriptionList,

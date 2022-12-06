@@ -72,7 +72,7 @@ func (c *Client) ListInstallPlans(namespace string) (*v1alpha1.InstallPlanList, 
 		return nil, err
 	}
 
-	var installPlanList *v1alpha1.InstallPlanList
+	installPlanList := &v1alpha1.InstallPlanList{}
 	if err := c.crClient.List(
 		context.TODO(),
 		installPlanList,

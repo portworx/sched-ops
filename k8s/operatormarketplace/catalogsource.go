@@ -72,7 +72,7 @@ func (c *Client) ListCatalogSources(namespace string) (*v1alpha1.CatalogSourceLi
 		return nil, err
 	}
 
-	var catalogSourceList *v1alpha1.CatalogSourceList
+	catalogSourceList := &v1alpha1.CatalogSourceList{}
 	if err := c.crClient.List(
 		context.TODO(),
 		catalogSourceList,

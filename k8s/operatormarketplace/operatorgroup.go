@@ -72,7 +72,7 @@ func (c *Client) ListOperatorGroups(namespace string) (*v1.OperatorGroupList, er
 		return nil, err
 	}
 
-	var operatorGroupList *v1.OperatorGroupList
+	operatorGroupList := &v1.OperatorGroupList{}
 	if err := c.crClient.List(
 		context.TODO(),
 		operatorGroupList,

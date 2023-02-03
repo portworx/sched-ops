@@ -8,11 +8,11 @@ require (
 	github.com/libopenstorage/autopilot-api v1.3.0
 	github.com/libopenstorage/openstorage v9.4.20+incompatible
 	github.com/libopenstorage/operator v0.0.0-20221128182303-7bedcffb60e6
-	github.com/libopenstorage/stork v1.4.1-0.20220902111346-9dbf76d2db2c
+	github.com/libopenstorage/stork v1.4.1-0.20221103082056-65abc8cc4e80
 	github.com/openshift/api v0.0.0-20210105115604-44119421ec6b
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
 	// TODO: Vendor from pb-1874 branch. Need to change it to master.
-	github.com/portworx/kdmp v0.4.1-0.20220905153748-e0bb69e59f38
+	github.com/portworx/kdmp v0.4.1-0.20230127055521-e23d6b003478
 	github.com/portworx/talisman v0.0.0-20210302012732-8af4564777f7
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.46.0
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.46.0

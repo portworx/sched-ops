@@ -8,11 +8,11 @@ require (
 	github.com/libopenstorage/autopilot-api v1.3.0
 	github.com/libopenstorage/openstorage v9.4.20+incompatible
 	github.com/libopenstorage/operator v0.0.0-20221128182303-7bedcffb60e6
-	github.com/libopenstorage/stork v1.4.1-0.20220414104250-3c18fd21ed95
+	github.com/libopenstorage/stork v1.4.1-0.20221103082056-65abc8cc4e80
 	github.com/openshift/api v0.0.0-20210105115604-44119421ec6b
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
 	// TODO: Vendor from pb-1874 branch. Need to change it to master.
-	github.com/portworx/kdmp v0.4.1-0.20220710173715-5d42efc7d149
+	github.com/portworx/kdmp v0.4.1-0.20230127055521-e23d6b003478
 	github.com/portworx/talisman v0.0.0-20210302012732-8af4564777f7
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.46.0
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.46.0
@@ -37,7 +37,6 @@ require (
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
@@ -83,11 +82,13 @@ require (
 require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
-	sigs.k8s.io/controller-runtime v0.13.0 // indirect
+	sigs.k8s.io/controller-runtime v0.13.0
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
+
+require github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
 
 replace (
 	github.com/kubernetes-incubator/external-storage => github.com/libopenstorage/external-storage v0.25.1-openstorage-rc1

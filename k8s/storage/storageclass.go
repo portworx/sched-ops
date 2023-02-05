@@ -14,6 +14,8 @@ type ScOps interface {
 	GetStorageClasses(labelSelector map[string]string) (*storagev1.StorageClassList, error)
 	// GetStorageClass returns the storage class for the give namme
 	GetStorageClass(name string) (*storagev1.StorageClass, error)
+	// GetDefaultStorageClasses returns all storageClasses that are set as default
+	GetDefaultStorageClasses() (*storagev1.StorageClassList, error)
 	// CreateStorageClass creates the given storage class
 	CreateStorageClass(sc *storagev1.StorageClass) (*storagev1.StorageClass, error)
 	// DeleteStorageClass deletes the given storage class
@@ -25,6 +27,10 @@ type ScOps interface {
 	// we should remove this method
 	ValidateStorageClass(name string) (*storagev1.StorageClass, error)
 }
+
+const (
+	defaultStorageclassAnnotationKey = "storageclass.kubernetes.io/is-default-class"
+)
 
 // GetStorageClasses returns all storageClasses that match given optional label selector
 func (c *Client) GetStorageClasses(labelSelector map[string]string) (*storagev1.StorageClassList, error) {
@@ -44,6 +50,28 @@ func (c *Client) GetStorageClass(name string) (*storagev1.StorageClass, error) {
 	}
 
 	return c.storage.StorageClasses().Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// GetDefaultStorageClasses returns all storageClasses that are set as default
+func (c *Client) GetDefaultStorageClasses() (*storagev1.StorageClassList, error) {
+	defaultStorageClasses := &storagev1.StorageClassList{}
+	var storageClassList *storagev1.StorageClassList
+	if err := c.initClient(); err != nil {
+		return nil, err
+	}
+
+	storageClassList, err := c.storage.StorageClasses().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, sc := range storageClassList.Items {
+		if val, ok := sc.Annotations[defaultStorageclassAnnotationKey]; ok {
+			if val == "true" {
+				defaultStorageClasses.Items = append(defaultStorageClasses.Items, sc)
+			}
+		}
+	}
+	return defaultStorageClasses, nil
 }
 
 // CreateStorageClass creates the given storage class

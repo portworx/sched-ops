@@ -6,9 +6,9 @@ require (
 	github.com/kubernetes-csi/external-snapshotter/client/v4 v4.0.0
 	github.com/kubernetes-incubator/external-storage v0.20.4-openstorage-rc7
 	github.com/libopenstorage/autopilot-api v1.3.0
-	github.com/libopenstorage/openstorage v9.4.20+incompatible
-	github.com/libopenstorage/operator v0.0.0-20221128182303-7bedcffb60e6
-	github.com/libopenstorage/stork v1.4.1-0.20221103082056-65abc8cc4e80
+	github.com/libopenstorage/openstorage v9.4.46+incompatible
+	github.com/libopenstorage/operator v0.0.0-20230112002659-7e73437e61d4
+	github.com/libopenstorage/stork v1.4.1-0.20230205235509-852265888b64
 	github.com/openshift/api v0.0.0-20210105115604-44119421ec6b
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
 	// TODO: Vendor from pb-1874 branch. Need to change it to master.
@@ -17,10 +17,10 @@ require (
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.46.0
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.46.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/stretchr/testify v1.8.0
-	k8s.io/api v0.25.1
-	k8s.io/apiextensions-apiserver v0.25.1
-	k8s.io/apimachinery v0.25.1
+	github.com/stretchr/testify v1.8.1
+	k8s.io/api v0.25.4
+	k8s.io/apiextensions-apiserver v0.25.4
+	k8s.io/apimachinery v0.25.4
 	k8s.io/client-go v12.0.0+incompatible
 )
 
@@ -31,7 +31,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.1-0.20180719211823-0b96aaa70776+incompatible // indirect
 	github.com/emicklei/go-restful/v3 v3.8.0 // indirect
-	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
+	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
@@ -54,22 +54,22 @@ require (
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/operator-framework/api v0.17.1
-	github.com/pborman/uuid v1.2.0 // indirect
+	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/net v0.1.0 // indirect
-	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
+	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783 // indirect
 	golang.org/x/sys v0.1.0 // indirect
 	golang.org/x/term v0.1.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
-	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect
+	golang.org/x/time v0.1.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20220519153652-3a47de7e79bd // indirect
-	google.golang.org/grpc v1.47.0 // indirect
-	google.golang.org/protobuf v1.28.0 // indirect
+	google.golang.org/genproto v0.0.0-20221205194025-8222ab48f5fc // indirect
+	google.golang.org/grpc v1.51.0 // indirect
+	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
@@ -88,13 +88,14 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-require github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
+require github.com/golang/glog v1.0.0 // indirect
 
 replace (
 	github.com/kubernetes-incubator/external-storage => github.com/libopenstorage/external-storage v0.25.1-openstorage-rc1
 	github.com/libopenstorage/autopilot-api => github.com/libopenstorage/autopilot-api v0.6.1-0.20210301232050-ca2633c6e114
-	github.com/libopenstorage/stork => github.com/libopenstorage/stork v1.4.1-0.20220818154556-7457272a06d9
+	github.com/libopenstorage/stork => github.com/libopenstorage/stork v1.4.1-0.20230205235509-852265888b64
 	github.com/portworx/torpedo => github.com/portworx/torpedo v0.20.4-rc1
+	helm.sh/helm/v3 => helm.sh/helm/v3 v3.10.3
 
 	k8s.io/api => k8s.io/api v0.25.1
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.25.1

@@ -8,7 +8,7 @@ require (
 	github.com/libopenstorage/autopilot-api v1.3.0
 	github.com/libopenstorage/openstorage v9.4.46+incompatible
 	github.com/libopenstorage/operator v0.0.0-20230202214252-140e2e1fd86a
-	github.com/libopenstorage/stork v1.4.1-0.20230205235509-852265888b64
+	github.com/libopenstorage/stork v1.4.1-0.20230207013129-a31284f0e973
 	github.com/openshift/api v0.0.0-20210105115604-44119421ec6b
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
 	// TODO: Vendor from pb-1874 branch. Need to change it to master.
@@ -93,7 +93,7 @@ require github.com/golang/glog v1.0.0 // indirect
 replace (
 	github.com/kubernetes-incubator/external-storage => github.com/libopenstorage/external-storage v0.25.1-openstorage-rc1
 	github.com/libopenstorage/autopilot-api => github.com/libopenstorage/autopilot-api v0.6.1-0.20210301232050-ca2633c6e114
-	github.com/libopenstorage/stork => github.com/libopenstorage/stork v1.4.1-0.20230205235509-852265888b64
+	github.com/libopenstorage/stork => github.com/libopenstorage/stork v1.4.1-0.20230207013129-a31284f0e973
 	github.com/portworx/torpedo => github.com/portworx/torpedo v0.0.0-20230206190621-4ccdccff9ded
 	helm.sh/helm/v3 => helm.sh/helm/v3 v3.10.3
 

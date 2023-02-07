@@ -1764,8 +1764,8 @@ github.com/libopenstorage/operator v0.0.0-20230202214252-140e2e1fd86a h1:tDduVTF
 github.com/libopenstorage/operator v0.0.0-20230202214252-140e2e1fd86a/go.mod h1:Q66wsNUAekPawgGg9yh0Bs7eXWPa4/+c2JTefdiDciM=
 github.com/libopenstorage/secrets v0.0.0-20210908194121-a1d19aa9713a/go.mod h1:gE8rSd6lwLNXNbiW3DrRZjFMs+y4fDHy/6uiOO9cdzY=
 github.com/libopenstorage/secrets v0.0.0-20220413195519-57d1c446c5e9/go.mod h1:gE8rSd6lwLNXNbiW3DrRZjFMs+y4fDHy/6uiOO9cdzY=
-github.com/libopenstorage/stork v1.4.1-0.20230205235509-852265888b64 h1:feSLVnzteRRnOUp3aegrC2icI4s1dtVNDxUu8hzeyjY=
-github.com/libopenstorage/stork v1.4.1-0.20230205235509-852265888b64/go.mod h1:VL/2KoqJ+7zXUeT9b826ZhsJGtR6HNmjzgrgu4fqZcc=
+github.com/libopenstorage/stork v1.4.1-0.20230207013129-a31284f0e973 h1:Je2reUbObyp8tJTN87zfCNOQijfP9Qro3gHOWjAeqFc=
+github.com/libopenstorage/stork v1.4.1-0.20230207013129-a31284f0e973/go.mod h1:/EFTTQyBxNzul96urrYPdjNEYeDzVgZzK88gRQjoVmk=
 github.com/libopenstorage/systemutils v0.0.0-20160208220149-44ac83be3ce1/go.mod h1:xwNGC7xiz/BQ/wbMkvHujL8Gjgseg+x41xMek7sKRRQ=
 github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de/go.mod h1:zAbeS9B/r2mtpb6U+EI2rYA5OAXxsYw6wTamcNW+zcE=
 github.com/lightstep/lightstep-tracer-common/golang/gogo v0.0.0-20190605223551-bc2310a04743/go.mod h1:qklhhLq1aX+mtWk9cPHPzaBjWImj5ULL6C7HFJtXQMM=

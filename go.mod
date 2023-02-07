@@ -8,11 +8,11 @@ require (
 	github.com/libopenstorage/autopilot-api v1.3.0
 	github.com/libopenstorage/openstorage v9.4.46+incompatible
 	github.com/libopenstorage/operator v0.0.0-20230202214252-140e2e1fd86a
-	github.com/libopenstorage/stork v1.4.1-0.20230207013129-a31284f0e973
+	github.com/libopenstorage/stork v1.4.1-0.20230207125320-e6ce79c590f6
 	github.com/openshift/api v0.0.0-20210105115604-44119421ec6b
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
 	// TODO: Vendor from pb-1874 branch. Need to change it to master.
-	github.com/portworx/kdmp v0.4.1-0.20230127055521-e23d6b003478
+	github.com/portworx/kdmp v0.4.1-0.20230206120825-078c75a441b6
 	github.com/portworx/talisman v0.0.0-20210302012732-8af4564777f7
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.46.0
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.46.0
@@ -60,11 +60,11 @@ require (
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
-	golang.org/x/net v0.1.0 // indirect
+	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783 // indirect
-	golang.org/x/sys v0.1.0 // indirect
-	golang.org/x/term v0.1.0 // indirect
-	golang.org/x/text v0.4.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/term v0.4.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/time v0.1.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20221205194025-8222ab48f5fc // indirect
@@ -93,7 +93,7 @@ require github.com/golang/glog v1.0.0 // indirect
 replace (
 	github.com/kubernetes-incubator/external-storage => github.com/libopenstorage/external-storage v0.25.1-openstorage-rc1
 	github.com/libopenstorage/autopilot-api => github.com/libopenstorage/autopilot-api v0.6.1-0.20210301232050-ca2633c6e114
-	github.com/libopenstorage/stork => github.com/libopenstorage/stork v1.4.1-0.20230207013129-a31284f0e973
+	github.com/libopenstorage/stork => github.com/libopenstorage/stork v1.4.1-0.20230207125320-e6ce79c590f6
 	github.com/portworx/torpedo => github.com/portworx/torpedo v0.0.0-20230206190621-4ccdccff9ded
 	helm.sh/helm/v3 => helm.sh/helm/v3 v3.10.3
 

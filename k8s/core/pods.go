@@ -123,7 +123,7 @@ func (c *Client) ListPods(labelSelector map[string]string) (*corev1.PodList, err
 	opts := metav1.ListOptions{
 		LabelSelector: mapToCSV(labelSelector),
 	}
-	return c.kubernetes.CoreV1().Pods("").List(context.TODO(), opts)
+	return c.kubernetes.CoreV1().Pods("").List(opts)
 }
 
 // GetPods returns pods for the given namespace

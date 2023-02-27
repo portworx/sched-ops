@@ -21,6 +21,8 @@ var (
 type Ops interface {
 	MutatingWebhookConfigurationOps
 	MutatingWebhookConfigurationV1beta1Ops
+	ValidatingWebhookConfigurationOps
+	ValidatingWebhookConfigurationV1beta1Ops
 
 	// SetConfig sets the config and resets the client.
 	SetConfig(config *rest.Config)

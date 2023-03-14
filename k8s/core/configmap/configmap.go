@@ -23,6 +23,7 @@ func New(
 	lockAttempts uint,
 	v2LockRefreshDuration time.Duration,
 	v2LockK8sLockTTL time.Duration,
+	nameSpace string,
 ) (ConfigMap, error) {
 	if data == nil {
 		data = make(map[string]string)
@@ -32,11 +33,14 @@ func New(
 		configMapUserLabelKey: TruncateLabel(name),
 	}
 	data[pxOwnerKey] = ""
+	if nameSpace == "" {
+		nameSpace = k8sSystemNamespace
+	}
 
 	cm := &v1.ConfigMap{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      name,
-			Namespace: k8sSystemNamespace,
+			Namespace: nameSpace,
 			Labels:    labels,
 		},
 		Data: data,

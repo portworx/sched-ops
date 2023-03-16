@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	kdmpclientset "github.com/portworx/kdmp/pkg/client/clientset/versioned"
+	"github.com/portworx/sched-ops/k8s/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -25,6 +26,8 @@ type Ops interface {
 	VolumeBackupOps
 	VolumeBackupDeleteOps
 	BackupLocationMaintenanceOps
+	ResourceExportOps
+	ResourceBackupOps
 
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)
@@ -152,7 +155,10 @@ func (c *Client) loadClient() error {
 	}
 
 	var err error
-
+	err = common.SetRateLimiter(c.config)
+	if err != nil {
+		return err
+	}
 	c.kube, err = kubernetes.NewForConfig(c.config)
 	if err != nil {
 		return err

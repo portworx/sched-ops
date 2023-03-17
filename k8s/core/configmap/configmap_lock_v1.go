@@ -1,10 +1,11 @@
 package configmap
 
 import (
+	"time"
+
 	"github.com/portworx/sched-ops/k8s/core"
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
-	"time"
 )
 
 func (c *configMap) Lock(id string) error {
@@ -54,7 +55,7 @@ func (c *configMap) Unlock() error {
 	for retries := 0; retries < maxConflictRetries; retries++ {
 		cm, err = core.Instance().GetConfigMap(
 			c.name,
-			k8sSystemNamespace,
+			c.nameSpace,
 		)
 		if err != nil {
 			// A ConfigMap should always be created.
@@ -89,7 +90,7 @@ func (c *configMap) tryLockV1(id string, refresh bool) (string, error) {
 	// Get the existing ConfigMap
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
-		k8sSystemNamespace,
+		c.nameSpace,
 	)
 	if err != nil {
 		// A ConfigMap should always be created.

@@ -67,13 +67,14 @@ func New(
 		lockAttempts:        lockAttempts,
 		lockRefreshDuration: v2LockRefreshDuration,
 		lockK8sLockTTL:      v2LockK8sLockTTL,
+		nameSpace:           nameSpace,
 	}, nil
 }
 
 func (c *configMap) Get() (map[string]string, error) {
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
-		k8sSystemNamespace,
+		c.nameSpace,
 	)
 	if err != nil {
 		return nil, err
@@ -85,7 +86,7 @@ func (c *configMap) Get() (map[string]string, error) {
 func (c *configMap) Delete() error {
 	return core.Instance().DeleteConfigMap(
 		c.name,
-		k8sSystemNamespace,
+		c.nameSpace,
 	)
 }
 
@@ -97,7 +98,7 @@ func (c *configMap) Patch(data map[string]string) error {
 	for retries := 0; retries < maxConflictRetries; retries++ {
 		cm, err = core.Instance().GetConfigMap(
 			c.name,
-			k8sSystemNamespace,
+			c.nameSpace,
 		)
 		if err != nil {
 			return err
@@ -128,7 +129,7 @@ func (c *configMap) Update(data map[string]string) error {
 	for retries := 0; retries < maxConflictRetries; retries++ {
 		cm, err = core.Instance().GetConfigMap(
 			c.name,
-			k8sSystemNamespace,
+			c.nameSpace,
 		)
 		if err != nil {
 			return err

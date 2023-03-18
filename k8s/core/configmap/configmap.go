@@ -5,8 +5,6 @@ import (
 	"strings"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-
 	"github.com/portworx/sched-ops/k8s/core"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -33,7 +31,7 @@ func New(
 	}
 	data[pxOwnerKey] = ""
 
-	cm := &v1.ConfigMap{
+	cm := &corev1.ConfigMap{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      name,
 			Namespace: k8sSystemNamespace,
@@ -44,7 +42,7 @@ func New(
 
 	if _, err := core.Instance().CreateConfigMap(cm); err != nil &&
 		!k8s_errors.IsAlreadyExists(err) {
-		return nil, fmt.Errorf("Failed to create configmap %v: %v",
+		return nil, fmt.Errorf("failed to create configmap %v: %v",
 			name, err)
 	}
 
@@ -57,12 +55,12 @@ func New(
 	}
 
 	return &configMap{
-		name:                name,
-		lockTimeout:         lockTimeout,
-		kLocksV2:            map[string]*k8sLock{},
-		lockAttempts:        lockAttempts,
-		lockRefreshDuration: v2LockRefreshDuration,
-		lockK8sLockTTL:      v2LockK8sLockTTL,
+		name:                   name,
+		defaultLockHoldTimeout: lockTimeout,
+		kLocksV2:               map[string]*k8sLock{},
+		lockAttempts:           lockAttempts,
+		lockRefreshDuration:    v2LockRefreshDuration,
+		lockK8sLockTTL:         v2LockK8sLockTTL,
 	}, nil
 }
 

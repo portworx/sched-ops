@@ -58,15 +58,16 @@ var (
 type FatalCb func(format string, args ...interface{})
 
 type configMap struct {
-	name                string
-	kLockV1             k8sLock
-	kLocksV2Mutex       sync.Mutex
-	kLocksV2            map[string]*k8sLock
-	lockTimeout         time.Duration
-	lockAttempts        uint
-	lockRefreshDuration time.Duration
-	lockK8sLockTTL      time.Duration
-	nameSpace           string
+	name                   string
+	kLockV1                k8sLock
+	kLocksV2Mutex          sync.Mutex
+	kLocksV2               map[string]*k8sLock
+	lockHoldTimeoutV1      time.Duration
+	defaultLockHoldTimeout time.Duration
+	lockAttempts           uint
+	lockRefreshDuration    time.Duration
+	lockK8sLockTTL         time.Duration
+	nameSpace              string
 }
 
 type k8sLock struct {
@@ -83,6 +84,8 @@ type ConfigMap interface {
 	// Lock locks a configMap where id is the identification of
 	// the holder of the lock.
 	Lock(id string) error
+	// LockWithHoldTimeout similar to Lock but with a different lock hold timeout
+	LockWithHoldTimeout(id string, holdTimeout time.Duration) error
 	// LockWithKey locks a configMap where owner is the identification
 	// of the holder of the lock and key is the specific lock to take.
 	LockWithKey(owner, key string) error

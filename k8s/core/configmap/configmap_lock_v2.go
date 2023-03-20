@@ -357,7 +357,7 @@ func (c *configMap) refreshLock(id, key string) {
 }
 
 func (c *configMap) checkLockTimeout(startTime time.Time, id string) {
-	if c.lockTimeout > 0 && time.Since(startTime) > c.lockTimeout {
+	if c.defaultLockHoldTimeout > 0 && time.Since(startTime) > c.defaultLockHoldTimeout {
 		panicMsg := fmt.Sprintf("Lock timeout triggered for K8s configmap lock key %s", id)
 		if fatalCb != nil {
 			fatalCb(panicMsg)

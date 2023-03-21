@@ -106,3 +106,36 @@ func TestLock(t *testing.T) {
 	err = cm.Delete()
 	require.NoError(t, err, "Unexpected error on Delete")
 }
+
+func TestLockWithHoldTimeout(t *testing.T) {
+	defaultHoldTimeout := 3 * time.Second
+	customHoldTimeout := defaultHoldTimeout + v1DefaultK8sLockRefreshDuration + 10*time.Second
+	fakeClient := fakek8sclient.NewSimpleClientset()
+	coreops.SetInstance(coreops.New(fakeClient))
+	cm, err := New("px-configmaps-test", nil, defaultHoldTimeout, 5, 0, 0)
+	require.NoError(t, err, "Unexpected error on New")
+	fmt.Println("TestLockWithHoldTimeout")
+
+	var lockTimedout bool
+	fatalLockCb := func(format string, args ...interface{}) {
+		fmt.Println("\tLock timeout called.")
+		lockTimedout = true
+		err := cm.Unlock()
+		require.NoError(t, err, "Unexpected error from Unlock")
+	}
+	SetFatalCb(fatalLockCb)
+
+	// when custom lock hold timeout is more than the default lock hold timeout
+	err = cm.LockWithHoldTimeout("id1", customHoldTimeout)
+	require.NoError(t, err, "Unexpected error in lock")
+
+	// lock hold timeout should not trigger after the default lock hold timeout period (plus refresh interval)
+	time.Sleep(customHoldTimeout - 8*time.Second)
+	require.False(t, lockTimedout, "Lock hold timeout should not have triggered")
+
+	err = cm.Unlock()
+	require.NoError(t, err, "Unexpected no error in unlock")
+
+	err = cm.Delete()
+	require.NoError(t, err, "Unexpected error on Delete")
+}

@@ -21,6 +21,7 @@ func New(
 	lockAttempts uint,
 	v2LockRefreshDuration time.Duration,
 	v2LockK8sLockTTL time.Duration,
+	nameSpace string,
 ) (ConfigMap, error) {
 	if data == nil {
 		data = make(map[string]string)
@@ -30,11 +31,14 @@ func New(
 		configMapUserLabelKey: TruncateLabel(name),
 	}
 	data[pxOwnerKey] = ""
+	if nameSpace == "" {
+		nameSpace = k8sSystemNamespace
+	}
 
 	cm := &corev1.ConfigMap{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      name,
-			Namespace: k8sSystemNamespace,
+			Namespace: nameSpace,
 			Labels:    labels,
 		},
 		Data: data,
@@ -61,13 +65,14 @@ func New(
 		lockAttempts:           lockAttempts,
 		lockRefreshDuration:    v2LockRefreshDuration,
 		lockK8sLockTTL:         v2LockK8sLockTTL,
+		nameSpace:              nameSpace,
 	}, nil
 }
 
 func (c *configMap) Get() (map[string]string, error) {
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
-		k8sSystemNamespace,
+		c.nameSpace,
 	)
 	if err != nil {
 		return nil, err
@@ -79,7 +84,7 @@ func (c *configMap) Get() (map[string]string, error) {
 func (c *configMap) Delete() error {
 	return core.Instance().DeleteConfigMap(
 		c.name,
-		k8sSystemNamespace,
+		c.nameSpace,
 	)
 }
 
@@ -91,7 +96,7 @@ func (c *configMap) Patch(data map[string]string) error {
 	for retries := 0; retries < maxConflictRetries; retries++ {
 		cm, err = core.Instance().GetConfigMap(
 			c.name,
-			k8sSystemNamespace,
+			c.nameSpace,
 		)
 		if err != nil {
 			return err
@@ -122,7 +127,7 @@ func (c *configMap) Update(data map[string]string) error {
 	for retries := 0; retries < maxConflictRetries; retries++ {
 		cm, err = core.Instance().GetConfigMap(
 			c.name,
-			k8sSystemNamespace,
+			c.nameSpace,
 		)
 		if err != nil {
 			return err

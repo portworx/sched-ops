@@ -155,7 +155,7 @@ func (c *configMap) refreshLockV1(id string) {
 		case <-refresh.C:
 			c.kLockV1.Lock()
 			for !c.kLockV1.unlocked {
-				c.checkLockTimeout(startTime, id)
+				c.checkLockTimeout(c.lockHoldTimeoutV1, startTime, id)
 				currentRefresh = time.Now()
 				if _, err := c.tryLockV1(id, true); err != nil {
 					configMapLog(fn, c.name, "", "", err).Errorf(

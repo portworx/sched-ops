@@ -89,7 +89,7 @@ func (c *configMap) UnlockWithKey(key string) error {
 	for retries := 0; retries < maxConflictRetries; retries++ {
 		cm, err = core.Instance().GetConfigMap(
 			c.name,
-			k8sSystemNamespace,
+			c.nameSpace,
 		)
 		if err != nil {
 			// A ConfigMap should always be created.
@@ -140,7 +140,7 @@ func (c *configMap) IsKeyLocked(key string) (bool, string, error) {
 	// Get the existing ConfigMap
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
-		k8sSystemNamespace,
+		c.nameSpace,
 	)
 	if err != nil {
 		return false, "", err
@@ -174,7 +174,7 @@ func (c *configMap) tryLock(owner string, key string) (string, error) {
 	// Get the existing ConfigMap
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
-		k8sSystemNamespace,
+		c.nameSpace,
 	)
 	if err != nil {
 		// A ConfigMap should always be created.
@@ -332,7 +332,7 @@ func (c *configMap) refreshLock(id, key string) {
 			lock.Lock()
 
 			for !lock.unlocked {
-				c.checkLockTimeout(startTime, id)
+				c.checkLockTimeout(c.defaultLockHoldTimeout, startTime, id)
 				currentRefresh = time.Now()
 				if _, err := c.tryLock(id, key); err != nil {
 					configMapLog(fn, c.name, "", key, err).Errorf(
@@ -356,9 +356,9 @@ func (c *configMap) refreshLock(id, key string) {
 
 }
 
-func (c *configMap) checkLockTimeout(startTime time.Time, id string) {
-	if c.defaultLockHoldTimeout > 0 && time.Since(startTime) > c.defaultLockHoldTimeout {
-		panicMsg := fmt.Sprintf("Lock timeout triggered for K8s configmap lock key %s", id)
+func (c *configMap) checkLockTimeout(holdTimeout time.Duration, startTime time.Time, id string) {
+	if holdTimeout > 0 && time.Since(startTime) > holdTimeout {
+		panicMsg := fmt.Sprintf("Lock hold timeout (%v) triggered for K8s configmap lock key %s", holdTimeout, id)
 		if fatalCb != nil {
 			fatalCb(panicMsg)
 		} else {

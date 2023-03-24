@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ValidatingWebhookConfigurationOps is interface to perform CRUD ops on mutatting webhook controller
+// ValidatingWebhookConfigurationOps is an interface to perform CRUD ops on mutatting webhook controller
 type ValidatingWebhookConfigurationOps interface {
 	// GetValidatingWebhookConfiguration returns given ValidatingWebhookConfiguration
 	GetValidatingWebhookConfiguration(name string) (*hook.ValidatingWebhookConfiguration, error)

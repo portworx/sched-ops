@@ -33,8 +33,9 @@ func New(
 
 	cm := &corev1.ConfigMap{
 		ObjectMeta: meta_v1.ObjectMeta{
-			Name:   name,
-			Labels: labels,
+			Name:      name,
+			Namespace: k8sSystemNamespace,
+			Labels:    labels,
 		},
 		Data: data,
 	}

@@ -60,7 +60,7 @@ func (c *configMap) Unlock() error {
 	for retries := 0; retries < maxConflictRetries; retries++ {
 		cm, err = core.Instance().GetConfigMap(
 			c.name,
-			c.nameSpace,
+			k8sSystemNamespace,
 		)
 		if err != nil {
 			// A ConfigMap should always be created.
@@ -95,7 +95,7 @@ func (c *configMap) tryLockV1(id string, refresh bool) (string, error) {
 	// Get the existing ConfigMap
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
-		c.nameSpace,
+		k8sSystemNamespace,
 	)
 	if err != nil {
 		// A ConfigMap should always be created.

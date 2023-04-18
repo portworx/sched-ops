@@ -67,7 +67,6 @@ type configMap struct {
 	lockAttempts           uint
 	lockRefreshDuration    time.Duration
 	lockK8sLockTTL         time.Duration
-	nameSpace              string
 }
 
 type k8sLock struct {

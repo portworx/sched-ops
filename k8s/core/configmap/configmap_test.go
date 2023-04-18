@@ -17,7 +17,7 @@ func TestGetConfigMap(t *testing.T) {
 	configData := map[string]string{
 		"key1": "val1",
 	}
-	cm, err := New("px-configmaps-test", configData, lockTimeout, 5, 0, 0, "test-namespace")
+	cm, err := New("px-configmaps-test", configData, lockTimeout, 5, 0, 0)
 	require.NoError(t, err, "Unexpected error in creating configmap")
 
 	resultMap, err := cm.Get()
@@ -34,7 +34,7 @@ func TestDeleteConfigMap(t *testing.T) {
 		"key1": "val1",
 	}
 
-	cm, err := New("px-configmaps-test", configData, lockTimeout, 5, 0, 0, "test-namespace")
+	cm, err := New("px-configmaps-test", configData, lockTimeout, 5, 0, 0)
 	require.NoError(t, err, "Unexpected error in creating configmap")
 
 	err = cm.Delete()
@@ -50,7 +50,7 @@ func TestPatchConfigMap(t *testing.T) {
 		"key1": "val1",
 	}
 
-	cm, err := New("px-configmaps-test", configData, lockTimeout, 5, 0, 0, "test-namespace")
+	cm, err := New("px-configmaps-test", configData, lockTimeout, 5, 0, 0)
 	require.NoError(t, err, "Unexpected error in creating configmap")
 
 	dummyData := map[string]string{
@@ -73,7 +73,7 @@ func TestUpdateConfigMap(t *testing.T) {
 		"key1": "val1",
 	}
 
-	cm, err := New("px-configmaps-test", configData, lockTimeout, 5, 0, 0, "test-namespace")
+	cm, err := New("px-configmaps-test", configData, lockTimeout, 5, 0, 0)
 	require.NoError(t, err, "Unexpected error in creating configmap")
 
 	dummyData := map[string]string{

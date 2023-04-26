@@ -89,7 +89,7 @@ func (c *configMap) UnlockWithKey(key string) error {
 	for retries := 0; retries < maxConflictRetries; retries++ {
 		cm, err = core.Instance().GetConfigMap(
 			c.name,
-			c.nameSpace,
+			k8sSystemNamespace,
 		)
 		if err != nil {
 			// A ConfigMap should always be created.
@@ -140,7 +140,7 @@ func (c *configMap) IsKeyLocked(key string) (bool, string, error) {
 	// Get the existing ConfigMap
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
-		c.nameSpace,
+		k8sSystemNamespace,
 	)
 	if err != nil {
 		return false, "", err
@@ -174,7 +174,7 @@ func (c *configMap) tryLock(owner string, key string) (string, error) {
 	// Get the existing ConfigMap
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
-		c.nameSpace,
+		k8sSystemNamespace,
 	)
 	if err != nil {
 		// A ConfigMap should always be created.

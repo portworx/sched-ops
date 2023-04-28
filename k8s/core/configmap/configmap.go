@@ -3,7 +3,7 @@ package configmap
 import (
 	"time"
 
-	"github.com/pborman/uuid"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,11 +18,11 @@ func (c *configMap) Instance() ConfigMap {
 		return c.config
 	} else {
 		existingConfig := c.config
-		c.copylock.Lock(uuid.New())
+		c.copylock.Lock(uuid.New().String())
 		defer c.copylock.Unlock()
 		lockMap, err := c.copylock.Get()
 		if err != nil {
-			log.Error("Error during fetching data from copy lock %s", err)
+			log.Errorf("Error during fetching data from copy lock %s", err)
 			return existingConfig
 		}
 		status := lockMap["UPGRADE_DONE"]

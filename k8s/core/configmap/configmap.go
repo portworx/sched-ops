@@ -1,188 +1,103 @@
 package configmap
 
 import (
-	"fmt"
-	"strings"
 	"time"
 
-	"github.com/portworx/sched-ops/k8s/core"
-	"github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
-	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
-// New returns the ConfigMap interface. It also creates a new
-// configmap in k8s for the given name if not present and puts the data in it.
-func New(
-	name string,
-	data map[string]string,
-	lockTimeout time.Duration,
-	lockAttempts uint,
-	v2LockRefreshDuration time.Duration,
-	v2LockK8sLockTTL time.Duration,
-) (ConfigMap, error) {
-	if data == nil {
-		data = make(map[string]string)
-	}
+func (c *configMap) Instance() ConfigMap {
 
-	labels := map[string]string{
-		configMapUserLabelKey: TruncateLabel(name),
-	}
-	data[pxOwnerKey] = ""
+	//iskvdbhealthy
+	//kvdb.instance
 
-	cm := &corev1.ConfigMap{
-		ObjectMeta: meta_v1.ObjectMeta{
-			Name:      name,
-			Namespace: k8sSystemNamespace,
-			Labels:    labels,
-		},
-		Data: data,
-	}
+	if c.pxNs == c.config.nameSpace {
+		//fresh install
+		//upgrade completed
+		return c.config
+	} else {
+		existingConfig := c.config
+		c.copylock.Lock(uuid.New())
+		defer c.copylock.Unlock()
+		lockMap, err := c.copylock.Get()
+		if err != nil {
+			log.Error("Error during fetching data from copy lock %s", err)
+			return existingConfig
+		}
+		status := lockMap["UPGRADE_DONE"]
+		if status == "true" {
+			// upgrade is completed
+			//create configmap in portworx namespace
+			newConfig := &coreConfigMap{
+				name:                   existingConfig.name,
+				defaultLockHoldTimeout: existingConfig.defaultLockHoldTimeout,
+				kLocksV2:               existingConfig.kLocksV2,
+				lockAttempts:           existingConfig.lockAttempts,
+				lockRefreshDuration:    existingConfig.lockRefreshDuration,
+				lockK8sLockTTL:         existingConfig.lockK8sLockTTL,
+				nameSpace:              "portworx",
+			}
 
-	if _, err := core.Instance().CreateConfigMap(cm); err != nil &&
-		!k8s_errors.IsAlreadyExists(err) {
-		return nil, fmt.Errorf("failed to create configmap %v: %v",
-			name, err)
-	}
+			configData, err := existingConfig.Get()
+			if err != nil {
+				log.Errorf("Error during fetching data from old config map %s", err)
+				return existingConfig
+			}
+			//copy data from old configmap to new configmap
+			if err = newConfig.Update(configData); err != nil {
+				log.Errorf("Error during copying data from old config map %s", err)
+				return existingConfig
+			}
 
-	if v2LockK8sLockTTL == 0 {
-		v2LockK8sLockTTL = v2DefaultK8sLockTTL
+			//delete old configmap
+			err = c.config.Delete()
+			if err != nil {
+				log.Errorf("Error during deleting configmap %s in namespace %s ", c.config.name, c.config.nameSpace)
+			}
+			c.config = newConfig
+		} else {
+			return existingConfig
+		}
 	}
-
-	if v2LockRefreshDuration == 0 {
-		v2LockRefreshDuration = v2DefaultK8sLockRefreshDuration
-	}
-
-	return &configMap{
-		name:                   name,
-		defaultLockHoldTimeout: lockTimeout,
-		kLocksV2:               map[string]*k8sLock{},
-		lockAttempts:           lockAttempts,
-		lockRefreshDuration:    v2LockRefreshDuration,
-		lockK8sLockTTL:         v2LockK8sLockTTL,
-	}, nil
+	return c.config
 }
 
 func (c *configMap) Get() (map[string]string, error) {
-	cm, err := core.Instance().GetConfigMap(
-		c.name,
-		k8sSystemNamespace,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return cm.Data, nil
+	return c.Instance().Get()
 }
 
 func (c *configMap) Delete() error {
-	return core.Instance().DeleteConfigMap(
-		c.name,
-		k8sSystemNamespace,
-	)
+	return c.Instance().Delete()
 }
 
 func (c *configMap) Patch(data map[string]string) error {
-	var (
-		err error
-		cm  *corev1.ConfigMap
-	)
-	for retries := 0; retries < maxConflictRetries; retries++ {
-		cm, err = core.Instance().GetConfigMap(
-			c.name,
-			k8sSystemNamespace,
-		)
-		if err != nil {
-			return err
-		}
-
-		if cm.Data == nil {
-			cm.Data = make(map[string]string, 0)
-		}
-
-		for k, v := range data {
-			cm.Data[k] = v
-		}
-		_, err = core.Instance().UpdateConfigMap(cm)
-		if k8s_errors.IsConflict(err) {
-			// try again
-			continue
-		}
-		return err
-	}
-	return err
+	return c.Instance().Patch(data)
 }
 
 func (c *configMap) Update(data map[string]string) error {
-	var (
-		err error
-		cm  *corev1.ConfigMap
-	)
-	for retries := 0; retries < maxConflictRetries; retries++ {
-		cm, err = core.Instance().GetConfigMap(
-			c.name,
-			k8sSystemNamespace,
-		)
-		if err != nil {
-			return err
-		}
-		cm.Data = data
-		_, err = core.Instance().UpdateConfigMap(cm)
-		if k8s_errors.IsConflict(err) {
-			// try again
-			continue
-		}
-		return err
-	}
-	return err
+	return c.Instance().Update(data)
 }
 
-// SetFatalCb sets the fatal callback for the package which will get invoked in panic situations
-func SetFatalCb(fb FatalCb) {
-	fatalCb = fb
+func (c *configMap) Lock(id string) error {
+	return c.Instance().Lock(id)
 }
 
-func configMapLog(fn, name, owner, key string, err error) *logrus.Entry {
-	if len(owner) > 0 && len(key) > 0 {
-		return logrus.WithFields(logrus.Fields{
-			"Module":   "ConfigMap",
-			"Name":     name,
-			"Owner":    owner,
-			"Key":      key,
-			"Function": fn,
-			"Error":    err,
-		})
-	}
-	if len(owner) > 0 {
-		return logrus.WithFields(logrus.Fields{
-			"Module":   "ConfigMap",
-			"Name":     name,
-			"Owner":    owner,
-			"Function": fn,
-			"Error":    err,
-		})
-	}
-	return logrus.WithFields(logrus.Fields{
-		"Module":   "ConfigMap",
-		"Name":     name,
-		"Function": fn,
-		"Error":    err,
-	})
+func (c *configMap) LockWithHoldTimeout(id string, holdTimeout time.Duration) error {
+	return c.Instance().LockWithHoldTimeout(id, holdTimeout)
 }
 
-// GetName is a helper function that returns a valid k8s
-// configmap name given a prefix identifying the component using
-// the configmap and a clusterID
-func GetName(prefix, clusterID string) string {
-	return prefix + strings.ToLower(configMapNameRegex.ReplaceAllString(clusterID, ""))
+func (c *configMap) LockWithKey(owner, key string) error {
+	return c.Instance().LockWithKey(owner, key)
 }
 
-// TruncateLabel is a helper function that returns a valid k8s
-// label stripped down to 63 characters. It removes the trailing characters
-func TruncateLabel(label string) string {
-	if len(label) > 63 {
-		return label[:63]
-	}
-	return label
+func (c *configMap) Unlock() error {
+	return c.Instance().Unlock()
+}
+
+func (c *configMap) UnlockWithKey(key string) error {
+	return c.Instance().UnlockWithKey(key)
+}
+func (c *configMap) IsKeyLocked(key string) (bool, string, error) {
+	return c.Instance().IsKeyLocked(key)
 }

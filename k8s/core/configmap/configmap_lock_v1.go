@@ -8,11 +8,11 @@ import (
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-func (c *configMap) Lock(id string) error {
+func (c *coreConfigMap) Lock(id string) error {
 	return c.LockWithHoldTimeout(id, c.defaultLockHoldTimeout)
 }
 
-func (c *configMap) LockWithHoldTimeout(id string, holdTimeout time.Duration) error {
+func (c *coreConfigMap) LockWithHoldTimeout(id string, holdTimeout time.Duration) error {
 	fn := "LockWithHoldTimeout"
 	count := uint(0)
 	// try acquiring a lock on the ConfigMap
@@ -40,7 +40,7 @@ func (c *configMap) LockWithHoldTimeout(id string, holdTimeout time.Duration) er
 	return nil
 }
 
-func (c *configMap) Unlock() error {
+func (c *coreConfigMap) Unlock() error {
 	fn := "Unlock"
 	// Get the existing ConfigMap
 	c.kLockV1.Lock()
@@ -91,7 +91,7 @@ func (c *configMap) Unlock() error {
 	return err
 }
 
-func (c *configMap) tryLockV1(id string, refresh bool) (string, error) {
+func (c *coreConfigMap) tryLockV1(id string, refresh bool) (string, error) {
 	// Get the existing ConfigMap
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
@@ -140,7 +140,7 @@ increase_expiry:
 	return id, nil
 }
 
-func (c *configMap) refreshLockV1(id string) {
+func (c *coreConfigMap) refreshLockV1(id string) {
 	fn := "refreshLock"
 	refresh := time.NewTicker(v1DefaultK8sLockRefreshDuration)
 	var (

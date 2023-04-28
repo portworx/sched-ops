@@ -57,7 +57,7 @@ func New(
 		v2LockRefreshDuration = v2DefaultK8sLockRefreshDuration
 	}
 
-	return &coreConfigMap{
+	config := &coreConfigMap{
 		name:                   name,
 		defaultLockHoldTimeout: lockTimeout,
 		kLocksV2:               map[string]*k8sLock{},
@@ -65,6 +65,11 @@ func New(
 		lockRefreshDuration:    v2LockRefreshDuration,
 		lockK8sLockTTL:         v2LockK8sLockTTL,
 		nameSpace:              ns,
+	}
+	return &configMap{
+		config:   config,
+		pxNs:     ns,
+		copylock: nil,
 	}, nil
 }
 

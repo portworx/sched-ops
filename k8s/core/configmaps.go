@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -28,7 +27,6 @@ type ConfigMapOps interface {
 
 // GetConfigMap gets the config map object for the given name and namespace
 func (c *Client) GetConfigMap(name string, namespace string) (*corev1.ConfigMap, error) {
-	fmt.Println("Searching for configmap ", name, " in ns ", namespace)
 	if err := c.initClient(); err != nil {
 		return nil, err
 	}

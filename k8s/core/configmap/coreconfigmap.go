@@ -66,14 +66,40 @@ func New(
 		lockK8sLockTTL:         v2LockK8sLockTTL,
 		nameSpace:              ns,
 	}
+
+	cm1 := &corev1.ConfigMap{
+		ObjectMeta: meta_v1.ObjectMeta{
+			Name:      pxCopyLockConfigMap,
+			Namespace: pxNamespace,
+		},
+		Data: map[string]string{
+			upgradeCompletedStatus: true,
+		},
+	}
+
+	copyLock := &coreConfigMap{}
+	_, err := core.Instance().CreateConfigMap(cm1)
+
+	if err != nil && !k8s_errors.IsAlreadyExists(err) {
+		fmt.Println("Failed to create configmap-copylock")
+		return nil, fmt.Errorf("failed to create configmap %v: %v",
+			name, err)
+	} else {
+		copyLock.name = pxCopyLockConfigMap
+		copyLock.kLocksV2 = map[string]*k8sLock{}
+		copyLock.lockRefreshDuration = v2LockRefreshDuration
+		copyLock.lockK8sLockTTL = v2LockK8sLockTTL
+		copyLock.nameSpace = pxNamespace
+	}
+
 	return &configMap{
 		config:   config,
 		pxNs:     ns,
-		copylock: nil,
+		copylock: copyLock,
 	}, nil
 }
 
-func (c *coreConfigMap) Get() (map[string]string, error) {
+func (c *coreConfigMap) get() (map[string]string, error) {
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
 		c.nameSpace,
@@ -85,14 +111,14 @@ func (c *coreConfigMap) Get() (map[string]string, error) {
 	return cm.Data, nil
 }
 
-func (c *coreConfigMap) Delete() error {
+func (c *coreConfigMap) delete() error {
 	return core.Instance().DeleteConfigMap(
 		c.name,
 		c.nameSpace,
 	)
 }
 
-func (c *coreConfigMap) Patch(data map[string]string) error {
+func (c *coreConfigMap) patch(data map[string]string) error {
 	var (
 		err error
 		cm  *corev1.ConfigMap
@@ -123,7 +149,7 @@ func (c *coreConfigMap) Patch(data map[string]string) error {
 	return err
 }
 
-func (c *coreConfigMap) Update(data map[string]string) error {
+func (c *coreConfigMap) update(data map[string]string) error {
 	var (
 		err error
 		cm  *corev1.ConfigMap

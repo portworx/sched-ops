@@ -7,26 +7,23 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (c *configMap) Instance() ConfigMap {
-
-	//iskvdbhealthy
-	//kvdb.instance
+func (c *configMap) Instance() *coreConfigMap {
 
 	if c.pxNs == c.config.nameSpace {
-		//fresh install
-		//upgrade completed
+		//fresh install ot upgrade completed
 		return c.config
 	} else {
 		existingConfig := c.config
 		c.copylock.Lock(uuid.New().String())
 		defer c.copylock.Unlock()
-		lockMap, err := c.copylock.Get()
+
+		lockMap, err := c.copylock.get()
 		if err != nil {
 			log.Errorf("Error during fetching data from copy lock %s", err)
 			return existingConfig
 		}
-		status := lockMap["UPGRADE_DONE"]
-		if status == "true" {
+		status := lockMap[upgradeCompletedStatus]
+		if status == true {
 			// upgrade is completed
 			//create configmap in portworx namespace
 			newConfig := &coreConfigMap{
@@ -36,22 +33,22 @@ func (c *configMap) Instance() ConfigMap {
 				lockAttempts:           existingConfig.lockAttempts,
 				lockRefreshDuration:    existingConfig.lockRefreshDuration,
 				lockK8sLockTTL:         existingConfig.lockK8sLockTTL,
-				nameSpace:              "portworx",
+				nameSpace:              pxNamespace,
 			}
 
-			configData, err := existingConfig.Get()
+			configData, err := existingConfig.get()
 			if err != nil {
 				log.Errorf("Error during fetching data from old config map %s", err)
 				return existingConfig
 			}
 			//copy data from old configmap to new configmap
-			if err = newConfig.Update(configData); err != nil {
+			if err = newConfig.update(configData); err != nil {
 				log.Errorf("Error during copying data from old config map %s", err)
 				return existingConfig
 			}
 
 			//delete old configmap
-			err = c.config.Delete()
+			err = c.config.delete()
 			if err != nil {
 				log.Errorf("Error during deleting configmap %s in namespace %s ", c.config.name, c.config.nameSpace)
 			}
@@ -64,19 +61,19 @@ func (c *configMap) Instance() ConfigMap {
 }
 
 func (c *configMap) Get() (map[string]string, error) {
-	return c.Instance().Get()
+	return c.Instance().get()
 }
 
 func (c *configMap) Delete() error {
-	return c.Instance().Delete()
+	return c.Instance().delete()
 }
 
 func (c *configMap) Patch(data map[string]string) error {
-	return c.Instance().Patch(data)
+	return c.Instance().patch(data)
 }
 
 func (c *configMap) Update(data map[string]string) error {
-	return c.Instance().Update(data)
+	return c.Instance().update(data)
 }
 
 func (c *configMap) Lock(id string) error {

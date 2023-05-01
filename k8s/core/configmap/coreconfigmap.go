@@ -73,7 +73,7 @@ func New(
 			Namespace: pxNamespace,
 		},
 		Data: map[string]string{
-			upgradeCompletedStatus: true,
+			upgradeCompletedStatus: trueString,
 		},
 	}
 
@@ -84,13 +84,13 @@ func New(
 		fmt.Println("Failed to create configmap-copylock")
 		return nil, fmt.Errorf("failed to create configmap %v: %v",
 			name, err)
-	} else {
-		copyLock.name = pxCopyLockConfigMap
-		copyLock.kLocksV2 = map[string]*k8sLock{}
-		copyLock.lockRefreshDuration = v2LockRefreshDuration
-		copyLock.lockK8sLockTTL = v2LockK8sLockTTL
-		copyLock.nameSpace = pxNamespace
 	}
+
+	copyLock.name = pxCopyLockConfigMap
+	copyLock.kLocksV2 = map[string]*k8sLock{}
+	copyLock.lockRefreshDuration = v2LockRefreshDuration
+	copyLock.lockK8sLockTTL = v2LockK8sLockTTL
+	copyLock.nameSpace = pxNamespace
 
 	return &configMap{
 		config:   config,

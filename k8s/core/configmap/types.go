@@ -45,8 +45,8 @@ const (
 	configMapUserLabelKey  = "user"
 	maxConflictRetries     = 3
 	upgradeCompletedStatus = "UPGRADE_DONE"
-	true                   = "true"
-	false                  = "false"
+	trueString             = "true"
+	falseString            = "false"
 	pxNamespace            = "portworx"
 	pxCopyLockConfigMap    = "configmaps-copylock"
 )

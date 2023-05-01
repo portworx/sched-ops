@@ -41,9 +41,14 @@ const (
 	// objects.
 	pxLockKey = "px-lock"
 
-	lockSleepDuration     = 1 * time.Second
-	configMapUserLabelKey = "user"
-	maxConflictRetries    = 3
+	lockSleepDuration      = 1 * time.Second
+	configMapUserLabelKey  = "user"
+	maxConflictRetries     = 3
+	upgradeCompletedStatus = "UPGRADE_DONE"
+	true                   = "true"
+	false                  = "false"
+	pxNamespace            = "portworx"
+	pxCopyLockConfigMap    = "configmaps-copylock"
 )
 
 var (

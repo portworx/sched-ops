@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -29,12 +30,14 @@ func (e *ErrTimedOut) Error() string {
 // TODO(stgleb): In future I would like to add context as a first param to this function
 // so calling code can cancel task.
 func DoRetryWithTimeout(t func() (interface{}, bool, error), timeout, timeBeforeRetry time.Duration) (interface{}, error) {
+	log.Printf("DoRetryWithTimeout Timeout: (%v)", timeout)
 	// Use context.Context as a standard go way of timeout and cancellation propagation amount goroutines.
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	resultChan := make(chan interface{})
 	errChan := make(chan error)
+	errInRetires := make([]string, 0)
 
 	go func() {
 		for {
@@ -48,18 +51,19 @@ func DoRetryWithTimeout(t func() (interface{}, bool, error), timeout, timeBefore
 				return
 			default:
 				out, retry, err := t()
-				if err == nil {
+				if err != nil {
+					if retry {
+						errInRetires = append(errInRetires, err.Error())
+						log.Printf("DoRetryWithTimeout - Error: {%v}, Next try in: (%v)", err, timeBeforeRetry)
+						time.Sleep(timeBeforeRetry)
+					} else {
+						errChan <- err
+						return
+					}
+				} else {
 					resultChan <- out
 					return
 				}
-
-				if err != nil && !retry {
-					errChan <- err
-					return
-				}
-
-				log.Printf("%v Next retry in: %v", err, timeBeforeRetry)
-				time.Sleep(timeBeforeRetry)
 			}
 		}
 	}()
@@ -70,7 +74,7 @@ func DoRetryWithTimeout(t func() (interface{}, bool, error), timeout, timeBefore
 	case err := <-errChan:
 		if err == context.DeadlineExceeded {
 			return nil, &ErrTimedOut{
-				Reason: err.Error(),
+				Reason: fmt.Sprintf("DoRetryWithTimeout timed out. Errors generated in retries: {%s}", strings.Join(errInRetires, "}\n{")),
 			}
 		}
 

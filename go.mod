@@ -44,6 +44,7 @@ require (
 replace (
 	github.com/kubernetes-incubator/external-storage => github.com/libopenstorage/external-storage v5.1.1-0.20190919185747-9394ee8dd536+incompatible
 	github.com/kubernetes-incubator/external-storage v0.0.0-00010101000000-000000000000 => github.com/libopenstorage/external-storage v5.1.1-0.20190919185747-9394ee8dd536+incompatible
+	github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2-0.20190424153033-d3245f150225
 	k8s.io/api => k8s.io/api v0.15.11
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.15.11
 	k8s.io/apimachinery => k8s.io/apimachinery v0.15.11

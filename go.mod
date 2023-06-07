@@ -12,7 +12,7 @@ require (
 	github.com/openshift/api v0.0.0-20210105115604-44119421ec6b
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
 	// TODO: Vendor from pb-1874 branch. Need to change it to master.
-	github.com/portworx/kdmp v0.4.1-0.20220309093511-f7b925b9e53e
+	github.com/portworx/kdmp v0.4.1-0.20220414053457-962507678379
 	github.com/portworx/talisman v0.0.0-20210302012732-8af4564777f7
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.46.0
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.46.0
@@ -27,7 +27,9 @@ require (
 replace (
 	github.com/kubernetes-incubator/external-storage => github.com/libopenstorage/external-storage v0.20.4-openstorage-rc2
 	github.com/libopenstorage/autopilot-api => github.com/libopenstorage/autopilot-api v0.6.1-0.20210301232050-ca2633c6e114
+	github.com/libopenstorage/stork => github.com/libopenstorage/stork v1.4.1-0.20220414104250-b74d6b851d33
 	github.com/portworx/torpedo => github.com/portworx/torpedo v0.20.4-rc1
+	github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2-0.20190424153033-d3245f150225
 
 	k8s.io/api => k8s.io/api v0.21.4
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.21.4

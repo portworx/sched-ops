@@ -16,10 +16,11 @@ import (
 )
 
 const (
-	kindKubeConfigPath         = "/tmp/kindutil.conf"
-	ENV_PRESERVE_KIND_CLUSTERS = "PRESERVE_KIND_CLUSTERS"
+	kindKubeConfigPath      = "/tmp/kindutil.conf"
+	envPreserveKindClusters = "PRESERVE_KIND_CLUSTERS"
 )
 
+// KindUtil interface is a wrapper around the kind utility
 type KindUtil interface {
 	ClusterExists(name string) (bool, error)
 	CreateCluster(name string) error
@@ -35,6 +36,7 @@ type kindUtil struct {
 var once sync.Once
 var kind *kindUtil
 
+// NewKindUtil initializes and returns a singleton kind util object
 func NewKindUtil() KindUtil {
 	once.Do(func() {
 		kindPath, err := exec.LookPath("kind")
@@ -56,24 +58,28 @@ func (k *kindUtil) runCmd(cmd *exec.Cmd) (string, error) {
 	return string(out), nil
 }
 
+// CreateCluster creates a kind k8s cluster with the specified name
 func (k *kindUtil) CreateCluster(name string) error {
 	cmd := exec.Command(k.kindPath, "create", "cluster", "--name", name, "--wait=5m", "--kubeconfig", kindKubeConfigPath)
 	_, err := k.runCmd(cmd)
 	return err
 }
 
+// DestroyCluster destroys a kind k8s cluster with the specified name
 func (k *kindUtil) DestroyCluster(name string) error {
 	cmd := exec.Command(k.kindPath, "delete", "cluster", "--name", name, "--kubeconfig", kindKubeConfigPath)
 	_, err := k.runCmd(cmd)
 	return err
 }
 
+// DestroyAllClusters destroys all kind k8s clusters
 func (k *kindUtil) DestroyAllClusters() error {
 	cmd := exec.Command(k.kindPath, "delete", "clusters", "--all", "--kubeconfig", kindKubeConfigPath)
 	_, err := k.runCmd(cmd)
 	return err
 }
 
+// GetClusterRestConfig returns rest config for the specified kind cluster
 func (k *kindUtil) GetClusterRestConfig(name string) (*rest.Config, error) {
 	cmd := exec.Command(k.kindPath, "get", "kubeconfig", "--name", name)
 	out, err := k.runCmd(cmd)
@@ -91,6 +97,7 @@ func (k *kindUtil) GetClusterRestConfig(name string) (*rest.Config, error) {
 	return restCfg, nil
 }
 
+// ClusterExists checks if the specified kind cluster exists
 func (k *kindUtil) ClusterExists(name string) (bool, error) {
 	cmd := exec.Command(k.kindPath, "get", "clusters")
 	out, err := k.runCmd(cmd)
@@ -106,6 +113,7 @@ func (k *kindUtil) ClusterExists(name string) (bool, error) {
 	return false, nil
 }
 
+// SetUpTestCluster is a utility method to setup a kind cluster for testing
 func SetUpTestCluster(t *testing.T, clusterName string) *rest.Config {
 	// create a target cluster using kind if one does not exist already
 	kind := NewKindUtil()
@@ -123,30 +131,28 @@ func SetUpTestCluster(t *testing.T, clusterName string) *rest.Config {
 	restCfg, err := kind.GetClusterRestConfig(clusterName)
 	require.Nil(t, err)
 
-	// testClient, err := client.New(restCfg, client.Options{ /*Scheme: scheme.Scheme*/ })
-	// require.Nil(t, err)
-
 	return restCfg
 }
 
+// DestroyTestCluster is a utility method to destroy a kind cluster from test
 func DestroyTestCluster(t *testing.T, clusterName string) {
 	var preserveKindClusters bool = true
 	var err error
 
-	val, defined := os.LookupEnv(ENV_PRESERVE_KIND_CLUSTERS)
+	val, defined := os.LookupEnv(envPreserveKindClusters)
 	if defined {
 		preserveKindClusters, err = strconv.ParseBool(val)
 		require.Nil(t, err)
 	}
 	if preserveKindClusters {
-		t.Logf("preserving kind cluster %s; use %s=false to change", clusterName, ENV_PRESERVE_KIND_CLUSTERS)
+		t.Logf("preserving kind cluster %s; use %s=false to change", clusterName, envPreserveKindClusters)
 		return
 	}
 	kind := NewKindUtil()
 	exists, err := kind.ClusterExists(clusterName)
 	require.Nil(t, err)
 	if exists {
-		t.Logf("%s is set to %s, destroying kind cluster %s", ENV_PRESERVE_KIND_CLUSTERS, val, clusterName)
+		t.Logf("%s is set to %s, destroying kind cluster %s", envPreserveKindClusters, val, clusterName)
 		err = kind.DestroyCluster(clusterName)
 		require.Nil(t, err)
 	}

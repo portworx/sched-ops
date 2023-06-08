@@ -53,8 +53,7 @@ type RecorderOps interface {
 	RecordEventLegacy(source corev1.EventSource, object runtime.Object, eventtype, reason, message string)
 }
 
-// RecordEventLegacy records an old-style event into k8s using client-go's record.EventRecorder interface.
-// Deprecated. Use RecordEventf instead.
+// RecordEventLegacy see RecorderOps interface
 func (c *Client) RecordEventLegacy(source corev1.EventSource, object runtime.Object, eventtype, reason, message string) {
 	if err := c.initClient(); err != nil {
 		return
@@ -82,10 +81,12 @@ func (c *Client) RecordEventLegacy(source corev1.EventSource, object runtime.Obj
 	eventRecorder.Event(object, eventtype, reason, message)
 }
 
+// RecordEvent see RecorderOps interface
 func (c *Client) RecordEvent(source corev1.EventSource, object runtime.Object, eventtype, reason, message string) {
 	c.RecordEventf(source.Component, object, nil, eventtype, reason, "Unspecified", message)
 }
 
+// RecordEventf see RecorderOps interface
 func (c *Client) RecordEventf(
 	reportingController string, regarding runtime.Object, related runtime.Object, eventType, reason, action string,
 	note string, args ...interface{},

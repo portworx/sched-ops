@@ -140,20 +140,18 @@ func (c *Client) ValidateStatefulSet(statefulset *appsv1.StatefulSet, timeout ti
 			}
 		}
 
-		if *sset.Spec.Replicas != sset.Status.ReadyReplicas {
-			return "", true, &schederrors.ErrAppNotReady{
-				ID: sset.Name,
-				Cause: fmt.Sprintf("Expected replicas: %v Ready replicas: %v Current pods overview:\n%s",
-					*sset.Spec.Replicas, sset.Status.ReadyReplicas, podsOverviewString),
+		var readyCount int32
+		for _, pod := range pods {
+			if common.IsPodReady(pod) {
+				readyCount++
 			}
 		}
 
-		for _, pod := range pods {
-			if !common.IsPodReady(pod) {
-				return "", true, &schederrors.ErrAppNotReady{
-					ID:    sset.Name,
-					Cause: fmt.Sprintf("Pod: %v is not yet ready", pod.Name),
-				}
+		if *sset.Spec.Replicas != readyCount {
+			return "", true, &schederrors.ErrAppNotReady{
+				ID: sset.Name,
+				Cause: fmt.Sprintf("Expected replicas: %v Ready replicas: %v Current pods overview:\n%s",
+					*sset.Spec.Replicas, readyCount, podsOverviewString),
 			}
 		}
 

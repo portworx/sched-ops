@@ -23,7 +23,7 @@ var (
 type Ops interface {
 	CRDOps
 	CRDV1beta1Ops
-	ExtensionOps
+	DiscoveryOps
 
 	// SetConfig sets the config and resets the client.
 	SetConfig(config *rest.Config)

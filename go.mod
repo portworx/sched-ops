@@ -6,9 +6,9 @@ require (
 	github.com/kubernetes-incubator/external-storage v0.20.4-openstorage-rc7
 	github.com/libopenstorage/autopilot-api v1.3.0
 	github.com/libopenstorage/openstorage v9.4.47+incompatible
-	github.com/libopenstorage/operator v0.0.0-20230323034810-8853b151f594
+	github.com/libopenstorage/operator v0.0.0-20230801044606-e27dec4914d4
 	github.com/libopenstorage/stork v1.4.1-0.20230330233319-e17ea1b3fd81
-	github.com/openshift/api v0.0.0-20210105115604-44119421ec6b
+	github.com/openshift/api v0.0.0-20230426193520-54a14470e5dc
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
 	// TODO: Vendor from pb-1874 branch. Need to change it to master.
 	github.com/portworx/kdmp v0.4.1-0.20230316085313-95fc97e8493b

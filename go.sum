@@ -1758,6 +1758,8 @@ github.com/libopenstorage/external-storage v0.25.1-openstorage-rc1 h1:500dS/WvbT
 github.com/libopenstorage/external-storage v0.25.1-openstorage-rc1/go.mod h1:SjzH+nDdB/VOy8j7TY6suGmfYcojGiPemsbdxuOoS0E=
 github.com/libopenstorage/external-storage v1.8.1-0.20230803063951-3944aa2cc198 h1:CVVNK6sMNgcce4MNBr61PwZj61sDQHW+KkGqhLvL1ww=
 github.com/libopenstorage/external-storage v1.8.1-0.20230803063951-3944aa2cc198/go.mod h1:XinKblFX8lpAjvVhzciVrAbNBWMh1MEQX8zT6s9wlyo=
+github.com/libopenstorage/external-storage v1.8.1-0.20230908101825-dbe02a9bb23f h1:lHr6ZMK5AQ6r899oVm5WwWc5MF2wjYpmXo7ZX6wQ4Vs=
+github.com/libopenstorage/external-storage v1.8.1-0.20230908101825-dbe02a9bb23f/go.mod h1:gCZjG2K5jbQxNXzW0ax2ZEOP1QTJDLhwozuq0/PKJSI=
 github.com/libopenstorage/gossip v0.0.0-20190507031959-c26073a01952/go.mod h1:TjXt2Iz2bTkpfc4Q6xN0ttiNipTVwEEYoZSMZHlfPek=
 github.com/libopenstorage/gossip v0.0.0-20220309192431-44c895e0923e/go.mod h1:TjXt2Iz2bTkpfc4Q6xN0ttiNipTVwEEYoZSMZHlfPek=
 github.com/libopenstorage/openstorage v1.0.0/go.mod h1:Sp1sIObHjat1BeXhfMqLZ14wnOzEhNx2YQedreMcUyc=

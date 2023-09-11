@@ -92,7 +92,7 @@ require github.com/kubernetes-csi/external-snapshotter/client/v6 v6.2.0
 require github.com/google/go-cmp v0.5.9 // indirect
 
 replace (
-	github.com/kubernetes-incubator/external-storage => github.com/libopenstorage/external-storage v1.8.1-0.20230803063951-3944aa2cc198
+	github.com/kubernetes-incubator/external-storage => github.com/libopenstorage/external-storage v1.8.1-0.20230908101825-dbe02a9bb23f
 	github.com/libopenstorage/autopilot-api => github.com/libopenstorage/autopilot-api v0.6.1-0.20210301232050-ca2633c6e114
 	github.com/libopenstorage/stork => github.com/libopenstorage/stork v1.4.1-0.20230330233319-e17ea1b3fd81
 	github.com/portworx/torpedo => github.com/portworx/torpedo v0.0.0-20230206190621-4ccdccff9ded
@@ -118,7 +118,7 @@ replace (
 	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.26.1
 	k8s.io/kubectl => k8s.io/kubectl v0.26.1
 	k8s.io/kubelet => k8s.io/kubelet v0.26.1
-	k8s.io/kubernetes => k8s.io/kubernetes v1.25.1
+	k8s.io/kubernetes => k8s.io/kubernetes v1.26.1
 	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.26.1
 	k8s.io/metrics => k8s.io/metrics v0.26.1
 	k8s.io/mount-utils => k8s.io/mount-utils v0.26.1

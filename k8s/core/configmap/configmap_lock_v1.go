@@ -44,7 +44,12 @@ func (c *configMap) Unlock() error {
 	fn := "Unlock"
 	// Get the existing ConfigMap
 	c.kLockV1.Lock()
-	defer c.kLockV1.Unlock()
+	defer func() {
+		// Check if the mutex is locked before unlocking
+		if !c.kLockV1.unlocked {
+			c.kLockV1.Unlock()
+		}
+	}()
 	if c.kLockV1.unlocked {
 		// The lock is already unlocked
 		return nil

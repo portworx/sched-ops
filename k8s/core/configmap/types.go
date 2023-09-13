@@ -41,9 +41,14 @@ const (
 	// objects.
 	pxLockKey = "px-lock"
 
-	lockSleepDuration     = 1 * time.Second
-	configMapUserLabelKey = "user"
-	maxConflictRetries    = 3
+	lockSleepDuration      = 1 * time.Second
+	configMapUserLabelKey  = "user"
+	maxConflictRetries     = 3
+	upgradeCompletedStatus = "UPGRADE_DONE"
+	trueString             = "true"
+	falseString            = "false"
+	pxNamespace            = "portworx"
+	pxCopyLockConfigMap    = "configmaps-copylock"
 )
 
 var (
@@ -58,7 +63,14 @@ var (
 type FatalCb func(format string, args ...interface{})
 
 type configMap struct {
+	config   *coreConfigMap
+	pxNs     string
+	copylock *coreConfigMap
+}
+
+type coreConfigMap struct {
 	name                   string
+	nameSpace              string
 	kLockV1                k8sLock
 	kLocksV2Mutex          sync.Mutex
 	kLocksV2               map[string]*k8sLock

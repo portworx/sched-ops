@@ -12,7 +12,7 @@ import (
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-func (c *configMap) LockWithKey(owner, key string) error {
+func (c *coreConfigMap) LockWithKey(owner, key string) error {
 	if key == "" {
 		return fmt.Errorf("key cannot be empty")
 	}
@@ -54,7 +54,7 @@ func (c *configMap) LockWithKey(owner, key string) error {
 	return nil
 }
 
-func (c *configMap) UnlockWithKey(key string) error {
+func (c *coreConfigMap) UnlockWithKey(key string) error {
 	if key == "" {
 		return fmt.Errorf("key cannot be empty")
 	}
@@ -89,7 +89,7 @@ func (c *configMap) UnlockWithKey(key string) error {
 	for retries := 0; retries < maxConflictRetries; retries++ {
 		cm, err = core.Instance().GetConfigMap(
 			c.name,
-			k8sSystemNamespace,
+			c.nameSpace,
 		)
 		if err != nil {
 			// A ConfigMap should always be created.
@@ -136,11 +136,11 @@ func (c *configMap) UnlockWithKey(key string) error {
 	return err
 }
 
-func (c *configMap) IsKeyLocked(key string) (bool, string, error) {
+func (c *coreConfigMap) IsKeyLocked(key string) (bool, string, error) {
 	// Get the existing ConfigMap
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
-		k8sSystemNamespace,
+		c.nameSpace,
 	)
 	if err != nil {
 		return false, "", err
@@ -170,11 +170,11 @@ func (c *configMap) IsKeyLocked(key string) (bool, string, error) {
 	return false, "", nil
 }
 
-func (c *configMap) tryLock(owner string, key string) (string, error) {
+func (c *coreConfigMap) tryLock(owner string, key string) (string, error) {
 	// Get the existing ConfigMap
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
-		k8sSystemNamespace,
+		c.nameSpace,
 	)
 	if err != nil {
 		// A ConfigMap should always be created.
@@ -209,7 +209,7 @@ func (c *configMap) tryLock(owner string, key string) (string, error) {
 // parseLocks reads the lock data from the given ConfigMap and then converts it to:
 // * a map of keys to lock owners
 // * a map of keys to lock expiration times
-func (c *configMap) parseLocks(cm *v1.ConfigMap) (map[string]string, map[string]time.Time, error) {
+func (c *coreConfigMap) parseLocks(cm *v1.ConfigMap) (map[string]string, map[string]time.Time, error) {
 	// Check all the locks: will be an empty string if key is not present indicating no lock
 	parsedLocks := []lockData{}
 	if lock, ok := cm.Data[pxLockKey]; ok && len(lock) > 0 {
@@ -233,7 +233,7 @@ func (c *configMap) parseLocks(cm *v1.ConfigMap) (map[string]string, map[string]
 
 // checkAndTakeLock tries to take the given lock (owner, key) given the current state of the lock
 // (lockOwners, lockExpirations).
-func (c *configMap) checkAndTakeLock(
+func (c *coreConfigMap) checkAndTakeLock(
 	owner, key string,
 	lockOwners map[string]string,
 	lockExpirations map[string]time.Time,
@@ -279,7 +279,7 @@ func (c *configMap) checkAndTakeLock(
 
 // generateConfigMapData converts the given lock data (lockOwners, lockExpirations) to JSON and
 // stores it in the given ConfigMap.
-func (c *configMap) generateConfigMapData(cm *v1.ConfigMap, lockOwners map[string]string, lockExpirations map[string]time.Time) error {
+func (c *coreConfigMap) generateConfigMapData(cm *v1.ConfigMap, lockOwners map[string]string, lockExpirations map[string]time.Time) error {
 	var locks []lockData
 	for key, lockOwner := range lockOwners {
 		locks = append(locks, lockData{
@@ -297,7 +297,7 @@ func (c *configMap) generateConfigMapData(cm *v1.ConfigMap, lockOwners map[strin
 	return nil
 }
 
-func (c *configMap) updateConfigMap(cm *v1.ConfigMap) (bool, error) {
+func (c *coreConfigMap) updateConfigMap(cm *v1.ConfigMap) (bool, error) {
 	if _, err := core.Instance().UpdateConfigMap(cm); err != nil {
 		return k8s_errors.IsConflict(err), err
 	}
@@ -308,7 +308,7 @@ func (c *configMap) updateConfigMap(cm *v1.ConfigMap) (bool, error) {
 // It keeps the lock refreshed in k8s until we call Unlock. This is so that if the
 // node dies, the lock can have a short timeout and expire quickly but we can still
 // take longer-term locks.
-func (c *configMap) refreshLock(id, key string) {
+func (c *coreConfigMap) refreshLock(id, key string) {
 	fn := "refreshLock"
 	refresh := time.NewTicker(c.lockRefreshDuration)
 	var (
@@ -356,7 +356,7 @@ func (c *configMap) refreshLock(id, key string) {
 
 }
 
-func (c *configMap) checkLockTimeout(holdTimeout time.Duration, startTime time.Time, id string) {
+func (c *coreConfigMap) checkLockTimeout(holdTimeout time.Duration, startTime time.Time, id string) {
 	if holdTimeout > 0 && time.Since(startTime) > holdTimeout {
 		panicMsg := fmt.Sprintf("Lock hold timeout (%v) triggered for K8s configmap lock key %s", holdTimeout, id)
 		if fatalCb != nil {

@@ -18,7 +18,7 @@ func TestMultilock(t *testing.T) {
 	t.Skip("skipped until PWX-31627 is fixed")
 	fakeClient := fakek8sclient.NewSimpleClientset()
 	coreops.SetInstance(coreops.New(fakeClient))
-	cm, err := New("px-configmaps-test", nil, lockTimeout, 3, 0, 0)
+	cm, err := New("px-configmaps-test", nil, lockTimeout, 3, 0, 0, "test-ns")
 	require.NoError(t, err, "Unexpected error on New")
 
 	fmt.Println("testMultilock")

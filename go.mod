@@ -94,9 +94,6 @@ require github.com/google/go-cmp v0.5.9 // indirect
 replace (
 	github.com/kubernetes-incubator/external-storage => github.com/libopenstorage/external-storage v0.25.1-openstorage-rc1
 	github.com/libopenstorage/autopilot-api => github.com/libopenstorage/autopilot-api v0.6.1-0.20210301232050-ca2633c6e114
-	github.com/libopenstorage/operator => github.com/libopenstorage/operator v0.0.0-20230919012742-1a93cc994277
-	github.com/libopenstorage/stork => github.com/libopenstorage/stork v1.4.1-0.20230919103533-c90292a4154f
-	github.com/portworx/kdmp => github.com/portworx/kdmp v0.4.1-0.20230912104956-36835cd6c0b1
 	github.com/portworx/torpedo => github.com/portworx/torpedo v0.0.0-20230206190621-4ccdccff9ded
 	helm.sh/helm/v3 => helm.sh/helm/v3 v3.10.3
 

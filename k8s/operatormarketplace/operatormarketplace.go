@@ -1,6 +1,7 @@
 package operatormarketplace
 
 import (
+	"fmt"
 	"sync"
 
 	ofv1 "github.com/operator-framework/api/pkg/operators/v1"
@@ -51,6 +52,29 @@ func New(crClient client.Client) *Client {
 	}
 }
 
+// NewForConfig builds a new client for the given config.
+func NewForConfig(c *rest.Config) (*Client, error) {
+	crClient, err := crClient.NewForConfig(c)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Client{
+		crClient: crClient,
+	}, nil
+}
+
+// NewInstanceFromConfigFile returns new instance of client by using given
+// config file
+func NewInstanceFromConfigFile(config string) (Ops, error) {
+	newInstance := &Client{}
+	err := newInstance.loadClientFromKubeconfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return newInstance, nil
+}
+
 // Client is a wrapper for the operator client.
 type Client struct {
 	config   *rest.Config
@@ -95,5 +119,32 @@ func (c *Client) setClient() error {
 		return err
 	}
 
+	return nil
+}
+
+func (c *Client) loadClientFromKubeconfig(kubeconfig string) error {
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return err
+	}
+
+	c.config = config
+	return c.loadClient()
+}
+
+func (c *Client) loadClient() error {
+	if c.config == nil {
+		return fmt.Errorf("rest config is not provided")
+	}
+
+	var err error
+	err = common.SetRateLimiter(c.config)
+	if err != nil {
+		return err
+	}
+	c.crClient, err = crClient.NewForConfig(c.config)
+	if err != nil {
+		return err
+	}
 	return nil
 }

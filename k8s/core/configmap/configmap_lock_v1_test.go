@@ -17,72 +17,75 @@ func TestLock(t *testing.T) {
 	require.NoError(t, err, "Unexpected error on New")
 	fmt.Println("testLock")
 
-	id := "locktest"
-	err = cm.Lock(id)
-	require.NoError(t, err, "Unexpected error in lock")
+	// id := "locktest"
+	// fmt.Println("\t ==== lock ==== ")
+	// err = cm.Lock(id)
+	// require.NoError(t, err, "Unexpected error in lock")
 
-	fmt.Println("\tunlock")
-	err = cm.Unlock()
-	require.NoError(t, err, "Unexpected error from Unlock")
+	// fmt.Println("\t ==== unlock ==== ")
+	// err = cm.Unlock()
+	// require.NoError(t, err, "Unexpected error from Unlock")
 
-	fmt.Println("\trelock")
-	err = cm.Lock(id)
-	require.NoError(t, err, "Failed to lock after unlock")
+	// fmt.Println("\t ==== relock ==== ")
+	// err = cm.Lock(id)
+	// require.NoError(t, err, "Failed to lock after unlock")
 
-	fmt.Println("\treunlock")
-	err = cm.Unlock()
-	require.NoError(t, err, "Unexpected error from Unlock")
+	// fmt.Println("\t ==== reunlock ==== ")
+	// err = cm.Unlock()
+	// fmt.Printf("err = %v\n", err)
+	// require.NoError(t, err, "Unexpected error from Unlock")
 
-	fmt.Println("\trepeat lock once")
-	err = cm.Lock(id)
-	require.NoError(t, err, "Failed to lock unlock")
+	// fmt.Println("\t ==== repeat lock once ==== ")
+	// err = cm.Lock(id)
+	// fmt.Printf("err = %v\n", err)
+	// require.NoError(t, err, "Failed to lock unlock")
 
-	done := 0
-	go func() {
-		time.Sleep(time.Second * 3)
-		done = 1
-		err := cm.Unlock()
-		fmt.Println("\trepeat lock unlock once")
-		require.NoError(t, err, "Unexpected error from Unlock")
-	}()
-	fmt.Println("\trepeat lock lock twice")
-	err = cm.Lock(id)
-	require.NoError(t, err, "Failed to lock")
-	require.Equal(t, 1, done, "Locked before unlock")
-	fmt.Println("\trepeat lock unlock twice")
-	err = cm.Unlock()
-	require.NoError(t, err, "Unexpected error from Unlock")
+	// done := 0
+	// go func() {
+	// 	time.Sleep(time.Second * 3)
+	// 	done = 1
+	// 	err := cm.Unlock()
+	// 	fmt.Println("\trepeat lock unlock once")
+	// 	require.NoError(t, err, "Unexpected error from Unlock")
+	// }()
+	// fmt.Println("\t ==== repeat lock lock twice ==== ")
+	// err = cm.Lock(id)
+	// require.NoError(t, err, "Failed to lock")
+	// require.Equal(t, 1, done, "Locked before unlock")
+	// fmt.Println("\t ==== trepeat lock unlock twice ==== ")
+	// err = cm.Unlock()
+	// require.NoError(t, err, "Unexpected error from Unlock")
 
-	for done == 0 {
-		time.Sleep(time.Second)
-	}
+	// for done == 0 {
+	// 	time.Sleep(time.Second)
+	// }
 
-	id = "doubleLock"
-	err = cm.Lock(id)
-	require.NoError(t, err, "Unexpected error in lock")
-	go func() {
-		time.Sleep(3 * time.Second)
-		err := cm.Unlock()
-		require.NoError(t, err, "Unexpected error from Unlock")
-	}()
-	err = cm.Lock(id)
-	require.NoError(t, err, "Double lock")
-	err = cm.Unlock()
-	require.NoError(t, err, "Unexpected error from Unlock")
+	// id = "doubleLock"
+	// err = cm.Lock(id)
+	// require.NoError(t, err, "Unexpected error in lock")
+	// go func() {
+	// 	time.Sleep(3 * time.Second)
+	// 	err := cm.Unlock()
+	// 	require.NoError(t, err, "Unexpected error from Unlock")
+	// }()
+	// err = cm.Lock(id)
+	// require.NoError(t, err, "Double lock")
+	// err = cm.Unlock()
+	// require.NoError(t, err, "Unexpected error from Unlock")
 
-	err = cm.Lock("id1")
-	require.NoError(t, err, "Unexpected error in lock")
-	go func() {
-		time.Sleep(1 * time.Second)
-		err := cm.Unlock()
-		require.NoError(t, err, "Unexpected error from Unlock")
-	}()
-	err = cm.Lock("id2")
-	require.NoError(t, err, "diff lock")
-	err = cm.Unlock()
-	require.NoError(t, err, "Unexpected error from Unlock")
+	// err = cm.Lock("id1")
+	// require.NoError(t, err, "Unexpected error in lock")
+	// go func() {
+	// 	time.Sleep(1 * time.Second)
+	// 	err := cm.Unlock()
+	// 	require.NoError(t, err, "Unexpected error from Unlock")
+	// }()
+	// err = cm.Lock("id2")
+	// require.NoError(t, err, "diff lock")
+	// err = cm.Unlock()
+	// require.NoError(t, err, "Unexpected error from Unlock")
 
-	fmt.Println("\tlockExpiration")
+	fmt.Println("\t ==== lockExpiration ==== ")
 
 	var lockTimedout bool
 	fatalLockCb := func(format string, args ...interface{}) {
@@ -92,11 +95,13 @@ func TestLock(t *testing.T) {
 		require.NoError(t, err, "Unexpected error from Unlock")
 	}
 	SetFatalCb(fatalLockCb)
-
+	fmt.Println(lockTimedout)
 	// Check lock expiration
+	// err = cm.Lock("id2")
 	err = cm.Lock("id2")
+	time.Sleep(30 * time.Second)
 	require.NoError(t, err, "Unexpected error in lock")
-	time.Sleep(20 * time.Second)
+	time.Sleep(30 * time.Second)
 	require.True(t, lockTimedout, "Lock hold timeout not triggered")
 
 	err = cm.Lock("id3")

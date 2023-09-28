@@ -2,6 +2,7 @@ package configmap
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"sync"
 	"time"
@@ -73,7 +74,32 @@ type k8sLock struct {
 	done     chan struct{}
 	unlocked bool
 	id       string
-	sync.Mutex
+	emptyx   sync.Mutex
+}
+
+// in a particular use of mutexes.
+func (m *k8sLock) TryLock() bool {
+	fmt.Println("Printing stack trace:")
+	// debug.PrintStack()
+	result := m.emptyx.TryLock()
+	fmt.Println("** got TryLock ", result)
+	return result
+}
+
+func (m *k8sLock) Lock() {
+	fmt.Println("*** Taking mutex lock")
+	fmt.Println("Printing stack trace:")
+	// debug.PrintStack()
+	m.emptyx.Lock()
+	fmt.Println("*** got Mutex-Lock ")
+}
+
+func (m *k8sLock) Unlock() {
+	fmt.Println("***  Unlocking mutex lock")
+	fmt.Println("Printing stack trace:")
+	// debug.PrintStack()
+	m.emptyx.Unlock()
+	fmt.Println("*** Done Mutex-UnLock ")
 }
 
 // ConfigMap is an interface that provides a set of APIs over a single

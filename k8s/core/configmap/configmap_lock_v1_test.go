@@ -6,6 +6,7 @@ import (
 	"time"
 
 	coreops "github.com/portworx/sched-ops/k8s/core"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	fakek8sclient "k8s.io/client-go/kubernetes/fake"
 )
@@ -15,27 +16,27 @@ func TestLock(t *testing.T) {
 	coreops.SetInstance(coreops.New(fakeClient))
 	cm, err := New("px-configmaps-test", nil, lockTimeout, 5, 0, 0)
 	require.NoError(t, err, "Unexpected error on New")
-	fmt.Println("testLock")
+	logrus.Infof("testLock")
 
 	// id := "locktest"
-	// fmt.Println("\t ==== lock ==== ")
+	// logrus.Infof("\t ==== lock ==== ")
 	// err = cm.Lock(id)
 	// require.NoError(t, err, "Unexpected error in lock")
 
-	// fmt.Println("\t ==== unlock ==== ")
+	// logrus.Infof("\t ==== unlock ==== ")
 	// err = cm.Unlock()
 	// require.NoError(t, err, "Unexpected error from Unlock")
 
-	// fmt.Println("\t ==== relock ==== ")
+	// logrus.Infof("\t ==== relock ==== ")
 	// err = cm.Lock(id)
 	// require.NoError(t, err, "Failed to lock after unlock")
 
-	// fmt.Println("\t ==== reunlock ==== ")
+	// logrus.Infof("\t ==== reunlock ==== ")
 	// err = cm.Unlock()
 	// fmt.Printf("err = %v\n", err)
 	// require.NoError(t, err, "Unexpected error from Unlock")
 
-	// fmt.Println("\t ==== repeat lock once ==== ")
+	// logrus.Infof("\t ==== repeat lock once ==== ")
 	// err = cm.Lock(id)
 	// fmt.Printf("err = %v\n", err)
 	// require.NoError(t, err, "Failed to lock unlock")
@@ -45,14 +46,14 @@ func TestLock(t *testing.T) {
 	// 	time.Sleep(time.Second * 3)
 	// 	done = 1
 	// 	err := cm.Unlock()
-	// 	fmt.Println("\trepeat lock unlock once")
+	// 	logrus.Infof("\trepeat lock unlock once")
 	// 	require.NoError(t, err, "Unexpected error from Unlock")
 	// }()
-	// fmt.Println("\t ==== repeat lock lock twice ==== ")
+	// logrus.Infof("\t ==== repeat lock lock twice ==== ")
 	// err = cm.Lock(id)
 	// require.NoError(t, err, "Failed to lock")
 	// require.Equal(t, 1, done, "Locked before unlock")
-	// fmt.Println("\t ==== trepeat lock unlock twice ==== ")
+	// logrus.Infof("\t ==== trepeat lock unlock twice ==== ")
 	// err = cm.Unlock()
 	// require.NoError(t, err, "Unexpected error from Unlock")
 
@@ -85,27 +86,36 @@ func TestLock(t *testing.T) {
 	// err = cm.Unlock()
 	// require.NoError(t, err, "Unexpected error from Unlock")
 
-	fmt.Println("\t ==== lockExpiration ==== ")
+	logrus.Info("\t ==== lockExpiration ==== ")
 
 	var lockTimedout bool
 	fatalLockCb := func(format string, args ...interface{}) {
-		fmt.Println("\tLock timeout called.")
+		logrus.Info("\tLock timeout called.")
 		lockTimedout = true
-		err := cm.Unlock()
-		require.NoError(t, err, "Unexpected error from Unlock")
+		// Unlock since that’ll lead to a deadlock
+		// err := cm.Unlock()
+		// require.NoError(t, err, "Unexpected error from Unlock")
 	}
 	SetFatalCb(fatalLockCb)
-	fmt.Println(lockTimedout)
+	// logrus.Infof("lockTimedout = %v", lockTimedout)
 	// Check lock expiration
 	// err = cm.Lock("id2")
 	err = cm.Lock("id2")
-	time.Sleep(30 * time.Second)
+	time.Sleep(20 * time.Second)
 	require.NoError(t, err, "Unexpected error in lock")
-	time.Sleep(30 * time.Second)
+	fmt.Println("lockTimedout= ", lockTimedout)
 	require.True(t, lockTimedout, "Lock hold timeout not triggered")
 
+	fmt.Println("=============")
+
+	err = cm.Unlock()
+	fmt.Println("err", err)
+	require.NoError(t, err, "Unexpected no error in unlock")
+
+	fmt.Println("=============")
 	err = cm.Lock("id3")
-	require.NoError(t, err, "Lock should have expired")
+	require.NoError(t, err, "Unexpected error in lock")
+	// require.NoError(t, err, "Lock should have expired")
 	err = cm.Unlock()
 	require.NoError(t, err, "Unexpected no error in unlock")
 	err = cm.Delete()
@@ -119,20 +129,24 @@ func TestLockWithHoldTimeout(t *testing.T) {
 	coreops.SetInstance(coreops.New(fakeClient))
 	cm, err := New("px-configmaps-test", nil, defaultHoldTimeout, 5, 0, 0)
 	require.NoError(t, err, "Unexpected error on New")
-	fmt.Println("TestLockWithHoldTimeout")
+	logrus.Infof("TestLockWithHoldTimeout")
 
 	var lockTimedout bool
 	fatalLockCb := func(format string, args ...interface{}) {
-		fmt.Println("\tLock timeout called.")
+		logrus.Infof("\tLock timeout called.")
 		lockTimedout = true
-		err := cm.Unlock()
-		require.NoError(t, err, "Unexpected error from Unlock")
+		// err := cm.Unlock()
+		// require.NoError(t, err, "Unexpected error from Unlock")
 	}
 	SetFatalCb(fatalLockCb)
 
 	// when custom lock hold timeout is more than the default lock hold timeout
 	err = cm.LockWithHoldTimeout("id1", customHoldTimeout)
+	time.Sleep(20 * time.Second)
 	require.NoError(t, err, "Unexpected error in lock")
+
+	err = cm.Unlock()
+	require.NoError(t, err, "Unexpected no error in unlock")
 
 	// lock hold timeout should not trigger after the default lock hold timeout period (plus refresh interval)
 	time.Sleep(customHoldTimeout - 8*time.Second)

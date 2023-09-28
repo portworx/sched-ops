@@ -9,6 +9,7 @@ import (
 
 	"github.com/libopenstorage/openstorage/pkg/dbg"
 	"github.com/portworx/sched-ops/k8s/core"
+	"github.com/sirupsen/logrus"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -357,11 +358,18 @@ func (c *configMap) refreshLock(id, key string) {
 }
 
 func (c *configMap) checkLockTimeout(holdTimeout time.Duration, startTime time.Time, id string) {
+	logrus.Infof("*** checkLockTimeout holdTimeout = %v, startTime = %v, id = %v", holdTimeout, startTime, id)
+	logrus.Infof("time.Since(startTime) = %v", time.Since(startTime))
+	// holdTimeout = 1
+
 	if holdTimeout > 0 && time.Since(startTime) > holdTimeout {
+		logrus.Info("*** inside if")
 		panicMsg := fmt.Sprintf("Lock hold timeout (%v) triggered for K8s configmap lock key %s", holdTimeout, id)
 		if fatalCb != nil {
+			logrus.Infof("**IF = %v", panicMsg)
 			fatalCb(panicMsg)
 		} else {
+			logrus.Infof("**ELSE = %v", panicMsg)
 			dbg.Panicf(panicMsg)
 		}
 	}

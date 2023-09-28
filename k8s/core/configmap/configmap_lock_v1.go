@@ -5,22 +5,23 @@ import (
 	"time"
 
 	"github.com/portworx/sched-ops/k8s/core"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 func (c *configMap) Lock(id string) error {
-	fmt.Println("trying to get lock", id)
+	logrus.Infof("trying to get lock = %v", id)
 	return c.LockWithHoldTimeout(id, c.defaultLockHoldTimeout)
 }
 
 func (c *configMap) LockWithHoldTimeout(id string, holdTimeout time.Duration) error {
-	fmt.Println("** LockWithHoldTimeout id, holdTimeOut", id, holdTimeout)
+	logrus.Infof("** LockWithHoldTimeout id = %v, holdTimeOut = %v", id, holdTimeout)
 	fn := "LockWithHoldTimeout"
 	count := uint(0)
 	// try acquiring a lock on the ConfigMap
 	owner, err := c.tryLockV1(id, false)
-	fmt.Println("owner, err", owner, err)
+	logrus.Infof("owner = %v, err = %v", owner, err)
 	// This is the same no. of times (300) we try while acquiring a kvdb lock
 	for maxCount := c.lockAttempts; err != nil && count < maxCount; count++ {
 		time.Sleep(lockSleepDuration)
@@ -49,52 +50,69 @@ func (c *configMap) LockWithHoldTimeout(id string, holdTimeout time.Duration) er
 }
 
 func (c *configMap) Unlock() error {
-	fmt.Println("** Unlock")
-	fmt.Println("c.kLockV1.id, c.kLockV1.unlocked", c.kLockV1.id, c.kLockV1.unlocked)
+	logrus.Infof("** Unlock")
+	logrus.Infof("c.kLockV1.id = %v, c.kLockV1.unlocked = %v", c.kLockV1.id, c.kLockV1.unlocked)
 	fn := "Unlock"
 	// Get the existing ConfigMap
 	c.kLockV1.Lock()
-	fmt.Println("** got lock ****")
+	logrus.Infof("** got lock ****")
+	defer time.Sleep(10 * time.Second)
+	defer logrus.Infof("defer c.kLockV1.id = %v, c.kLockV1.unlocked = %v", c.kLockV1.id, c.kLockV1.unlocked)
 	defer c.kLockV1.Unlock()
+
+	// defer func() {
+	// 	if r := recover(); r != nil {
+	// 		// Handle the panic here
+	// 		logrus.Infof("Panic occurred in Unlock:", r)
+	// 	}
+	// 	// Always unlock the mutex, even in case of a panic
+	// 	c.kLockV1.Unlock()
+	// }()
+
 	if c.kLockV1.unlocked {
 		// The lock is already unlocked
-		fmt.Println("** return -2")
+		logrus.Infof("** return -2")
 		return nil
 	}
-	fmt.Println("1")
+	logrus.Infof("--1--")
 	c.kLockV1.unlocked = true
 	c.kLockV1.done <- struct{}{}
-	fmt.Println("2")
-	fmt.Println("c.kLockV1.id, c.kLockV1.unlocked", c.kLockV1.id, c.kLockV1.unlocked)
+	// defer func() {
+	// 	c.kLockV1.unlocked = true
+	// 	c.kLockV1.done <- struct{}{}
+	// }()
+
+	logrus.Infof("--2--")
+	logrus.Infof("c.kLockV1.id = %v, c.kLockV1.unlocked = %v", c.kLockV1.id, c.kLockV1.unlocked)
 	var (
 		err error
 		cm  *corev1.ConfigMap
 	)
-	fmt.Println("3")
-	fmt.Println("c.kLockV1.id, c.kLockV1.unlocked", c.kLockV1.id, c.kLockV1.unlocked)
+	logrus.Infof("3")
+	logrus.Infof("c.kLockV1.id = %v, c.kLockV1.unlocked =%v", c.kLockV1.id, c.kLockV1.unlocked)
 	for retries := 0; retries < maxConflictRetries; retries++ {
-		fmt.Println("retries=", retries)
+		logrus.Infof("retries = %v", retries)
 		cm, err = core.Instance().GetConfigMap(
 			c.name,
 			k8sSystemNamespace,
 		)
 		if err != nil {
 			// A ConfigMap should always be created.
-			fmt.Println("** return -1")
+			logrus.Info("** return -1")
 			return err
 		}
 
 		currentOwner := cm.Data[pxOwnerKey]
-		fmt.Println("** currentOwner", currentOwner)
+		logrus.Infof("** currentOwner = %v", currentOwner)
 		if currentOwner != c.kLockV1.id {
 			// We are currently not holding the lock
-			fmt.Println("return 0")
+			logrus.Infof("return 0")
 			return nil
 		}
-		fmt.Println("*** delete")
+		logrus.Info("*** delete")
 		delete(cm.Data, pxOwnerKey)
 		delete(cm.Data, pxExpirationKey)
-		fmt.Println("** deleted")
+		logrus.Info("** deleted")
 		if _, err = core.Instance().UpdateConfigMap(cm); err != nil {
 			configMapLog(fn, c.name, "", "", err).Errorf("Failed to update" +
 				" config map during unlock")
@@ -105,24 +123,36 @@ func (c *configMap) Unlock() error {
 			return err
 		}
 		c.kLockV1.id = ""
-		fmt.Println("return 1")
+		logrus.Info("return 1")
 		return nil
 	}
-	fmt.Println("4")
-	fmt.Println("return 2")
+	logrus.Info("4")
+	logrus.Info("return 2")
 	return err
 }
 
 func (c *configMap) tryLockV1(id string, refresh bool) (string, error) {
 	// Get the existing ConfigMap
-	fmt.Println("*** inside tryLockV1 id, refresh", id, refresh)
+	logrus.Info("*** inside tryLockV1")
+	logrus.Infof("*** Unlocked status = %v", c.kLockV1.unlocked)
+	logrus.Infof("*** inside tryLockV1 id = %v, refresh = %v", id, refresh)
+
+	// res := c.kLockV1.TryLock()
+	// for !res {
+	// 	fmt.Printf("*** inside tryLockV1 %+v, id=%v \n", c.kLockV1, id)
+	// 	res = c.kLockV1.TryLock()
+	// 	logrus.Infof("*** res =", res)
+	// }
+
+	c.kLockV1.Lock()
+	defer c.kLockV1.Unlock()
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
 		k8sSystemNamespace,
 	)
 	if err != nil {
 		// A ConfigMap should always be created.
-		fmt.Println("return 1")
+		logrus.Infof("return 1")
 		return "", err
 	}
 
@@ -131,32 +161,32 @@ func (c *configMap) tryLockV1(id string, refresh bool) (string, error) {
 	}
 
 	currentOwner := cm.Data[pxOwnerKey]
-	fmt.Println("currentOwner, id", currentOwner, id)
+	logrus.Infof("currentOwner = %v, id = %v", currentOwner, id)
 	if currentOwner != "" {
-		fmt.Println("currentOwner", currentOwner)
+		logrus.Infof("currentOwner = %v", currentOwner)
 		if currentOwner == id && refresh {
 			// We already hold the lock just refresh
 			// our expiry
-			fmt.Println("** increasing expiry", id)
+			logrus.Infof("** increasing expiry = %v", id)
 			goto increase_expiry
 		} // refresh not requested
 		// Someone might have a lock on the cm
 		// Check expiration
 		expiration := cm.Data[pxExpirationKey]
 		if expiration != "" {
-			fmt.Println("expiration-", expiration)
+			logrus.Infof("expiration = %v", expiration)
 			expiresAt, err := time.Parse(time.UnixDate, expiration)
 			if err != nil {
-				fmt.Println("return 2")
+				logrus.Infof("return 2")
 				return currentOwner, err
 			}
-			fmt.Println("expiresAt", expiresAt)
-			fmt.Println("time.Now().Before(expiresAt)", time.Now().Before(expiresAt))
+			logrus.Infof("expiresAt = %v", expiresAt)
+			logrus.Infof("time.Now() = %v, time.Now().Before(expiresAt) = %v", time.Now(), time.Now().Before(expiresAt))
 			if time.Now().Before(expiresAt) {
 				// Lock is currently held by the owner
 				// Retry after sometime
-				fmt.Println("returning here")
-				fmt.Println("return 3")
+				logrus.Infof("returning here")
+				logrus.Infof("return 3")
 				return currentOwner, ErrConfigMapLocked
 			} // else lock is expired. Try to lock it.
 		}
@@ -165,19 +195,19 @@ func (c *configMap) tryLockV1(id string, refresh bool) (string, error) {
 	// Take the lock or increase our expiration if we are already holding the lock
 	cm.Data[pxOwnerKey] = id
 increase_expiry:
-	fmt.Println("previous = ", cm.Data[pxExpirationKey])
+	logrus.Infof("previous  = %v", cm.Data[pxExpirationKey])
 	cm.Data[pxExpirationKey] = time.Now().Add(v1DefaultK8sLockTTL).Format(time.UnixDate)
-	fmt.Println("now = ", cm.Data[pxExpirationKey])
+	logrus.Infof("now  = %v", cm.Data[pxExpirationKey])
 	if _, err = core.Instance().UpdateConfigMap(cm); err != nil {
-		fmt.Println("return 4")
+		logrus.Infof("return 4")
 		return "", err
 	}
-	fmt.Println("return 5")
+	logrus.Infof("return 5")
 	return id, nil
 }
 
 func (c *configMap) refreshLockV1(id string) {
-	fmt.Println("** refreshLock", id)
+	logrus.Infof("** refreshLock = %v", id)
 	fn := "refreshLock"
 	refresh := time.NewTicker(v1DefaultK8sLockRefreshDuration)
 	var (
@@ -186,15 +216,16 @@ func (c *configMap) refreshLockV1(id string) {
 		startTime      time.Time
 	)
 	startTime = time.Now()
-	fmt.Println(" $$$$ startTime $$$$", startTime)
+	logrus.Infof(" $$$$ startTime $$$$ = %v", startTime)
 	defer refresh.Stop()
 	for {
 		select {
 		case <-refresh.C:
-			fmt.Println("inside refresh", c.kLockV1.id)
-			c.kLockV1.Lock()
+			logrus.Infof("inside refresh = %v", c.kLockV1.id)
+			// c.kLockV1.Lock()
 			// defer c.kLockV1.Unlock()
 			for !c.kLockV1.unlocked {
+				logrus.Info("*** inside refrest switch")
 				c.checkLockTimeout(c.lockHoldTimeoutV1, startTime, id)
 				currentRefresh = time.Now()
 				if _, err := c.tryLockV1(id, true); err != nil {
@@ -203,16 +234,20 @@ func (c *configMap) refreshLockV1(id string) {
 							" [Current Refresh: %v] [Previous Refresh: %v]",
 						id, err, currentRefresh, prevRefresh,
 					)
+
 					if k8s_errors.IsConflict(err) {
 						// try refreshing again
+						logrus.Infof("err = %v", err)
 						continue
 					}
 				}
+				logrus.Infof(" -- updated In Refresh -- ")
 				prevRefresh = currentRefresh
 				break
 			}
-			c.kLockV1.Unlock()
+			// c.kLockV1.Unlock()
 		case <-c.kLockV1.done:
+			logrus.Infof("** exiting refresh for = %v", id)
 			return
 		}
 	}

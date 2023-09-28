@@ -2,10 +2,11 @@ package configmap
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -79,27 +80,27 @@ type k8sLock struct {
 
 // in a particular use of mutexes.
 func (m *k8sLock) TryLock() bool {
-	fmt.Println("Printing stack trace:")
+	logrus.Info("Printing stack trace:")
 	// debug.PrintStack()
 	result := m.emptyx.TryLock()
-	fmt.Println("** got TryLock ", result)
+	logrus.Infof("** got TryLock  = %v", result)
 	return result
 }
 
 func (m *k8sLock) Lock() {
-	fmt.Println("*** Taking mutex lock")
-	fmt.Println("Printing stack trace:")
+	logrus.Info("*** Taking mutex lock")
+	logrus.Info("Printing stack trace:")
 	// debug.PrintStack()
 	m.emptyx.Lock()
-	fmt.Println("*** got Mutex-Lock ")
+	logrus.Info("*** got Mutex-Lock ")
 }
 
 func (m *k8sLock) Unlock() {
-	fmt.Println("***  Unlocking mutex lock")
-	fmt.Println("Printing stack trace:")
+	logrus.Info("***  Unlocking mutex lock")
+	logrus.Info("Printing stack trace:")
 	// debug.PrintStack()
 	m.emptyx.Unlock()
-	fmt.Println("*** Done Mutex-UnLock ")
+	logrus.Info("*** Done Mutex-UnLock ")
 }
 
 // ConfigMap is an interface that provides a set of APIs over a single

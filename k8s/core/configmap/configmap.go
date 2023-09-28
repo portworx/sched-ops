@@ -55,6 +55,7 @@ func New(
 	}
 
 	kLockV1 := k8sLock{done: make(chan struct{}), id: ""}
+	// kLockV1 := k8sLock{done: make(chan struct{}, 1), id: ""}
 
 	return &configMap{
 		name:                   name,

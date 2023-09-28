@@ -91,6 +91,14 @@ require github.com/kubernetes-csi/external-snapshotter/client/v6 v6.2.0
 
 require github.com/google/go-cmp v0.5.9 // indirect
 
+
+require (
+	kubevirt.io/api v1.0.0
+	kubevirt.io/client-go v0.59.2
+	kubevirt.io/containerized-data-importer-api v1.56.1 // indirect
+	kubevirt.io/controller-lifecycle-operator-sdk/api v0.0.0-20220329064328-f3cc58c6ed90 // indirect
+)
+
 replace (
 	github.com/kubernetes-incubator/external-storage => github.com/libopenstorage/external-storage v0.25.1-openstorage-rc1
 	github.com/libopenstorage/autopilot-api => github.com/libopenstorage/autopilot-api v0.6.1-0.20210301232050-ca2633c6e114
@@ -125,4 +133,6 @@ replace (
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.25.1
 	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.25.1
 	k8s.io/sample-controller => k8s.io/sample-controller v0.25.1
+	kubevirt.io/containerized-data-importer-api v1.57.0-alpha1 => kubevirt.io/containerized-data-importer-api v1.56.1
 )
+

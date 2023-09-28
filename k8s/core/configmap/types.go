@@ -5,8 +5,6 @@ import (
 	"regexp"
 	"sync"
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -75,33 +73,33 @@ type k8sLock struct {
 	done     chan struct{}
 	unlocked bool
 	id       string
-	emptyx   sync.Mutex
+	sync.Mutex
 }
 
-// in a particular use of mutexes.
-func (m *k8sLock) TryLock() bool {
-	logrus.Info("Printing stack trace:")
-	// debug.PrintStack()
-	result := m.emptyx.TryLock()
-	logrus.Infof("** got TryLock  = %v", result)
-	return result
-}
+// // in a particular use of mutexes.
+// func (m *k8sLock) TryLock() bool {
+// 	logrus.Info("Printing stack trace:")
+// 	// debug.PrintStack()
+// 	result := m.emptyx.TryLock()
+// 	logrus.Infof("** got TryLock  = %v", result)
+// 	return result
+// }
 
-func (m *k8sLock) Lock() {
-	logrus.Info("*** Taking mutex lock")
-	logrus.Info("Printing stack trace:")
-	// debug.PrintStack()
-	m.emptyx.Lock()
-	logrus.Info("*** got Mutex-Lock ")
-}
+// func (m *k8sLock) Lock() {
+// 	logrus.Info("*** Taking mutex lock")
+// 	logrus.Info("Printing stack trace:")
+// 	// debug.PrintStack()
+// 	m.emptyx.Lock()
+// 	logrus.Info("*** got Mutex-Lock ")
+// }
 
-func (m *k8sLock) Unlock() {
-	logrus.Info("***  Unlocking mutex lock")
-	logrus.Info("Printing stack trace:")
-	// debug.PrintStack()
-	m.emptyx.Unlock()
-	logrus.Info("*** Done Mutex-UnLock ")
-}
+// func (m *k8sLock) Unlock() {
+// 	logrus.Info("***  Unlocking mutex lock")
+// 	logrus.Info("Printing stack trace:")
+// 	// debug.PrintStack()
+// 	m.emptyx.Unlock()
+// 	logrus.Info("*** Done Mutex-UnLock ")
+// }
 
 // ConfigMap is an interface that provides a set of APIs over a single
 // k8s configmap object. The data in the configMap is managed as a map of string

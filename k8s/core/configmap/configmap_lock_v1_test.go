@@ -18,73 +18,73 @@ func TestLock(t *testing.T) {
 	require.NoError(t, err, "Unexpected error on New")
 	logrus.Infof("testLock")
 
-	// id := "locktest"
-	// logrus.Infof("\t ==== lock ==== ")
-	// err = cm.Lock(id)
-	// require.NoError(t, err, "Unexpected error in lock")
+	id := "locktest"
+	logrus.Infof("\t ==== lock ==== ")
+	err = cm.Lock(id)
+	require.NoError(t, err, "Unexpected error in lock")
 
-	// logrus.Infof("\t ==== unlock ==== ")
-	// err = cm.Unlock()
-	// require.NoError(t, err, "Unexpected error from Unlock")
+	logrus.Infof("\t ==== unlock ==== ")
+	err = cm.Unlock()
+	require.NoError(t, err, "Unexpected error from Unlock")
 
-	// logrus.Infof("\t ==== relock ==== ")
-	// err = cm.Lock(id)
-	// require.NoError(t, err, "Failed to lock after unlock")
+	logrus.Infof("\t ==== relock ==== ")
+	err = cm.Lock(id)
+	require.NoError(t, err, "Failed to lock after unlock")
 
-	// logrus.Infof("\t ==== reunlock ==== ")
-	// err = cm.Unlock()
-	// fmt.Printf("err = %v\n", err)
-	// require.NoError(t, err, "Unexpected error from Unlock")
+	logrus.Infof("\t ==== reunlock ==== ")
+	err = cm.Unlock()
+	fmt.Printf("err = %v\n", err)
+	require.NoError(t, err, "Unexpected error from Unlock")
 
-	// logrus.Infof("\t ==== repeat lock once ==== ")
-	// err = cm.Lock(id)
-	// fmt.Printf("err = %v\n", err)
-	// require.NoError(t, err, "Failed to lock unlock")
+	logrus.Infof("\t ==== repeat lock once ==== ")
+	err = cm.Lock(id)
+	fmt.Printf("err = %v\n", err)
+	require.NoError(t, err, "Failed to lock unlock")
 
-	// done := 0
-	// go func() {
-	// 	time.Sleep(time.Second * 3)
-	// 	done = 1
-	// 	err := cm.Unlock()
-	// 	logrus.Infof("\trepeat lock unlock once")
-	// 	require.NoError(t, err, "Unexpected error from Unlock")
-	// }()
-	// logrus.Infof("\t ==== repeat lock lock twice ==== ")
-	// err = cm.Lock(id)
-	// require.NoError(t, err, "Failed to lock")
-	// require.Equal(t, 1, done, "Locked before unlock")
-	// logrus.Infof("\t ==== trepeat lock unlock twice ==== ")
-	// err = cm.Unlock()
-	// require.NoError(t, err, "Unexpected error from Unlock")
+	done := 0
+	go func() {
+		time.Sleep(time.Second * 3)
+		done = 1
+		err := cm.Unlock()
+		logrus.Infof("\trepeat lock unlock once")
+		require.NoError(t, err, "Unexpected error from Unlock")
+	}()
+	logrus.Infof("\t ==== repeat lock lock twice ==== ")
+	err = cm.Lock(id)
+	require.NoError(t, err, "Failed to lock")
+	require.Equal(t, 1, done, "Locked before unlock")
+	logrus.Infof("\t ==== trepeat lock unlock twice ==== ")
+	err = cm.Unlock()
+	require.NoError(t, err, "Unexpected error from Unlock")
 
-	// for done == 0 {
-	// 	time.Sleep(time.Second)
-	// }
+	for done == 0 {
+		time.Sleep(time.Second)
+	}
 
-	// id = "doubleLock"
-	// err = cm.Lock(id)
-	// require.NoError(t, err, "Unexpected error in lock")
-	// go func() {
-	// 	time.Sleep(3 * time.Second)
-	// 	err := cm.Unlock()
-	// 	require.NoError(t, err, "Unexpected error from Unlock")
-	// }()
-	// err = cm.Lock(id)
-	// require.NoError(t, err, "Double lock")
-	// err = cm.Unlock()
-	// require.NoError(t, err, "Unexpected error from Unlock")
+	id = "doubleLock"
+	err = cm.Lock(id)
+	require.NoError(t, err, "Unexpected error in lock")
+	go func() {
+		time.Sleep(3 * time.Second)
+		err := cm.Unlock()
+		require.NoError(t, err, "Unexpected error from Unlock")
+	}()
+	err = cm.Lock(id)
+	require.NoError(t, err, "Double lock")
+	err = cm.Unlock()
+	require.NoError(t, err, "Unexpected error from Unlock")
 
-	// err = cm.Lock("id1")
-	// require.NoError(t, err, "Unexpected error in lock")
-	// go func() {
-	// 	time.Sleep(1 * time.Second)
-	// 	err := cm.Unlock()
-	// 	require.NoError(t, err, "Unexpected error from Unlock")
-	// }()
-	// err = cm.Lock("id2")
-	// require.NoError(t, err, "diff lock")
-	// err = cm.Unlock()
-	// require.NoError(t, err, "Unexpected error from Unlock")
+	err = cm.Lock("id1")
+	require.NoError(t, err, "Unexpected error in lock")
+	go func() {
+		time.Sleep(1 * time.Second)
+		err := cm.Unlock()
+		require.NoError(t, err, "Unexpected error from Unlock")
+	}()
+	err = cm.Lock("id2")
+	require.NoError(t, err, "diff lock")
+	err = cm.Unlock()
+	require.NoError(t, err, "Unexpected error from Unlock")
 
 	logrus.Info("\t ==== lockExpiration ==== ")
 

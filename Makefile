@@ -47,9 +47,10 @@ lint:
 errcheck:
 	errcheck -verbose -blank ./...
 
-vendor:
+vendor: vendor-tidy
 	@echo "Updating vendor tree"
 	go mod vendor
+	sed -i '1 i\// +build skipcompile\n' vendor/kubevirt.io/client-go/kubecli/kubevirt_test_utils.go
 
 vendor-tidy:
 	@echo "Removing unused files in vendor tree"

@@ -92,10 +92,6 @@ func (c *configMap) Unlock() error {
 }
 
 func (c *configMap) tryLockV1(id string, refresh bool) (string, error) {
-
-	c.kLockV1.Lock()
-	defer c.kLockV1.Unlock()
-
 	// Get the existing ConfigMap
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
@@ -156,6 +152,7 @@ func (c *configMap) refreshLockV1(id string) {
 	for {
 		select {
 		case <-refresh.C:
+			c.kLockV1.Lock()
 			for !c.kLockV1.unlocked {
 				c.checkLockTimeout(c.lockHoldTimeoutV1, startTime, id)
 				currentRefresh = time.Now()
@@ -173,6 +170,7 @@ func (c *configMap) refreshLockV1(id string) {
 				prevRefresh = currentRefresh
 				break
 			}
+			c.kLockV1.Unlock()
 		case <-c.kLockV1.done:
 			return
 		}

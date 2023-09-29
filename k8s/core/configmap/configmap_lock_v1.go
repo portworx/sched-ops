@@ -35,7 +35,9 @@ func (c *configMap) LockWithHoldTimeout(id string, holdTimeout time.Duration) er
 			" locking.", count)
 	}
 	c.lockHoldTimeoutV1 = holdTimeout
-	c.kLockV1 = k8sLock{done: make(chan struct{}), id: id}
+	c.kLockV1.id = id
+
+	c.kLockV1.unlocked = false
 	go c.refreshLockV1(id)
 	return nil
 }
@@ -45,6 +47,7 @@ func (c *configMap) Unlock() error {
 	// Get the existing ConfigMap
 	c.kLockV1.Lock()
 	defer c.kLockV1.Unlock()
+
 	if c.kLockV1.unlocked {
 		// The lock is already unlocked
 		return nil
@@ -56,7 +59,6 @@ func (c *configMap) Unlock() error {
 		err error
 		cm  *corev1.ConfigMap
 	)
-
 	for retries := 0; retries < maxConflictRetries; retries++ {
 		cm, err = core.Instance().GetConfigMap(
 			c.name,
@@ -74,7 +76,6 @@ func (c *configMap) Unlock() error {
 		}
 		delete(cm.Data, pxOwnerKey)
 		delete(cm.Data, pxExpirationKey)
-
 		if _, err = core.Instance().UpdateConfigMap(cm); err != nil {
 			configMapLog(fn, c.name, "", "", err).Errorf("Failed to update" +
 				" config map during unlock")
@@ -87,11 +88,14 @@ func (c *configMap) Unlock() error {
 		c.kLockV1.id = ""
 		return nil
 	}
-
 	return err
 }
 
 func (c *configMap) tryLockV1(id string, refresh bool) (string, error) {
+
+	c.kLockV1.Lock()
+	defer c.kLockV1.Unlock()
+
 	// Get the existing ConfigMap
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
@@ -133,7 +137,6 @@ func (c *configMap) tryLockV1(id string, refresh bool) (string, error) {
 	cm.Data[pxOwnerKey] = id
 increase_expiry:
 	cm.Data[pxExpirationKey] = time.Now().Add(v1DefaultK8sLockTTL).Format(time.UnixDate)
-
 	if _, err = core.Instance().UpdateConfigMap(cm); err != nil {
 		return "", err
 	}
@@ -153,7 +156,6 @@ func (c *configMap) refreshLockV1(id string) {
 	for {
 		select {
 		case <-refresh.C:
-			c.kLockV1.Lock()
 			for !c.kLockV1.unlocked {
 				c.checkLockTimeout(c.lockHoldTimeoutV1, startTime, id)
 				currentRefresh = time.Now()
@@ -171,7 +173,6 @@ func (c *configMap) refreshLockV1(id string) {
 				prevRefresh = currentRefresh
 				break
 			}
-			c.kLockV1.Unlock()
 		case <-c.kLockV1.done:
 			return
 		}

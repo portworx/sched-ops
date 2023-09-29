@@ -59,7 +59,7 @@ type FatalCb func(format string, args ...interface{})
 
 type configMap struct {
 	name                   string
-	kLockV1                *k8sLock
+	kLockV1                k8sLock
 	kLocksV2Mutex          sync.Mutex
 	kLocksV2               map[string]*k8sLock
 	lockHoldTimeoutV1      time.Duration

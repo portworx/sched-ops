@@ -54,8 +54,6 @@ func New(
 		v2LockRefreshDuration = v2DefaultK8sLockRefreshDuration
 	}
 
-	kLockV1 := &k8sLock{done: make(chan struct{}), id: ""}
-
 	return &configMap{
 		name:                   name,
 		defaultLockHoldTimeout: lockTimeout,
@@ -63,7 +61,7 @@ func New(
 		lockAttempts:           lockAttempts,
 		lockRefreshDuration:    v2LockRefreshDuration,
 		lockK8sLockTTL:         v2LockK8sLockTTL,
-		kLockV1:                kLockV1, // Initialize kLockV1 here
+		kLockV1:                k8sLock{done: make(chan struct{}), id: ""}, // Initialize kLockV1 here
 	}, nil
 }
 

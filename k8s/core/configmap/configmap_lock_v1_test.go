@@ -18,7 +18,6 @@ func TestLock(t *testing.T) {
 	fmt.Println("testLock")
 
 	id := "locktest"
-	fmt.Println("\tlock")
 	err = cm.Lock(id)
 	require.NoError(t, err, "Unexpected error in lock")
 
@@ -50,7 +49,7 @@ func TestLock(t *testing.T) {
 	err = cm.Lock(id)
 	require.NoError(t, err, "Failed to lock")
 	require.Equal(t, 1, done, "Locked before unlock")
-	fmt.Println("\ttrepeat lock unlock twice")
+	fmt.Println("\trepeat lock unlock twice")
 	err = cm.Unlock()
 	require.NoError(t, err, "Unexpected error from Unlock")
 
@@ -101,7 +100,7 @@ func TestLock(t *testing.T) {
 	require.NoError(t, err, "Unexpected no error in unlock")
 
 	err = cm.Lock("id3")
-	require.NoError(t, err, "Unexpected error in lock")
+	require.NoError(t, err, "Lock should have expired")
 	err = cm.Unlock()
 	require.NoError(t, err, "Unexpected no error in unlock")
 	err = cm.Delete()

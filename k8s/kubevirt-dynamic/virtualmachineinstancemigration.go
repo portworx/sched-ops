@@ -45,8 +45,10 @@ type VirtualMachineInstanceMigration struct {
 type VirtualMachineInstanceMigrationOps interface {
 	// CreateVirtualMachineInstanceMigration starts live migration of the specified VMI
 	CreateVirtualMachineInstanceMigration(vmiNamespace, vmiName string) (*VirtualMachineInstanceMigration, error)
-	// GetVirtualMachineInstanceMigration retrieves some info about the specified VMI
+	// GetVirtualMachineInstanceMigration retrieves some info about the specified VMI migration
 	GetVirtualMachineInstanceMigration(namespace, name string) (*VirtualMachineInstanceMigration, error)
+	// ListVirtualMachineInstanceMigrations lists migrations in the specified namespace
+	ListVirtualMachineInstanceMigrations(namespace string) ([]*VirtualMachineInstanceMigration, error)
 }
 
 // CreateVirtualMachineInstanceMigration starts live migration of the specified VMI
@@ -96,6 +98,26 @@ func (c *Client) GetVirtualMachineInstanceMigration(
 		return nil, err
 	}
 	return c.unstructuredGetVMIMigration(migration)
+}
+
+// ListVirtualMachineInstanceMigrations lists migrations in the specified namespace
+func (c *Client) ListVirtualMachineInstanceMigrations(namespace string) ([]*VirtualMachineInstanceMigration, error) {
+	if err := c.initClient(); err != nil {
+		return nil, err
+	}
+	result, err := c.client.Resource(migrationResource).Namespace(namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var migrations []*VirtualMachineInstanceMigration
+	for _, item := range result.Items {
+		migration, err := c.unstructuredGetVMIMigration(&item)
+		if err != nil {
+			return nil, err
+		}
+		migrations = append(migrations, migration)
+	}
+	return migrations, nil
 }
 
 func (c *Client) unstructuredGetVMIMigration(

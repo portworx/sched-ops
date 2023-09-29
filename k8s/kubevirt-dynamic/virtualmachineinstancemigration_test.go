@@ -50,3 +50,27 @@ func TestCreateMigration(t *testing.T) {
 	}
 	t.Logf("Migration: %v", migration)
 }
+
+func TestListMigrations(t *testing.T) {
+	// Populate the variables below from a live cluster to test this manually.
+	testKubeconfig := "TBD"
+	testMigrationNamespace := "TBD"
+
+	if testKubeconfig == "TBD" {
+		t.Skip("Populate the test variables to run this test manually.")
+	}
+	os.Setenv("KUBECONFIG", testKubeconfig)
+
+	Instance()
+
+	require.NotNil(t, instance, "instance should be initialized")
+	migrations, err := instance.ListVirtualMachineInstanceMigrations(context.TODO(), testMigrationNamespace)
+	if err != nil {
+		t.Logf("Failed to list migrations: %v", err)
+	}
+	for i, migration := range migrations {
+		t.Logf("Migration %d:", i)
+		t.Logf("================")
+		t.Logf("%v\n\n", migration)
+	}
+}

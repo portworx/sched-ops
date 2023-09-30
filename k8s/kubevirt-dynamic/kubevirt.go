@@ -3,8 +3,11 @@ package kubevirtdynamic
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
+	"time"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -18,7 +21,7 @@ var (
 // Ops is an interface to perform generic Object operations
 type Ops interface {
 	VirtualMachineInstanceOps
-
+	VirtualMachineInstanceMigrationOps
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)
 }
@@ -215,4 +218,34 @@ func (c *Client) unstructuredFindKeyValInt64(
 		}
 	}
 	return nil, nil
+}
+
+func (c *Client) unstructuredGetStringAsBool(obj map[string]interface{}, fields ...string) (bool, bool, error) {
+	ret := false
+	val, found, err := unstructured.NestedString(obj, fields...)
+	if err != nil {
+		return false, false, err
+	}
+	if found {
+		ret, err = strconv.ParseBool(val)
+		if err != nil {
+			return false, false, fmt.Errorf("failed to parse %q as boolean: %w", val, err)
+		}
+	}
+	return ret, found, nil
+}
+
+func (c *Client) unstructuredGetTimestamp(obj map[string]interface{}, fields ...string) (time.Time, bool, error) {
+	var ret time.Time
+	val, found, err := unstructured.NestedString(obj, fields...)
+	if err != nil {
+		return ret, false, err
+	}
+	if found {
+		ret, err = time.Parse(time.RFC3339, val)
+		if err != nil {
+			return ret, false, fmt.Errorf("failed to parse %q as time: %w", val, err)
+		}
+	}
+	return ret, found, nil
 }

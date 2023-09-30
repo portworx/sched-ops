@@ -88,16 +88,16 @@ func TestLock(t *testing.T) {
 	fatalLockCb := func(format string, args ...interface{}) {
 		fmt.Println("\tLock timeout called.")
 		lockTimedout = true
-		err := cm.Unlock()
-		require.NoError(t, err, "Unexpected error from Unlock")
 	}
 	SetFatalCb(fatalLockCb)
 
-	// Check lock expiration
 	err = cm.Lock("id2")
 	require.NoError(t, err, "Unexpected error in lock")
 	time.Sleep(20 * time.Second)
 	require.True(t, lockTimedout, "Lock hold timeout not triggered")
+
+	err = cm.Unlock()
+	require.NoError(t, err, "Unexpected no error in unlock")
 
 	err = cm.Lock("id3")
 	require.NoError(t, err, "Lock should have expired")
@@ -120,14 +120,16 @@ func TestLockWithHoldTimeout(t *testing.T) {
 	fatalLockCb := func(format string, args ...interface{}) {
 		fmt.Println("\tLock timeout called.")
 		lockTimedout = true
-		err := cm.Unlock()
-		require.NoError(t, err, "Unexpected error from Unlock")
 	}
 	SetFatalCb(fatalLockCb)
 
 	// when custom lock hold timeout is more than the default lock hold timeout
 	err = cm.LockWithHoldTimeout("id1", customHoldTimeout)
 	require.NoError(t, err, "Unexpected error in lock")
+	time.Sleep(20 * time.Second)
+
+	err = cm.Unlock()
+	require.NoError(t, err, "Unexpected no error in unlock")
 
 	// lock hold timeout should not trigger after the default lock hold timeout period (plus refresh interval)
 	time.Sleep(customHoldTimeout - 8*time.Second)

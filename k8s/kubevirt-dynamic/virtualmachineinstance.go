@@ -22,6 +22,8 @@ type VirtualMachineInstance struct {
 	RootDiskPVC string
 	// LiveMigratable indicates if VMI can be live migrated.
 	LiveMigratable bool
+	// NodeName where VMI is currently running
+	NodeName string
 }
 
 // VirtualMachineInstanceOps is an interface to manage VirtualMachineInstance objects
@@ -150,9 +152,16 @@ func (c *Client) GetVirtualMachineInstance(
 		}
 	}
 
+	// get the node where VMI is currently running
+	nodeName, _, err := unstructured.NestedString(vmiRaw.Object, "status", "nodeName")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get vmi nodeName: %w", err)
+	}
+
 	return &VirtualMachineInstance{
 		RootDisk:       rootDiskName,
 		RootDiskPVC:    pvcName,
 		LiveMigratable: liveMigratable,
+		NodeName:       nodeName,
 	}, nil
 }

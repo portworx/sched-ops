@@ -24,6 +24,10 @@ func TestGetVMI(t *testing.T) {
 	vmi, err := instance.GetVirtualMachineInstance(testVMINamespace, testVMIName)
 	if err != nil {
 		t.Logf("Failed to get VMI: %v", err)
+		t.FailNow()
 	}
 	t.Logf("VMI: %v", vmi)
+	for _, phaseTransition := range vmi.PhaseTransitions {
+		t.Logf("PhaseTransition: %v", phaseTransition)
+	}
 }

@@ -45,10 +45,13 @@ type VirtualMachineInstanceMigration struct {
 type VirtualMachineInstanceMigrationOps interface {
 	// CreateVirtualMachineInstanceMigration starts live migration of the specified VMI
 	CreateVirtualMachineInstanceMigration(vmiNamespace, vmiName string) (*VirtualMachineInstanceMigration, error)
+
 	// GetVirtualMachineInstanceMigration retrieves some info about the specified VMI
 	GetVirtualMachineInstanceMigration(namespace, name string) (*VirtualMachineInstanceMigration, error)
+
 	// ListVirtualMachineInstanceMigrations lists migrations in the specified namespace
-	ListVirtualMachineInstanceMigrations(namespace string) ([]*VirtualMachineInstanceMigration, error)
+	ListVirtualMachineInstanceMigrations(namespace string, opts metav1.ListOptions) (
+		[]*VirtualMachineInstanceMigration, error)
 }
 
 // CreateVirtualMachineInstanceMigration starts live migration of the specified VMI
@@ -97,12 +100,12 @@ func (c *Client) GetVirtualMachineInstanceMigration(
 
 // ListVirtualMachineInstanceMigrations lists migrations in the specified namespace
 func (c *Client) ListVirtualMachineInstanceMigrations(
-	namespace string,
+	namespace string, opts metav1.ListOptions,
 ) ([]*VirtualMachineInstanceMigration, error) {
 	if err := c.initClient(); err != nil {
 		return nil, err
 	}
-	result, err := c.client.Resource(migrationResource).Namespace(namespace).List(metav1.ListOptions{})
+	result, err := c.client.Resource(migrationResource).Namespace(namespace).List(opts)
 	if err != nil {
 		return nil, err
 	}

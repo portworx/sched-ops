@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestGetMigration(t *testing.T) {
@@ -64,7 +65,8 @@ func TestListMigrations(t *testing.T) {
 	Instance()
 
 	require.NotNil(t, instance, "instance should be initialized")
-	migrations, err := instance.ListVirtualMachineInstanceMigrations(context.TODO(), testMigrationNamespace)
+	migrations, err := instance.ListVirtualMachineInstanceMigrations(
+		context.TODO(), testMigrationNamespace, metav1.ListOptions{})
 	if err != nil {
 		t.Logf("Failed to list migrations: %v", err)
 	}

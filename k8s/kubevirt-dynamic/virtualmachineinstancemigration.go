@@ -45,11 +45,16 @@ type VirtualMachineInstanceMigration struct {
 // VirtualMachineInstanceMigrationOps is an interface to manage VirtualMachineInstanceMigration objects
 type VirtualMachineInstanceMigrationOps interface {
 	// CreateVirtualMachineInstanceMigration starts live migration of the specified VMI
-	CreateVirtualMachineInstanceMigration(ctx context.Context, vmiNamespace, vmiName string) (*VirtualMachineInstanceMigration, error)
+	CreateVirtualMachineInstanceMigration(ctx context.Context, vmiNamespace, vmiName string) (
+		*VirtualMachineInstanceMigration, error)
+
 	// GetVirtualMachineInstanceMigration retrieves some info about the specified VMI
-	GetVirtualMachineInstanceMigration(ctx context.Context, namespace, name string) (*VirtualMachineInstanceMigration, error)
+	GetVirtualMachineInstanceMigration(ctx context.Context, namespace, name string) (
+		*VirtualMachineInstanceMigration, error)
+
 	// ListVirtualMachineInstanceMigrations lists migrations in the specified namespace
-	ListVirtualMachineInstanceMigrations(ctx context.Context, namespace string) ([]*VirtualMachineInstanceMigration, error)
+	ListVirtualMachineInstanceMigrations(ctx context.Context, namespace string, opts metav1.ListOptions) (
+		[]*VirtualMachineInstanceMigration, error)
 }
 
 // CreateVirtualMachineInstanceMigration starts live migration of the specified VMI
@@ -98,12 +103,12 @@ func (c *Client) GetVirtualMachineInstanceMigration(
 
 // ListVirtualMachineInstanceMigrations lists migrations in the specified namespace
 func (c *Client) ListVirtualMachineInstanceMigrations(
-	ctx context.Context, namespace string,
+	ctx context.Context, namespace string, opts metav1.ListOptions,
 ) ([]*VirtualMachineInstanceMigration, error) {
 	if err := c.initClient(); err != nil {
 		return nil, err
 	}
-	result, err := c.client.Resource(migrationResource).Namespace(namespace).List(ctx, metav1.ListOptions{})
+	result, err := c.client.Resource(migrationResource).Namespace(namespace).List(ctx, opts)
 	if err != nil {
 		return nil, err
 	}

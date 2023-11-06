@@ -20,6 +20,7 @@ var (
 
 // Ops is an interface to perform generic Object operations
 type Ops interface {
+	VirtualMachineOps
 	VirtualMachineInstanceOps
 	VirtualMachineInstanceMigrationOps
 	// SetConfig sets the config and resets the client

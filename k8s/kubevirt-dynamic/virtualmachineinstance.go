@@ -43,6 +43,8 @@ type VirtualMachineInstance struct {
 	Phase string
 	// PhaseTransitions has list of phase transitions
 	PhaseTransitions []*VMIPhaseTransition
+	// OwnerVMUID is the UID of the VirtualMachine object that owns this VMI
+	OwnerVMUID string
 }
 
 // VirtualMachineInstanceOps is an interface to manage VirtualMachineInstance objects
@@ -223,6 +225,39 @@ func (c *Client) GetVirtualMachineInstance(
 		phaseTransitions = append(phaseTransitions, &VMIPhaseTransition{Phase: entryPhase, TransitionTime: entryTime})
 	}
 
+	// UID of the owner VM
+	// metadata:
+	//   ownerReferences:
+	//    - apiVersion: kubevirt.io/v1
+	//      blockOwnerDeletion: true
+	//      controller: true
+	//      kind: VirtualMachine
+	//      name: test-vm-csi
+	//      uid: e5e72d46-382d-4501-9e25-b0dc589e6759
+	var vmUID string
+	ownerRefsRaw, _, err := unstructured.NestedSlice(vmiRaw.Object, "metadata", "ownerReferences")
+	if err != nil {
+		return nil, fmt.Errorf("failed to find ownerReferences in vmi: %w", err)
+	}
+	for _, rawMap := range ownerRefsRaw {
+		typedMap, ok := rawMap.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("wrong type for ownerReference in slice: expected map[string]interface{}, actual %T", rawMap)
+		}
+		entryKind, found, err := c.unstructuredGetValString(typedMap, "kind")
+		if err != nil || !found {
+			return nil, fmt.Errorf("failed to get key 'kind' in ownerReference map")
+		}
+		if entryKind != "VirtualMachine" {
+			continue
+		}
+		entryUID, found, err := c.unstructuredGetValString(typedMap, "uid")
+		if err != nil || !found {
+			return nil, fmt.Errorf("failed to get key 'uid' in ownerReferences map")
+		}
+		vmUID = entryUID
+		break
+	}
 	return &VirtualMachineInstance{
 		Name:             name,
 		NameSpace:        namespace,
@@ -233,5 +268,6 @@ func (c *Client) GetVirtualMachineInstance(
 		NodeName:         nodeName,
 		Phase:            currentPhase,
 		PhaseTransitions: phaseTransitions,
+		OwnerVMUID:       vmUID,
 	}, nil
 }

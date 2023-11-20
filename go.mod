@@ -7,11 +7,11 @@ require (
 	github.com/libopenstorage/autopilot-api v1.3.0
 	github.com/libopenstorage/openstorage v9.4.47+incompatible
 	github.com/libopenstorage/operator v0.0.0-20230801044606-e27dec4914d4
-	github.com/libopenstorage/stork v1.4.1-0.20230610103146-72cf75320066
+	github.com/libopenstorage/stork v1.3.0-beta1.0.20200630005842-9255e7a98775
 	github.com/openshift/api v0.0.0-20230503133300-8bbcb7ca7183
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
 	// TODO: Vendor from pb-1874 branch. Need to change it to master.
-	github.com/portworx/kdmp v0.4.1-0.20230830195819-704706dda5c7
+	github.com/portworx/kdmp v0.4.0
 	github.com/portworx/talisman v0.0.0-20210302012732-8af4564777f7
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.63.0
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.46.0
@@ -68,7 +68,7 @@ require (
 	google.golang.org/grpc v1.53.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
+	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.90.1 // indirect
@@ -92,7 +92,7 @@ require github.com/kubernetes-csi/external-snapshotter/client/v6 v6.2.0
 require (
 	github.com/coreos/prometheus-operator v0.38.0 // indirect
 	github.com/go-kit/kit v0.9.0 // indirect
-	github.com/go-logfmt/logfmt v0.5.0 // indirect
+	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
@@ -109,38 +109,40 @@ require (
 )
 
 replace (
-	github.com/kubernetes-incubator/external-storage => github.com/libopenstorage/external-storage v0.25.1-openstorage-rc1
+	github.com/kubernetes-incubator/external-storage => github.com/libopenstorage/external-storage v1.8.1-0.20231120091200-45d17cc6c694
 	github.com/libopenstorage/autopilot-api => github.com/libopenstorage/autopilot-api v0.6.1-0.20210301232050-ca2633c6e114
 	github.com/portworx/torpedo => github.com/portworx/torpedo v0.0.0-20230206190621-4ccdccff9ded
 	helm.sh/helm/v3 => helm.sh/helm/v3 v3.10.3
 
-	k8s.io/api => k8s.io/api v0.25.1
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.25.1
-	k8s.io/apimachinery => k8s.io/apimachinery v0.25.1
-	k8s.io/apiserver => k8s.io/apiserver v0.25.1
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.25.1
-	k8s.io/client-go => k8s.io/client-go v0.25.1
-	k8s.io/cloud-provider => k8s.io/cloud-provider v0.25.1
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.25.1
-	k8s.io/code-generator => k8s.io/code-generator v0.25.1
-	k8s.io/component-base => k8s.io/component-base v0.25.1
-	k8s.io/component-helpers => k8s.io/component-helpers v0.25.1
-	k8s.io/controller-manager => k8s.io/controller-manager v0.25.1
-	k8s.io/cri-api => k8s.io/cri-api v0.25.1
-	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.25.1
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.25.1
-	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.25.1
-	k8s.io/kube-proxy => k8s.io/kube-proxy v0.25.1
-	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.25.1
-	k8s.io/kubectl => k8s.io/kubectl v0.25.1
-	k8s.io/kubelet => k8s.io/kubelet v0.25.1
-	k8s.io/kubernetes => k8s.io/kubernetes v1.25.1
-	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.25.1
-	k8s.io/metrics => k8s.io/metrics v0.25.1
-	k8s.io/mount-utils => k8s.io/mount-utils v0.25.1
-	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.25.1
-	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.25.1
-	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.25.1
-	k8s.io/sample-controller => k8s.io/sample-controller v0.25.1
+	k8s.io/api => k8s.io/api v0.27.1
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.27.1
+	k8s.io/apimachinery => k8s.io/apimachinery v0.27.1
+	k8s.io/apiserver => k8s.io/apiserver v0.27.1
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.27.1
+	k8s.io/client-go => k8s.io/client-go v0.27.1
+	k8s.io/cloud-provider => k8s.io/cloud-provider v0.27.1
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.27.1
+	k8s.io/code-generator => k8s.io/code-generator v0.27.1
+	k8s.io/component-base => k8s.io/component-base v0.27.1
+	k8s.io/component-helpers => k8s.io/component-helpers v0.27.1
+	k8s.io/controller-manager => k8s.io/controller-manager v0.27.1
+	k8s.io/cri-api => k8s.io/cri-api v0.27.1
+	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.27.1
+	k8s.io/dynamic-resource-allocation => k8s.io/dynamic-resource-allocation v0.27.1
+	k8s.io/kms => k8s.io/kms v0.27.1
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.27.1
+	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.27.1
+	k8s.io/kube-proxy => k8s.io/kube-proxy v0.27.1
+	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.27.1
+	k8s.io/kubectl => k8s.io/kubectl v0.27.1
+	k8s.io/kubelet => k8s.io/kubelet v0.27.1
+	k8s.io/kubernetes => k8s.io/kubernetes v1.27.1
+	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.27.1
+	k8s.io/metrics => k8s.io/metrics v0.27.1
+	k8s.io/mount-utils => k8s.io/mount-utils v0.27.1
+	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.27.1
+	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.27.1
+	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.27.1
+	k8s.io/sample-controller => k8s.io/sample-controller v0.27.1
 	kubevirt.io/containerized-data-importer-api v1.57.0-alpha1 => kubevirt.io/containerized-data-importer-api v1.56.1
 )

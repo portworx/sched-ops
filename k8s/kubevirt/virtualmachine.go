@@ -9,6 +9,15 @@ import (
 	kubevirtv1 "kubevirt.io/api/core/v1"
 )
 
+const (
+	//VMPodSelectorLabel is the kubvirt label key for virt-launcher pod of the VM
+	VMPodSelectorLabel = "vm.kubevirt.io/name"
+	//VMFreezeCmd is the template for VM freeze command
+	VMFreezeCmd = "/usr/bin/virt-freezer --freeze --name %s --namespace %s"
+	//VMUnFreezeCmd is the template for VM unfreeze command
+	VMUnFreezeCmd = "/usr/bin/virt-freezer --unfreeze --name %s --namespace %s"
+)
+
 // VirtualMachineOps is an interface to perform kubevirt virtualMachine operations
 type VirtualMachineOps interface {
 	// CreateVirtualMachine calls VirtualMachine create client method
@@ -40,6 +49,14 @@ type VirtualMachineOps interface {
 	GetVMConfigMaps(*kubevirtv1.VirtualMachine) []string
 	//IsVirtualMachineRunning returns true if virtualMachine is in running state
 	IsVirtualMachineRunning(*kubevirtv1.VirtualMachine) bool
+	//GetVMFreezeRule returns freeze Rule for given VM
+	GetVMFreezeRule(*kubevirtv1.VirtualMachine) string
+	//GetVMUnFreezeRule returns unfreeze Rule for given VM
+	GetVMUnFreezeRule(*kubevirtv1.VirtualMachine) string
+	//IsVMAgentConnected for a running VM returns if qemu-guest-agent is running
+	IsVMAgentConnected(*kubevirtv1.VirtualMachine) bool
+	//GetVMPodLabel return podSelector label for the given VM
+	GetVMPodLabel(*kubevirtv1.VirtualMachine) map[string]string
 }
 
 // ListVirtualMachines List Kubevirt VirtualMachine in given namespace
@@ -167,6 +184,7 @@ func (c *Client) IsVirtualMachineRunning(vm *kubevirtv1.VirtualMachine) bool {
 
 // GetVMDataVolumes returns DataVolumes used by the VM
 func (c *Client) GetVMDataVolumes(vm *kubevirtv1.VirtualMachine) []string {
+
 	volList := vm.Spec.Template.Spec.Volumes
 	dvList := make([]string, 0)
 	for _, vol := range volList {
@@ -179,11 +197,16 @@ func (c *Client) GetVMDataVolumes(vm *kubevirtv1.VirtualMachine) []string {
 
 // GetVMPersistentVolumeClaims returns persistentVolumeClaim names used by the VMs
 func (c *Client) GetVMPersistentVolumeClaims(vm *kubevirtv1.VirtualMachine) []string {
+
 	volList := vm.Spec.Template.Spec.Volumes
 	PVCList := make([]string, 0)
 	for _, vol := range volList {
 		if vol.VolumeSource.PersistentVolumeClaim != nil {
 			PVCList = append(PVCList, vol.VolumeSource.PersistentVolumeClaim.ClaimName)
+		}
+		// Add DataVolume name to the PVC list
+		if vol.VolumeSource.DataVolume != nil {
+			PVCList = append(PVCList, vol.VolumeSource.DataVolume.Name)
 		}
 	}
 	return PVCList
@@ -191,6 +214,7 @@ func (c *Client) GetVMPersistentVolumeClaims(vm *kubevirtv1.VirtualMachine) []st
 
 // GetVMSecrets returns references to secrets in all supported formats of VM configs
 func (c *Client) GetVMSecrets(vm *kubevirtv1.VirtualMachine) []string {
+
 	volList := vm.Spec.Template.Spec.Volumes
 	secretList := make([]string, 0)
 	for _, vol := range volList {
@@ -221,7 +245,7 @@ func (c *Client) GetVMSecrets(vm *kubevirtv1.VirtualMachine) []string {
 			if cloudInitConfigDrive.NetworkDataSecretRef != nil {
 				secretList = append(secretList, cloudInitConfigDrive.NetworkDataSecretRef.Name)
 			}
-			// Secret from confifDrive aka Ignition
+			// Secret from configDrive aka Ignition
 			if cloudInitConfigDrive.UserDataSecretRef != nil {
 				secretList = append(secretList, cloudInitConfigDrive.UserDataSecretRef.Name)
 			}
@@ -233,6 +257,7 @@ func (c *Client) GetVMSecrets(vm *kubevirtv1.VirtualMachine) []string {
 
 // GetVMConfigMaps returns ConfigMaps referenced in the VirtualMachine.
 func (c *Client) GetVMConfigMaps(vm *kubevirtv1.VirtualMachine) []string {
+
 	volList := vm.Spec.Template.Spec.Volumes
 	configMaps := make([]string, 0)
 	for _, vol := range volList {
@@ -249,4 +274,36 @@ func (c *Client) GetVMConfigMaps(vm *kubevirtv1.VirtualMachine) []string {
 
 	}
 	return configMaps
+}
+
+// IsVMAgentConnected returns true if Running VM has qemu-guest-agent running in the guest OS
+func (c *Client) IsVMAgentConnected(vm *kubevirtv1.VirtualMachine) bool {
+
+	if c.IsVirtualMachineRunning(vm) {
+		for _, cond := range vm.Status.Conditions {
+			if cond.Type == "AgentConnected" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// GetVMFreezeRule returns freeze Rule action for given VM
+func (c *Client) GetVMFreezeRule(vm *kubevirtv1.VirtualMachine) string {
+
+	return fmt.Sprintf(VMFreezeCmd, vm.GetName(), vm.GetNamespace())
+}
+
+// GetVMUnFreezeRule returns unfreeze Rule action for given VM
+func (c *Client) GetVMUnFreezeRule(vm *kubevirtv1.VirtualMachine) string {
+
+	return fmt.Sprintf(VMUnFreezeCmd, vm.GetName(), vm.GetNamespace())
+}
+
+// GetVMPodLabel return podSelector label for the given VM
+func (c *Client) GetVMPodLabel(vm *kubevirtv1.VirtualMachine) map[string]string {
+	return map[string]string{
+		VMPodSelectorLabel: vm.GetName(),
+	}
 }

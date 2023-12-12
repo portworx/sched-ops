@@ -11,6 +11,7 @@ import (
 // ScOps is an interface to perform k8s storage class operations
 type ScOps interface {
 	// GetAllStorageClasses returns all storageClasses
+	// Added this function since GetStorageClasses method was failing to list the Storage Classes when an empty label selector is passed
 	GetAllStorageClasses() (*storagev1.StorageClassList, error)
 	// GetStorageClasses returns all storageClasses that match given optional label selector
 	GetStorageClasses(labelSelector map[string]string) (*storagev1.StorageClassList, error)
@@ -132,6 +133,7 @@ func (c *Client) AnnotateStorageClassAsDefault(name string) error {
 }
 
 // GetAllStorageClasses returns all storageClasses
+// Added this function since GetStorageClasses method was failing to list the Storage Classes when an empty label selector is passed
 func (c *Client) GetAllStorageClasses() (*storagev1.StorageClassList, error) {
 	if err := c.initClient(); err != nil {
 		return nil, err

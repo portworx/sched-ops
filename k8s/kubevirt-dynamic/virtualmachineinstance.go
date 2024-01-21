@@ -14,6 +14,13 @@ var (
 	vmiResource = schema.GroupVersionResource{Group: "kubevirt.io", Version: "v1", Resource: "virtualmachineinstances"}
 )
 
+type ownerRef struct {
+	apiVersion string
+	kind       string
+	name       string
+	uid        string
+}
+
 // VMIPhaseTransition shows when VMI transitioned into a certain phase
 type VMIPhaseTransition struct {
 	// Phase of the VMI
@@ -234,28 +241,12 @@ func (c *Client) GetVirtualMachineInstance(
 	//      name: test-vm-csi
 	//      uid: e5e72d46-382d-4501-9e25-b0dc589e6759
 	var vmUID string
-	ownerRefsRaw, _, err := unstructured.NestedSlice(vmiRaw.Object, "metadata", "ownerReferences")
+	vmOwnerRef, err := c.findOwnerRefByKind(vmiRaw, "kubevirt.io/v1", "VirtualMachine")
 	if err != nil {
-		return nil, fmt.Errorf("failed to find ownerReferences in vmi: %w", err)
+		return nil, fmt.Errorf("failed to find VM owner of VMI: %w", err)
 	}
-	for _, rawMap := range ownerRefsRaw {
-		typedMap, ok := rawMap.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("wrong type for ownerReference in slice: expected map[string]interface{}, actual %T", rawMap)
-		}
-		entryKind, found, err := c.unstructuredGetValString(typedMap, "kind")
-		if err != nil || !found {
-			return nil, fmt.Errorf("failed to get key 'kind' in ownerReference map")
-		}
-		if entryKind != "VirtualMachine" {
-			continue
-		}
-		entryUID, found, err := c.unstructuredGetValString(typedMap, "uid")
-		if err != nil || !found {
-			return nil, fmt.Errorf("failed to get key 'uid' in ownerReferences map")
-		}
-		vmUID = entryUID
-		break
+	if vmOwnerRef != nil {
+		vmUID = vmOwnerRef.uid
 	}
 	return &VirtualMachineInstance{
 		Name:             name,
@@ -269,4 +260,43 @@ func (c *Client) GetVirtualMachineInstance(
 		PhaseTransitions: phaseTransitions,
 		OwnerVMUID:       vmUID,
 	}, nil
+}
+
+func (c *Client) findOwnerRefByKind(objRaw *unstructured.Unstructured, apiVersion, kind string) (*ownerRef, error) {
+	ownerRefsRaw, _, err := unstructured.NestedSlice(objRaw.Object, "metadata", "ownerReferences")
+	if err != nil {
+		return nil, fmt.Errorf("failed to find ownerReferences in vmi: %w", err)
+	}
+	for _, rawMap := range ownerRefsRaw {
+		typedMap, ok := rawMap.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("wrong type for ownerReference in slice: expected map[string]interface{}, actual %T", rawMap)
+		}
+		entryAPIVersion, found, err := c.unstructuredGetValString(typedMap, "apiVersion")
+		if err != nil || !found {
+			return nil, fmt.Errorf("failed to get key 'apiVersion' in ownerReferences map")
+		}
+		entryKind, found, err := c.unstructuredGetValString(typedMap, "kind")
+		if err != nil || !found {
+			return nil, fmt.Errorf("failed to get key 'kind' in ownerReference map")
+		}
+		if entryAPIVersion != apiVersion || entryKind != kind {
+			continue
+		}
+		entryName, found, err := c.unstructuredGetValString(typedMap, "name")
+		if err != nil || !found {
+			return nil, fmt.Errorf("failed to get key 'name' in ownerReferences map")
+		}
+		entryUID, found, err := c.unstructuredGetValString(typedMap, "uid")
+		if err != nil || !found {
+			return nil, fmt.Errorf("failed to get key 'uid' in ownerReferences map")
+		}
+		return &ownerRef{
+			apiVersion: entryAPIVersion,
+			kind:       entryKind,
+			name:       entryName,
+			uid:        entryUID,
+		}, nil
+	}
+	return nil, nil
 }

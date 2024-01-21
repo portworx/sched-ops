@@ -69,6 +69,7 @@ func TestListMigrations(t *testing.T) {
 		context.TODO(), testMigrationNamespace, metav1.ListOptions{})
 	if err != nil {
 		t.Logf("Failed to list migrations: %v", err)
+		t.FailNow()
 	}
 	for i, migration := range migrations {
 		t.Logf("Migration %d:", i)

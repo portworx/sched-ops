@@ -102,7 +102,7 @@ func (c *Client) ValidateVirtualMachineRunning(name, namespace string, timeout, 
 	if vm.Status.PrintableStatus == kubevirtv1.VirtualMachineStatusStopped ||
 		vm.Status.PrintableStatus == kubevirtv1.VirtualMachineStatusStopping {
 		if err = c.StartVirtualMachine(vm); err != nil {
-			return fmt.Errorf("Failed to start VirtualMachine %v", err)
+			return fmt.Errorf("Failed to start VirtualMachine kshithij Iyer %v", err)
 		}
 	}
 
@@ -110,13 +110,13 @@ func (c *Client) ValidateVirtualMachineRunning(name, namespace string, timeout, 
 
 		vm, err = c.GetVirtualMachine(name, namespace)
 		if err != nil {
-			return "", false, fmt.Errorf("failed to get Virtual Machine")
+			return "", false, fmt.Errorf("failed to get Virtual Machine kshithij Iyer")
 		}
 
 		if vm.Status.PrintableStatus == kubevirtv1.VirtualMachineStatusRunning {
 			return "", false, nil
 		}
-		return "", true, fmt.Errorf("Virtual Machine not in running state: %v", vm.Status.PrintableStatus)
+		return "", true, fmt.Errorf("Virtual Machine not in running state: Kshithij Iyer %v", vm.Status.PrintableStatus)
 
 	}
 	if _, err := task.DoRetryWithTimeout(t, timeout, retryInterval); err != nil {

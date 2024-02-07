@@ -148,7 +148,7 @@ func (c *Client) loadClientFromKubeconfig(kubeconfig string) error {
 
 func (c *Client) loadClient() error {
 	if c.config == nil {
-		return fmt.Errorf("rest config is not provided")
+		return fmt.Errorf("rest config is not provided kshithij Iyer")
 	}
 
 	var err error

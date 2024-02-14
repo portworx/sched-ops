@@ -56,7 +56,7 @@ func NewForConfig(c *rest.Config) (*Client, error) {
 	}
 
 	return &Client{
-		policy:        client,
+		policy: client,
 	}, nil
 }
 
@@ -73,8 +73,8 @@ func NewInstanceFromConfigFile(config string) (Ops, error) {
 
 // Client is a wrapper for the kubernetes policy client.
 type Client struct {
-	config        *rest.Config
-	policy        policyclient.Interface
+	config *rest.Config
+	policy policyclient.Interface
 }
 
 // SetConfig sets the config and resets the client

@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// PodDisruptionBudgetOps is an interface to perform k8s Pod Disruption Budget operations
+// PodDisruptionBudgetV1Beta1Ops is an interface to perform k8s Pod Disruption Budget operations
 type PodDisruptionBudgetV1Beta1Ops interface {
 	// CreatePodDisruptionBudgetV1beta1 creates the given pod disruption budget
 	CreatePodDisruptionBudgetV1beta1(policy *policyv1beta1.PodDisruptionBudget) (*policyv1beta1.PodDisruptionBudget, error)
@@ -27,7 +27,7 @@ func (c *Client) CreatePodDisruptionBudgetV1beta1(podDisruptionBudget *policyv1b
 		return nil, err
 	}
 
-	return c.policy.PolicyV1beta1().PodDisruptionBudgets(podDisruptionBudget.Namespace).Create(context.TODO(), podDisruptionBudget, metav1.CreateOptions{})
+	return c.client.PolicyV1beta1().PodDisruptionBudgets(podDisruptionBudget.Namespace).Create(context.TODO(), podDisruptionBudget, metav1.CreateOptions{})
 }
 
 // GetPodDisruptionBudgetV1beta1 gets the given pod disruption budget
@@ -36,7 +36,7 @@ func (c *Client) GetPodDisruptionBudgetV1beta1(name, namespace string) (*policyv
 		return nil, err
 	}
 
-	return c.policy.PolicyV1beta1().PodDisruptionBudgets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	return c.client.PolicyV1beta1().PodDisruptionBudgets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 // ListPodDisruptionBudgetV1beta1 gets the given pod disruption budget
@@ -45,7 +45,7 @@ func (c *Client) ListPodDisruptionBudgetV1beta1(namespace string) (*policyv1beta
 		return nil, err
 	}
 
-	return c.policy.PolicyV1beta1().PodDisruptionBudgets(namespace).List(context.TODO(), metav1.ListOptions{})
+	return c.client.PolicyV1beta1().PodDisruptionBudgets(namespace).List(context.TODO(), metav1.ListOptions{})
 }
 
 // UpdatePodDisruptionBudgetV1beta1 updates the given pod disruption budget
@@ -54,7 +54,7 @@ func (c *Client) UpdatePodDisruptionBudgetV1beta1(podDisruptionBudget *policyv1b
 		return nil, err
 	}
 
-	return c.policy.PolicyV1beta1().PodDisruptionBudgets(podDisruptionBudget.Namespace).Update(context.TODO(), podDisruptionBudget, metav1.UpdateOptions{})
+	return c.client.PolicyV1beta1().PodDisruptionBudgets(podDisruptionBudget.Namespace).Update(context.TODO(), podDisruptionBudget, metav1.UpdateOptions{})
 }
 
 // DeletePodDisruptionBudgetV1beta1 deletes the given pod disruption budget
@@ -63,5 +63,5 @@ func (c *Client) DeletePodDisruptionBudgetV1beta1(name, namespace string) error 
 		return err
 	}
 
-	return c.policy.PolicyV1beta1().PodDisruptionBudgets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	return c.client.PolicyV1beta1().PodDisruptionBudgets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 }

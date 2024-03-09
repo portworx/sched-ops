@@ -61,7 +61,7 @@ func New(
 		lockAttempts:           lockAttempts,
 		lockRefreshDuration:    v2LockRefreshDuration,
 		lockK8sLockTTL:         v2LockK8sLockTTL,
-		kLockV1:                k8sLock{done: make(chan struct{}), id: ""}, // Initialize kLockV1 here
+		kLockV1:                k8sLock{done: make(chan struct{}, 1), id: ""}, // Initialize kLockV1 here
 	}, nil
 }
 

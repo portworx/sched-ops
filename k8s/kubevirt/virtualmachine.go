@@ -42,6 +42,8 @@ type VirtualMachineOps interface {
 	IsVirtualMachineRunning(*kubevirtv1.VirtualMachine) bool
 	// UpdateVirtualMachine updates existing Kubevirt VirtualMachine
 	UpdateVirtualMachine(*kubevirtv1.VirtualMachine) (*kubevirtv1.VirtualMachine, error)
+	// AddVolumeToVirtualMachine adds a volume to the VirtualMachine
+	AddVolumeToVirtualMachine(*kubevirtv1.VirtualMachine, *kubevirtv1.AddVolumeOptions) error
 }
 
 // ListVirtualMachines List Kubevirt VirtualMachine in given namespace
@@ -223,7 +225,7 @@ func (c *Client) GetVMSecrets(vm *kubevirtv1.VirtualMachine) []string {
 			if cloudInitConfigDrive.NetworkDataSecretRef != nil {
 				secretList = append(secretList, cloudInitConfigDrive.NetworkDataSecretRef.Name)
 			}
-			// Secret from confifDrive aka Ignition
+			// Secret from config Drive aka Ignition
 			if cloudInitConfigDrive.UserDataSecretRef != nil {
 				secretList = append(secretList, cloudInitConfigDrive.UserDataSecretRef.Name)
 			}
@@ -260,4 +262,12 @@ func (c *Client) UpdateVirtualMachine(vm *kubevirtv1.VirtualMachine) (*kubevirtv
 	}
 
 	return c.kubevirt.VirtualMachine(vm.GetNamespace()).Update(vm)
+}
+
+// AddVolumeToVirtualMachine adds a volume to the VirtualMachine
+func (c *Client) AddVolumeToVirtualMachine(vm *kubevirtv1.VirtualMachine, volOpts *kubevirtv1.AddVolumeOptions) error {
+	if err := c.initClient(); err != nil {
+		return err
+	}
+	return c.kubevirt.VirtualMachine(vm.GetNamespace()).AddVolume(vm.GetName(), volOpts)
 }

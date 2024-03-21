@@ -124,7 +124,7 @@ func TestLockWithHoldTimeout(t *testing.T) {
 	SetFatalCb(fatalLockCb)
 
 	// when custom lock hold timeout is more than the default lock hold timeout
-	err = cm.LockWithHoldTimeout("id1", customHoldTimeout)
+	err = cm.LockWithParams("id1", customHoldTimeout, 0)
 	require.NoError(t, err, "Unexpected error in lock")
 	time.Sleep(20 * time.Second)
 

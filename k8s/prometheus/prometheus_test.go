@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestInstance tests the Instance function
 func TestInstance(t *testing.T) {
 	Instance()
 

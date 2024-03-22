@@ -83,8 +83,9 @@ type ConfigMap interface {
 	// Lock locks a configMap where id is the identification of
 	// the holder of the lock.
 	Lock(id string) error
-	// LockWithHoldTimeout similar to Lock but with a different lock hold timeout
-	LockWithHoldTimeout(id string, holdTimeout time.Duration) error
+	// LockWithParams similar to Lock but with custom params.
+	// If lockAttempts is 0, the value passed to configmap.New() is used.
+	LockWithParams(id string, holdTimeout time.Duration, lockAttempts uint) error
 	// LockWithKey locks a configMap where owner is the identification
 	// of the holder of the lock and key is the specific lock to take.
 	LockWithKey(owner, key string) error

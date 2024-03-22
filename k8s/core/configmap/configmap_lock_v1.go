@@ -9,16 +9,19 @@ import (
 )
 
 func (c *configMap) Lock(id string) error {
-	return c.LockWithHoldTimeout(id, c.defaultLockHoldTimeout)
+	return c.LockWithParams(id, c.defaultLockHoldTimeout, c.lockAttempts)
 }
 
-func (c *configMap) LockWithHoldTimeout(id string, holdTimeout time.Duration) error {
-	fn := "LockWithHoldTimeout"
+func (c *configMap) LockWithParams(id string, holdTimeout time.Duration, numAttempts uint) error {
+	fn := "LockWithParams"
+	if numAttempts == 0 {
+		// This is the same no. of times (300) we try while acquiring a kvdb lock
+		numAttempts = c.lockAttempts
+	}
 	count := uint(0)
 	// try acquiring a lock on the ConfigMap
 	owner, err := c.tryLockV1(id, false)
-	// This is the same no. of times (300) we try while acquiring a kvdb lock
-	for maxCount := c.lockAttempts; err != nil && count < maxCount; count++ {
+	for maxCount := numAttempts; err != nil && count < maxCount; count++ {
 		time.Sleep(lockSleepDuration)
 		owner, err = c.tryLockV1(id, false)
 		if count > 0 && count%15 == 0 && err != nil {

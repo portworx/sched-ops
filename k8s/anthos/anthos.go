@@ -20,7 +20,10 @@ var (
 
 // Ops is an interface to perform kubernetes related operation in Anthos Cluster.
 type Ops interface {
+	// OnpremOps is an interface to perform Anthos onprem operations
 	OnpremOps
+	// ClusterOps is an interface to perform anthos cluster operations
+	ClusterOps
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)
 }
@@ -80,6 +83,7 @@ func NewInstanceFromConfigFile(config string) (Ops, error) {
 // Client is a wrapper for the openshift resource interfaces.
 type Client struct {
 	config                                                *rest.Config
+	restClient                                            rest.Interface
 	kube                                                  kubernetes.Interface
 	service                                               *gkeonprem.Service
 	projectLocationService                                *gkeonprem.ProjectsLocationsService
@@ -167,4 +171,13 @@ func (c *Client) loadClient() error {
 	c.projectsLocationsVmwareClustersVmwareNodePoolsService = gkeonprem.NewProjectsLocationsVmwareClustersVmwareNodePoolsService(c.service)
 
 	return nil
+}
+
+// RESTClient returns a RESTClient that is used to communicate
+// with API server by this client implementation.
+func (c *Client) RESTClient() rest.Interface {
+	if c == nil {
+		return nil
+	}
+	return c.restClient
 }

@@ -288,19 +288,17 @@ func (c *Client) RemoveLabelOnNode(name, key string) error {
 
 // WatchNode sets up a watcher that listens for the changes on Node.
 func (c *Client) WatchNode(node *corev1.Node, watchNodeFn WatchFunc) error {
-	if node == nil {
-		return fmt.Errorf("no node given to watch")
-	}
-
 	if err := c.initClient(); err != nil {
 		return err
 	}
-
 	listOptions := metav1.ListOptions{
-		FieldSelector: fields.OneTermEqualSelector("metadata.name", node.Name).String(),
-		Watch:         true,
+		Watch: true,
 	}
-
+	if node != nil {
+		listOptions.FieldSelector = fields.OneTermEqualSelector("metadata.name", node.Name).String()
+	} else {
+		fmt.Printf("Watching all nodes")
+	}
 	watchInterface, err := c.kubernetes.CoreV1().Nodes().Watch(context.TODO(), listOptions)
 	if err != nil {
 		return err
@@ -309,6 +307,7 @@ func (c *Client) WatchNode(node *corev1.Node, watchNodeFn WatchFunc) error {
 	// fire off watch function
 	go c.handleWatch(watchInterface, node, "", watchNodeFn, listOptions)
 	return nil
+
 }
 
 // CordonNode cordons the given node

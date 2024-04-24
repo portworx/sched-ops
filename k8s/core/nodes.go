@@ -307,6 +307,7 @@ func (c *Client) WatchNode(node *corev1.Node, watchNodeFn WatchFunc) error {
 	// fire off watch function
 	go c.handleWatch(watchInterface, node, "", watchNodeFn, listOptions)
 	return nil
+
 }
 
 // CordonNode cordons the given node

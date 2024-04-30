@@ -52,6 +52,30 @@ func TestCreateMigration(t *testing.T) {
 	t.Logf("Migration: %v", migration)
 }
 
+func TestCreateMigrationWithParams(t *testing.T) {
+	// Populate the variables below from a live cluster to test this manually.
+	testKubeconfig := "TBD"
+	testVMINamespace := "TBD"
+	testVMIName := "TBD"
+
+	if testKubeconfig == "TBD" {
+		t.Skip("Populate the test variables to run this test manually.")
+	}
+	os.Setenv("KUBECONFIG", testKubeconfig)
+
+	Instance()
+
+	require.NotNil(t, instance, "instance should be initialized")
+
+	migration, err := instance.CreateVirtualMachineInstanceMigrationWithParams(
+		context.TODO(), testVMINamespace, testVMIName, "migration1", "",
+		map[string]string{"anno1": "val1"}, map[string]string{"label2": "val2"})
+	if err != nil {
+		t.Logf("Failed to create migration: %v", err)
+	}
+	t.Logf("Migration: %v", migration)
+}
+
 func TestListMigrations(t *testing.T) {
 	// Populate the variables below from a live cluster to test this manually.
 	testKubeconfig := "TBD"

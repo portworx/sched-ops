@@ -54,7 +54,7 @@ type VirtualMachineInstanceMigrationOps interface {
 
 	// CreateVirtualMachineInstanceMigrationWithParams starts live migration of the specified VMI
 	CreateVirtualMachineInstanceMigrationWithParams(ctx context.Context, vmiNamespace, vmiName string,
-		migrationNam, generateNamePrefix string, annotations, labels map[string]string) (*VirtualMachineInstanceMigration, error)
+		migrationName, generateNamePrefix string, annotations, labels map[string]string) (*VirtualMachineInstanceMigration, error)
 
 	// GetVirtualMachineInstanceMigration retrieves some info about the specified VMI
 	GetVirtualMachineInstanceMigration(ctx context.Context, namespace, name string) (

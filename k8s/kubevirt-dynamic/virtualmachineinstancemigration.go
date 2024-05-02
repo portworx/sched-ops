@@ -10,6 +10,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+const (
+	// migrationPhaseFailed is the phase when the migration has failed
+	migrationPhaseFailed = "Failed"
+)
+
 var (
 	migrationResource = schema.GroupVersionResource{Group: "kubevirt.io", Version: "v1", Resource: "virtualmachineinstancemigrations"}
 )
@@ -214,14 +219,23 @@ func (c *Client) unstructuredGetVMIMigration(
 		return nil, fmt.Errorf("failed to get 'phase' from the vmi migration status: %w", err)
 	}
 	// completed
-	ret.Completed, _, err = unstructured.NestedBool(migration.Object, "status", "migrationState", "completed")
+	var found bool
+	ret.Completed, found, err = unstructured.NestedBool(migration.Object, "status", "migrationState", "completed")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get 'completed' from the vmi migration status: %w", err)
 	}
+	// migrationState is not present if the pod fails to get scheduled; we need to look at the Phase
+	if !found && ret.Phase == migrationPhaseFailed {
+		ret.Completed = true
+	}
 	// failed
-	ret.Failed, _, err = unstructured.NestedBool(migration.Object, "status", "migrationState", "failed")
+	ret.Failed, found, err = unstructured.NestedBool(migration.Object, "status", "migrationState", "failed")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get 'failed' from the vmi migration status: %w", err)
+	}
+	// migrationState is not present if the pod fails to get scheduled; we need to look at the Phase
+	if !found && ret.Phase == migrationPhaseFailed {
+		ret.Failed = true
 	}
 	// startTimestamp
 	ret.StartTimestamp, _, err = c.unstructuredGetTimestamp(migration.Object, "status", "migrationState", "startTimestamp")

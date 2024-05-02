@@ -51,7 +51,7 @@ type VirtualMachineInstanceMigrationOps interface {
 	CreateVirtualMachineInstanceMigration(vmiNamespace, vmiName string) (*VirtualMachineInstanceMigration, error)
 
 	// CreateVirtualMachineInstanceMigrationWithParams starts live migration of the specified VMI
-	CreateVirtualMachineInstanceMigrationWithParams(ctx context.Context, vmiNamespace, vmiName string,
+	CreateVirtualMachineInstanceMigrationWithParams(vmiNamespace, vmiName string,
 		migrationNam, generateNamePrefix string, annotations, labels map[string]string) (*VirtualMachineInstanceMigration, error)
 
 	// GetVirtualMachineInstanceMigration retrieves some info about the specified VMI
@@ -66,12 +66,12 @@ type VirtualMachineInstanceMigrationOps interface {
 func (c *Client) CreateVirtualMachineInstanceMigration(
 	vmiNamespace, vmiName string,
 ) (*VirtualMachineInstanceMigration, error) {
-	return c.CreateVirtualMachineInstanceMigrationWithParams(ctx, vmiNamespace, vmiName, "", "", nil, nil)
+	return c.CreateVirtualMachineInstanceMigrationWithParams(vmiNamespace, vmiName, "", "", nil, nil)
 }
 
 // CreateVirtualMachineInstanceMigrationWithParams starts live migration of the specified VMI
 func (c *Client) CreateVirtualMachineInstanceMigrationWithParams(
-	ctx context.Context, vmiNamespace, vmiName string, migrationName, generateNamePrefix string,
+	vmiNamespace, vmiName string, migrationName, generateNamePrefix string,
 	annotations, labels map[string]string,
 ) (*VirtualMachineInstanceMigration, error) {
 

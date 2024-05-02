@@ -67,7 +67,7 @@ func TestCreateMigrationWithParams(t *testing.T) {
 	require.NotNil(t, instance, "instance should be initialized")
 
 	migration, err := instance.CreateVirtualMachineInstanceMigrationWithParams(
-		context.TODO(), testVMINamespace, testVMIName, "migration1", "",
+		testVMINamespace, testVMIName, "migration1", "",
 		map[string]string{"anno1": "val1"}, map[string]string{"label2": "val2"})
 	if err != nil {
 		t.Logf("Failed to create migration: %v", err)

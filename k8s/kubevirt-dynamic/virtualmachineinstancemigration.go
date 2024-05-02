@@ -10,6 +10,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+const (
+	// migrationPhaseFailed is the phase when the migration has failed
+	migrationPhaseFailed = "Failed"
+)
+
 var (
 	migrationResource = schema.GroupVersionResource{Group: "kubevirt.io", Version: "v1", Resource: "virtualmachineinstancemigrations"}
 )
@@ -220,7 +225,7 @@ func (c *Client) unstructuredGetVMIMigration(
 		return nil, fmt.Errorf("failed to get 'completed' from the vmi migration status: %w", err)
 	}
 	// migrationState is not present if the pod fails to get scheduled; we need to look at the Phase
-	if !found && ret.Phase == "Failed" {
+	if !found && ret.Phase == migrationPhaseFailed {
 		ret.Completed = true
 	}
 	// failed
@@ -229,7 +234,7 @@ func (c *Client) unstructuredGetVMIMigration(
 		return nil, fmt.Errorf("failed to get 'failed' from the vmi migration status: %w", err)
 	}
 	// migrationState is not present if the pod fails to get scheduled; we need to look at the Phase
-	if !found && ret.Phase == "Failed" {
+	if !found && ret.Phase == migrationPhaseFailed {
 		ret.Failed = true
 	}
 	// startTimestamp

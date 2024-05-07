@@ -28,6 +28,7 @@ func TestGetVMI(t *testing.T) {
 		t.FailNow()
 	}
 	t.Logf("VMI: %v", vmi)
+	t.Logf("LiveMigratable=%v, Ready=%v, Paused=%v", vmi.LiveMigratable, vmi.Ready, vmi.Paused)
 	for _, phaseTransition := range vmi.PhaseTransitions {
 		t.Logf("PhaseTransition: %v", phaseTransition)
 	}

@@ -25,7 +25,7 @@ fetch-tools:
 	mkdir -p tools
 	(cd tools && GO111MODULE=off $(GO) get -u golang.org/x/lint/golint)
 	(cd tools && GO111MODULE=off $(GO) get -v github.com/kisielk/errcheck)
-	(cd tools && GO111MODULE=off $(GO) get -u github.com/vbatts/git-validation)
+	(cd tools &&  $(GO) get -u github.com/vbatts/git-validation)
 
 # Deliverables
 

@@ -27,10 +27,10 @@ fetch-tools:
 	(cd tools && $(GO) get -v github.com/kisielk/errcheck)
 	(cd tools && $(GO) get -u github.com/vbatts/git-validation)
 	(cd tools && $(GO) get k8s.io/client-go/rest@v11.0.1-0.20190409021438-1a26190bd76a+incompatible)
-	(cd tools && $(GO) get get github.com/libopenstorage/openstorage/api@v8.0.0+incompatible)
-	(cd tools && $(GO) get get golang.org/x/oauth2/internal@v0.0.0-20190604053449-0f29369cfe45)
-	(cd tools && $(GO) get get google.golang.org/grpc@v1.26.0)
-	(cd tools && $(GO) get get google.golang.org/grpc/internal/transport@v1.26.0)
+	(cd tools && $(GO) get github.com/libopenstorage/openstorage/api@v8.0.0+incompatible)
+	(cd tools && $(GO) get golang.org/x/oauth2/internal@v0.0.0-20190604053449-0f29369cfe45)
+	(cd tools && $(GO) get google.golang.org/grpc@v1.26.0)
+	(cd tools && $(GO) get google.golang.org/grpc/internal/transport@v1.26.0)
 
 # Deliverables
 

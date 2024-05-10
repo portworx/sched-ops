@@ -17,6 +17,7 @@ var (
 	instance Ops
 	once     sync.Once
 )
+//Teset comment
 
 // Ops is an interface to the admission client wrapper.
 type Ops interface {

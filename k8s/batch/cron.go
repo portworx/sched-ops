@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Ops is an interface to perform kubernetes related operations on the crd resources.
+// CronOps is an interface to perform kubernetes related operations on the crd resources.
 type CronOps interface {
 	// CreateCronJob creates the given cronJob
 	CreateCronJob(cronJob *v1beta1.CronJob) (*v1beta1.CronJob, error)
@@ -25,9 +25,10 @@ type CronOps interface {
 	ListCronJobs(namespace string) (*v1beta1.CronJobList, error)
 }
 
+// NamespaceDefault is set to default
 var NamespaceDefault = "default"
 
-// CreateCron creates the given cronJob
+// CreateCronJob creates the given cronJob
 func (c *Client) CreateCronJob(cronJob *v1beta1.CronJob) (*v1beta1.CronJob, error) {
 	if err := c.initClient(); err != nil {
 		return nil, err

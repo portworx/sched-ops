@@ -6,8 +6,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-// StorageClassOps is an interface to perform k8s storage class operations
-type StorageClassOps interface {
+// ClassOps is an interface to perform k8s storage class operations
+type ClassOps interface {
 	// GetStorageClasses returns all storageClasses that match given optional label selector
 	GetStorageClasses(labelSelector map[string]string) (*storagev1.StorageClassList, error)
 	// GetStorageClass returns the storage class for the give namme

@@ -7,11 +7,13 @@ require (
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/elazarl/goproxy v0.0.0-20191011121108-aa519ddbe484 // indirect
 	github.com/emicklei/go-restful v2.10.0+incompatible // indirect
+	github.com/fatih/color v1.16.0 // indirect
 	github.com/go-openapi/jsonreference v0.19.3 // indirect
 	github.com/go-openapi/spec v0.19.3 // indirect
 	github.com/gogo/protobuf v1.3.0 // indirect
 	github.com/golang/mock v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.11.3 // indirect
+	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/imdario/mergo v0.3.8 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kubernetes-csi/external-snapshotter/v2 v2.1.1
@@ -20,6 +22,7 @@ require (
 	github.com/libopenstorage/openstorage v8.0.0+incompatible // indirect
 	github.com/libopenstorage/operator v0.0.0-20200725001727-48d03e197117
 	github.com/libopenstorage/stork v1.3.0-beta1.0.20200630005842-9255e7a98775
+	github.com/magefile/mage v1.15.0 // indirect
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/openshift/api v0.0.0-20190322043348-8741ff068a47
@@ -27,9 +30,11 @@ require (
 	github.com/operator-framework/operator-sdk v0.0.7 // indirect
 	github.com/portworx/talisman v0.0.0-20191007232806-837747f38224
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
-	github.com/sirupsen/logrus v1.4.2
-	github.com/stretchr/testify v1.4.0
+	github.com/sirupsen/logrus v1.9.3
+	github.com/stretchr/testify v1.7.0
+	github.com/vbatts/git-validation v1.2.1 // indirect
 	golang.org/x/crypto v0.0.0-20191010185427-af544f31c8ac // indirect
+	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
 	google.golang.org/appengine v1.6.5 // indirect
 	gopkg.in/square/go-jose.v2 v2.3.1 // indirect

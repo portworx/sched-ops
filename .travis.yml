@@ -1,6 +1,6 @@
 language: go
 go:
-  - 1.x
+  - 1.19.1
 install:
   - make fetch-tools
   - make vendor

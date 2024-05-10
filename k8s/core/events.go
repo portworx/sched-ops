@@ -41,6 +41,7 @@ type RecorderOps interface {
 	RecordEvent(source v1.EventSource, object runtime.Object, eventtype, reason, message string)
 }
 
+// RecordEvent records events
 func (c *Client) RecordEvent(source v1.EventSource, object runtime.Object, eventtype, reason, message string) {
 	if err := c.initClient(); err != nil {
 		return

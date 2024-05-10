@@ -35,7 +35,7 @@ func (c *Client) GetServiceAccount(name, namespace string) (*corev1.ServiceAccou
 	return c.kubernetes.CoreV1().ServiceAccounts(namespace).Get(name, metav1.GetOptions{})
 }
 
-// UpdaeServiceAccount updates the given service account
+// UpdateServiceAccount updates the given service account
 func (c *Client) UpdateServiceAccount(account *corev1.ServiceAccount) (*corev1.ServiceAccount, error) {
 	if err := c.initClient(); err != nil {
 		return nil, err

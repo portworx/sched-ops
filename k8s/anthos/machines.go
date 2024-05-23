@@ -14,6 +14,10 @@ var (
 	machineResource = schema.GroupVersionResource{Group: "cluster.k8s.io", Version: "v1alpha1", Resource: "machines"}
 )
 
+const (
+	DefaultNamespace = "default"
+)
+
 // MachinesOps is an interface to perform k8s machines operations
 type MachineOps interface {
 	// ListMachines lists all machines in kubernetes cluster
@@ -30,7 +34,7 @@ func (c *Client) ListMachines(ctx context.Context) (*v1alpha1.MachineList, error
 		return nil, err
 	}
 
-	result, err := c.dynamicClient.Resource(machineResource).List(ctx, metav1.ListOptions{})
+	result, err := c.dynamicClient.Resource(machineResource).Namespace(DefaultNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +55,7 @@ func (c *Client) GetMachine(ctx context.Context, name string) (*v1alpha1.Machine
 	if err := c.initClient(); err != nil {
 		return nil, err
 	}
-	rawMachine, err := c.dynamicClient.Resource(machineResource).Get(ctx, name, metav1.GetOptions{})
+	rawMachine, err := c.dynamicClient.Resource(machineResource).Namespace(DefaultNamespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +75,6 @@ func (c *Client) DeleteMachine(ctx context.Context, name string) error {
 	if err := c.initClient(); err != nil {
 		return err
 	}
-	return c.dynamicClient.Resource(machineResource).Delete(ctx, name, metav1.DeleteOptions{})
+	return c.dynamicClient.Resource(machineResource).Namespace(DefaultNamespace).Delete(ctx, name, metav1.DeleteOptions{})
 
 }

@@ -91,7 +91,7 @@ require (
 	github.com/kubernetes-csi/external-snapshotter/client/v6 v6.2.0
 	github.com/tektoncd/pipeline v0.56.0
 	google.golang.org/api v0.156.0
-	sigs.k8s.io/cluster-api v0.2.11
+	sigs.k8s.io/cluster-api v1.7.3
 )
 
 require (

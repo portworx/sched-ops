@@ -110,6 +110,7 @@ func (c *Client) ValidateDataExport(name string, namespace string, timeout, retr
 	return nil
 }
 
+// WatchDataExport sends a watcher for DataExport CR
 func (c *Client) WatchDataExport(namespace string) (watch.Interface, error) {
 	if err := c.initClient(); err != nil {
 		return nil, err

@@ -28,7 +28,7 @@ type DataExportOps interface {
 	// ValidateDataExport validates the DataExport CR
 	ValidateDataExport(string, string, time.Duration, time.Duration) error
 	// WatchDataExport sends a watcher for DataExport CR
-	WatchDataExport(string) (watch.Interface, error)
+	WatchDataExport(string, metav1.ListOptions) (watch.Interface, error)
 }
 
 // CreateDataExport creates the DataExport CR
@@ -111,11 +111,11 @@ func (c *Client) ValidateDataExport(name string, namespace string, timeout, retr
 }
 
 // WatchDataExport sends a watcher for DataExport CR
-func (c *Client) WatchDataExport(namespace string) (watch.Interface, error) {
+func (c *Client) WatchDataExport(namespace string, opts metav1.ListOptions) (watch.Interface, error) {
 	if err := c.initClient(); err != nil {
 		return nil, err
 	}
-	watcher, err := c.kdmp.KdmpV1alpha1().DataExports(namespace).Watch(context.TODO(), metav1.ListOptions{})
+	watcher, err := c.kdmp.KdmpV1alpha1().DataExports(namespace).Watch(context.TODO(), opts)
 	if err != nil {
 		return nil, err
 	}

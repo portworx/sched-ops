@@ -41,6 +41,10 @@ const (
 	// objects.
 	pxLockKey = "px-lock"
 
+	// pxGenerationKey is the key which stores the generation of the configmap data. The value is incremented every time
+	// the configmap data is updated via PatchKeyLocked or DeleteKeyLocked. This is used for diagnostics purposes only.
+	pxGenerationKey = "px-generation"
+
 	lockSleepDuration     = 1 * time.Second
 	configMapUserLabelKey = "user"
 	maxConflictRetries    = 3
@@ -49,13 +53,18 @@ const (
 var (
 	// ErrConfigMapLocked is returned when the ConfigMap is locked
 	ErrConfigMapLocked = errors.New("ConfigMap is locked")
-	fatalCb            FatalCb
-	configMapNameRegex = regexp.MustCompile("[^a-zA-Z0-9]+")
+	// ErrConfigMapLockLost is returned when the ConfigMap lock expired and was taken away
+	ErrConfigMapLockLost = errors.New("ConfigMap lock was lost")
+	fatalCb              FatalCb
+	configMapNameRegex   = regexp.MustCompile("[^a-zA-Z0-9]+")
 )
 
 // FatalCb is a callback function which will be executed if the Lock
 // routine encounters a panic situation
 type FatalCb func(format string, args ...interface{})
+
+// CheckLockCb is a callback function to check if the lock is still valid.
+type CheckLockCb func(data map[string]string) bool
 
 type configMap struct {
 	name                   string
@@ -70,6 +79,7 @@ type configMap struct {
 }
 
 type k8sLock struct {
+	wg       sync.WaitGroup
 	done     chan struct{}
 	unlocked bool
 	id       string
@@ -78,16 +88,24 @@ type k8sLock struct {
 
 // ConfigMap is an interface that provides a set of APIs over a single
 // k8s configmap object. The data in the configMap is managed as a map of string
-// to string
+// to string.
+//
+// Rules:
+//  1. Locks are non-reentrant.
+//  2. For v1 locks, use Lock()/LockWithParams() and Unlock(). For v2 locks, use LockWithKey() and UnlockWithKey().
+//  3. Use the same locking mechanism (v1 or v2) for a given key consistently. It is dangerous to change
+//     the locking mechanism for a key (e.g. during upgrade).
+//  4. Specify the correct locking mechanism and lock owner when using PatchKeyLocked() and DeleteKeyLocked().
+//  5. Do not patch/delete any of the internal keys used for the locks and expirations.
 type ConfigMap interface {
 	// Lock locks a configMap where id is the identification of
-	// the holder of the lock.
+	// the holder of the lock. Lock is non-reentrant.
 	Lock(id string) error
 	// LockWithParams similar to Lock but with custom params.
 	// If lockAttempts is 0, the value passed to configmap.New() is used.
 	LockWithParams(id string, holdTimeout time.Duration, lockAttempts uint) error
 	// LockWithKey locks a configMap where owner is the identification
-	// of the holder of the lock and key is the specific lock to take.
+	// of the holder of the lock and key is the specific lock to take.  Lock is non-reentrant.
 	LockWithKey(owner, key string) error
 	// Unlock unlocks the configMap.
 	Unlock() error
@@ -96,11 +114,14 @@ type ConfigMap interface {
 	// IsKeyLocked returns if the given key is locked, and if so, by which owner.
 	IsKeyLocked(key string) (bool, string, error)
 
-	// Patch updates only the keys provided in the input map.
-	// It does not replace the complete map
-	Patch(data map[string]string) error
-	// Update overwrites the data of the configmap
-	Update(data map[string]string) error
+	// PatchKeyLocked updates the specified key in the configMap. It verifies that
+	// the lock is still held by the specified owner. Lock needs to be held by the lockOwner
+	// throughout the patch operation for this function to succeed.
+	PatchKeyLocked(isV1Lock bool, lockOwner, key, val string) error
+
+	// DeleteKeyLocked deletes the specified key in the configMap.
+	DeleteKeyLocked(isV1Lock bool, lockOwner, key string) error
+
 	// Get returns the contents of the configMap
 	Get() (map[string]string, error)
 	// Delete deletes the configMap

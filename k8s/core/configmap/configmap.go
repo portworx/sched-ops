@@ -1,7 +1,9 @@
 package configmap
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -61,7 +63,6 @@ func New(
 		lockAttempts:           lockAttempts,
 		lockRefreshDuration:    v2LockRefreshDuration,
 		lockK8sLockTTL:         v2LockK8sLockTTL,
-		kLockV1:                k8sLock{done: make(chan struct{}, 1), id: ""}, // Initialize kLockV1 here
 	}, nil
 }
 
@@ -84,7 +85,7 @@ func (c *configMap) Delete() error {
 	)
 }
 
-func (c *configMap) Patch(data map[string]string) error {
+func (c *configMap) PatchKeyLocked(isV1Lock bool, lockOwner, key, val string) error {
 	var (
 		err error
 		cm  *corev1.ConfigMap
@@ -97,25 +98,71 @@ func (c *configMap) Patch(data map[string]string) error {
 		if err != nil {
 			return err
 		}
-
+		if err := c.checkLockOwner(isV1Lock, key, lockOwner, cm); err != nil {
+			return fmt.Errorf("lock check failed: %w", err)
+		}
 		if cm.Data == nil {
 			cm.Data = make(map[string]string, 0)
 		}
 
-		for k, v := range data {
-			cm.Data[k] = v
-		}
+		cm.Data[key] = val
+		newGen := c.incrementGeneration(cm)
 		_, err = core.Instance().UpdateConfigMap(cm)
 		if k8s_errors.IsConflict(err) {
 			// try again
 			continue
+		}
+		if err == nil {
+			logrus.Infof("Updated key %s in configmap %s/%s with generation %d and lockOwner %s",
+				key, k8sSystemNamespace, c.name, newGen, lockOwner)
 		}
 		return err
 	}
 	return err
 }
 
-func (c *configMap) Update(data map[string]string) error {
+func (c *configMap) incrementGeneration(cm *corev1.ConfigMap) uint64 {
+	val := cm.Data[pxGenerationKey]
+	if val == "" {
+		val = "0"
+	}
+	gen, err := strconv.ParseUint(val, 10, 64)
+	if err != nil {
+		logrus.Errorf("Failed to parse generation %s; resetting to 1: %v", val, err)
+		return 1
+	}
+	newGen := gen + 1
+	if newGen == 0 {
+		newGen = 1
+	}
+	cm.Data[pxGenerationKey] = strconv.FormatUint(newGen, 10)
+	return newGen
+}
+
+func (c *configMap) checkLockOwner(isV1Lock bool, v2Key string, expectedLockOwner string, cm *corev1.ConfigMap) error {
+	if expectedLockOwner == "" {
+		return errors.New("expected lock owner cannot be empty")
+	}
+	if isV1Lock {
+		if cm.Data[pxOwnerKey] != expectedLockOwner {
+			return fmt.Errorf("v1 lock owner is %q instead of expected %q", cm.Data[pxOwnerKey], expectedLockOwner)
+		}
+		return nil
+	}
+	if v2Key == "" {
+		return errors.New("v2 key cannot be empty when checking v2 lock owner")
+	}
+	currentOwner, err := c.getV2LockOwnerIncludeExpired(cm, v2Key)
+	if err != nil {
+		return fmt.Errorf("failed to parse v2 locks: %w", err)
+	}
+	if currentOwner != expectedLockOwner {
+		return fmt.Errorf("v2 lock owner is %q instead of expected %q", currentOwner, expectedLockOwner)
+	}
+	return nil
+}
+
+func (c *configMap) DeleteKeyLocked(isV1Lock bool, lockOwner string, key string) error {
 	var (
 		err error
 		cm  *corev1.ConfigMap
@@ -128,11 +175,20 @@ func (c *configMap) Update(data map[string]string) error {
 		if err != nil {
 			return err
 		}
-		cm.Data = data
+		if err := c.checkLockOwner(isV1Lock, key, lockOwner, cm); err != nil {
+			return fmt.Errorf("lock check failed: %w", err)
+		}
+		delete(cm.Data, key)
+
+		newGen := c.incrementGeneration(cm)
 		_, err = core.Instance().UpdateConfigMap(cm)
 		if k8s_errors.IsConflict(err) {
 			// try again
 			continue
+		}
+		if err == nil {
+			logrus.Infof("Deleted key %s in configmap %s/%s with generation %d and lockOwner %s",
+				key, k8sSystemNamespace, c.name, newGen, lockOwner)
 		}
 		return err
 	}

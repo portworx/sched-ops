@@ -129,10 +129,12 @@ func (c *configMap) incrementGeneration(cm *corev1.ConfigMap) uint64 {
 	gen, err := strconv.ParseUint(val, 10, 64)
 	if err != nil {
 		logrus.Errorf("Failed to parse generation %s; resetting to 1: %v", val, err)
-		return 1
+		val = "0"
+		gen = 0
 	}
 	newGen := gen + 1
 	if newGen == 0 {
+		logrus.Warnf("Resetting generation to 1 from %s", val)
 		newGen = 1
 	}
 	cm.Data[pxGenerationKey] = strconv.FormatUint(newGen, 10)

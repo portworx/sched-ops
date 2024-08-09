@@ -133,17 +133,17 @@ func TestMultilock(t *testing.T) {
 	require.NoError(t, err, "Unexpected error on Delete")
 }
 
-func TestExpiration(t *testing.T) {
+func TestLockHoldTimeout(t *testing.T) {
 	fakeClient := fakek8sclient.NewSimpleClientset()
 	coreops.SetInstance(coreops.New(fakeClient))
 	cm, err := New("px-configmaps-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
 	require.NoError(t, err, "Unexpected error on New")
 
-	fmt.Println("TestExpiration")
+	fmt.Println("TestLockHoldTimeout")
 
 	id1 := "id1"
-	id2 := "id2"
 	key1 := "key1"
+	id2 := "id2"
 
 	var lockTimedout bool
 	fatalLockCb := func(format string, args ...interface{}) {
@@ -168,10 +168,7 @@ func TestExpiration(t *testing.T) {
 	time.Sleep(testLockTimeout + time.Second)
 	require.True(t, lockTimedout, "Lock hold timeout not triggered")
 
-	// Wait for lock to expire
-	time.Sleep(testLockTTL + 100*time.Millisecond)
-
-	// Locking again with expired lock should not throw error
+	// Locking again should not throw error
 	err = cm.LockWithKey(id1, key1)
 	require.NoError(t, err, "Unexpected error in lock")
 
@@ -182,6 +179,7 @@ func TestExpiration(t *testing.T) {
 	require.NoError(t, err, "Unexpected error in lock")
 	err = cm.UnlockWithKey(key1)
 	require.NoError(t, err, "Unexpected error in unlock")
+
 	err = cm.Delete()
 	require.NoError(t, err, "Unexpected error on Delete")
 }
@@ -242,6 +240,9 @@ func TestCMLockLostV2(t *testing.T) {
 	require.NoError(t, err, "Unexpected error in Get")
 	require.Contains(t, resultMap, key1)
 	require.Equal(t, "val3", resultMap[key1])
+
+	err = cm.Delete()
+	require.NoError(t, err, "Unexpected error on Delete")
 }
 
 func TestDeleteKeyLockedV2(t *testing.T) {
@@ -276,6 +277,8 @@ func TestDeleteKeyLockedV2(t *testing.T) {
 	require.NoError(t, err, "Unexpected error in Get")
 	require.NotContains(t, resultMap, key1)
 
+	err = cm.Delete()
+	require.NoError(t, err, "Unexpected error on Delete")
 }
 
 func setV2LockOwnerForTesting(t *testing.T, cm *configMap, key, owner string, expiration time.Time) {

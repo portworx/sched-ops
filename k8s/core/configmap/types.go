@@ -41,7 +41,7 @@ const (
 	// objects.
 	pxLockKey = "px-lock"
 
-	// pxGenerationKey is the key which stores the generation of the configmap data. The value is incremented every time
+	// pxGenerationKey stores the generation of the configmap data. The value is incremented every time
 	// the configmap data is updated via PatchKeyLocked or DeleteKeyLocked. This is used for diagnostics purposes only.
 	pxGenerationKey = "px-generation"
 

@@ -273,7 +273,10 @@ func (c *configMap) checkAndTakeLock(
 
 	if refresh {
 		if currentOwner != owner {
-			// Our lock was revoked by someone else probably because we could not refresh it in time.
+			// We lost our lock probably because we could not refresh it in time. Note that even if the
+			// lock is available now, it is not safe to just re-acquire the lock here in refresh.
+			// We will fail any subsequent Patch/Delete calls being made under this lock. Caller must start over and
+			// call Lock() again.
 			configMapLog(fn, c.name, "", "", nil).Warnf(
 				"Lost our lock on key %s in the configMap %s to a new owner %q", key, c.name, currentOwner)
 			return currentOwner, ErrConfigMapLockLost
@@ -350,6 +353,8 @@ func (c *configMap) refreshLock(id, key string) {
 	c.kLocksV2Mutex.Unlock()
 
 	if lock == nil {
+		// could happen if the lock was unlocked before the goroutine started
+		configMapLog(fn, c.name, "", key, nil).Warnf("Lock not found for key %s; refresh goroutine exiting", key)
 		return
 	}
 

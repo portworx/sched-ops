@@ -127,7 +127,10 @@ func (c *configMap) tryLockV1(id string, refresh bool) (string, error) {
 	currentOwner := cm.Data[pxOwnerKey]
 	if refresh {
 		if currentOwner != id {
-			// we lost our lock probably because we could not refresh it in time
+			// We lost our lock probably because we could not refresh it in time. Note that even if the
+			// lock is available now, it is not safe to just re-acquire the lock here in refresh.
+			// We will fail any subsequent Patch/Delete calls being made under this lock. Caller must start over and
+			// call Lock() again.
 			configMapLog(fn, c.name, "", "", nil).Warnf(
 				"Lost our lock on the configMap %s to a new owner %q", c.name, currentOwner)
 			return "", ErrConfigMapLockLost

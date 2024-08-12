@@ -230,8 +230,12 @@ func TestDeleteKeyLockedV1(t *testing.T) {
 	require.Contains(t, resultMap, "key1")
 	require.Contains(t, resultMap, "key2")
 
+	err = cm.DeleteKeyLocked(true, "no-such-owner", "key1")
+	require.Error(t, err, "Expected error in DeleteKeyLocked with wrong owner")
+	require.ErrorContains(t, err, "lock check failed")
+
 	err = cm.DeleteKeyLocked(true, "lock-owner", "key1")
-	require.NoError(t, err, "Unexpected error in Patch")
+	require.NoError(t, err, "Unexpected error in DeleteKeyLocked")
 
 	err = cm.Unlock()
 	require.NoError(t, err, "Unexpected error in Unlock")

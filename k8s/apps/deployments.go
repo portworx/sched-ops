@@ -158,14 +158,6 @@ func (c *Client) ValidateDeployment(deployment *appsv1.Deployment, timeout, retr
 			}
 		}
 
-		if requiredReplicas > dep.Status.ReadyReplicas {
-			return "", true, &schederrors.ErrAppNotReady{
-				ID: dep.Name,
-				Cause: fmt.Sprintf("Expected replicas: %v Ready replicas: %v Current pods overview:\n%s",
-					requiredReplicas, dep.Status.ReadyReplicas, podsOverviewString),
-			}
-		}
-
 		if requiredReplicas != dep.Status.UpdatedReplicas && shared {
 			return "", true, &schederrors.ErrAppNotReady{
 				ID: dep.Name,
@@ -175,24 +167,22 @@ func (c *Client) ValidateDeployment(deployment *appsv1.Deployment, timeout, retr
 		}
 
 		// look for "requiredReplicas" number of pods in ready state
-		var notReadyPods []string
 		var readyCount int32
 		for _, pod := range pods {
-			if !common.IsPodReady(pod) {
-				notReadyPods = append(notReadyPods, pod.Name)
-			} else {
+			if common.IsPodReady(pod) {
 				readyCount++
 			}
 		}
 
-		if readyCount >= requiredReplicas {
-			return "", false, nil
+		if requiredReplicas > readyCount {
+			return "", true, &schederrors.ErrAppNotReady{
+				ID: dep.Name,
+				Cause: fmt.Sprintf("Expected replicas: %v Ready replicas: %v Current pods overview:\n%s",
+					requiredReplicas, readyCount, podsOverviewString),
+			}
 		}
 
-		return "", true, &schederrors.ErrAppNotReady{
-			ID:    dep.Name,
-			Cause: fmt.Sprintf("Pod(s): %#v not yet ready", notReadyPods),
-		}
+		return "", false, nil
 	}
 
 	if _, err := task.DoRetryWithTimeout(t, timeout, retryInterval); err != nil {

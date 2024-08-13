@@ -130,32 +130,22 @@ func (c *Client) ValidateReplicaSet(name, namespace string, timeout time.Duratio
 			}
 		}
 
-		if rs.Status.Replicas != rs.Status.ReadyReplicas {
-			return "", true, &schederrors.ErrAppNotReady{
-				ID: name,
-				Cause: fmt.Sprintf("Expected ready: %v Actual ready:%v Current pods overview:\n%s",
-					rs.Status.Replicas, rs.Status.ReadyReplicas, podsOverviewString),
-			}
-		}
-
-		var notReadyPods []string
 		var readyCount int32
 		for _, pod := range pods {
-			if !common.IsPodReady(pod) {
-				notReadyPods = append(notReadyPods, pod.Name)
-			} else {
+			if common.IsPodReady(pod) {
 				readyCount++
 			}
 		}
 
-		if readyCount == rs.Status.Replicas {
-			return "", false, nil
+		if rs.Status.Replicas != readyCount {
+			return "", true, &schederrors.ErrAppNotReady{
+				ID: name,
+				Cause: fmt.Sprintf("Expected ready: %v Actual ready:%v Current pods overview:\n%s",
+					rs.Status.Replicas, readyCount, podsOverviewString),
+			}
 		}
+		return "", false, nil
 
-		return "", true, &schederrors.ErrAppNotReady{
-			ID:    rs.Name,
-			Cause: fmt.Sprintf("Pod(s): %#v not yet ready", notReadyPods),
-		}
 	}
 
 	if _, err := task.DoRetryWithTimeout(t, timeout, 15*time.Second); err != nil {

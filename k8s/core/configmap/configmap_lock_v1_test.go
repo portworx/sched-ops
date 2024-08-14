@@ -247,6 +247,41 @@ func TestDeleteKeyLockedV1(t *testing.T) {
 	require.Equal(t, "2", resultMap[pxGenerationKey])
 }
 
+func TestCMLockRefreshV1(t *testing.T) {
+	fakeClient := fakek8sclient.NewSimpleClientset()
+	coreops.SetInstance(coreops.New(fakeClient))
+	cmIntf, err := New("px-configmaps-test", nil, 0, 0, 0, 0)
+	require.NoError(t, err, "Unexpected error on New")
+
+	cm := cmIntf.(*configMap)
+
+	id1 := "lock-refresh-id1"
+	key1 := "lock-refresh-key1"
+
+	err = cm.Lock(id1)
+	require.NoError(t, err, "Unexpected error in Lock(id1)")
+
+	err = cm.PatchKeyLocked(true, id1, key1, "val1")
+	require.NoError(t, err, "Unexpected error in Patch")
+
+	time.Sleep(v1DefaultK8sLockRefreshDuration + time.Second)
+
+	err = cm.PatchKeyLocked(true, id1, key1, "val2")
+	require.NoError(t, err, "Unexpected error in Patch")
+
+	err = cm.Unlock()
+	require.NoError(t, err, "Unexpected error in Unlock(key1)")
+
+	resultMap, err := cm.Get()
+	require.NoError(t, err, "Unexpected error in Get")
+	t.Log(resultMap)
+	require.Contains(t, resultMap, key1)
+	require.Equal(t, "val2", resultMap[key1])
+
+	err = cm.Delete()
+	require.NoError(t, err, "Unexpected error on Delete")
+}
+
 func TestCMLockLostV1(t *testing.T) {
 	fakeClient := fakek8sclient.NewSimpleClientset()
 	coreops.SetInstance(coreops.New(fakeClient))

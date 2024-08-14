@@ -25,10 +25,10 @@ func TestMultilock(t *testing.T) {
 
 	fmt.Println("testMultilock")
 
-	id1 := "id1"
-	id2 := "id2"
-	key1 := "key1"
-	key2 := "key2"
+	id1 := "multi-lock-id1"
+	id2 := "multi-lock-id2"
+	key1 := "multi-lock-key1"
+	key2 := "multi-lock-key2"
 
 	locked, _, err := cm.IsKeyLocked(key1)
 	require.NoError(t, err)
@@ -141,9 +141,9 @@ func TestLockHoldTimeout(t *testing.T) {
 
 	fmt.Println("TestLockHoldTimeout")
 
-	id1 := "id1"
-	key1 := "key1"
-	id2 := "id2"
+	id1 := "hold-timeout-id1"
+	key1 := "hold-timeout-key1"
+	id2 := "hold-timeout-id2"
 
 	var lockTimedout bool
 	fatalLockCb := func(format string, args ...interface{}) {
@@ -184,6 +184,41 @@ func TestLockHoldTimeout(t *testing.T) {
 	require.NoError(t, err, "Unexpected error on Delete")
 }
 
+func TestCMLockRefreshV2(t *testing.T) {
+	fakeClient := fakek8sclient.NewSimpleClientset()
+	coreops.SetInstance(coreops.New(fakeClient))
+	cmIntf, err := New("px-configmaps-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
+	require.NoError(t, err, "Unexpected error on New")
+
+	cm := cmIntf.(*configMap)
+
+	id1 := "lock-refresh-id1"
+	key1 := "lock-refresh-key1"
+
+	err = cm.LockWithKey(id1, key1)
+	require.NoError(t, err, "Unexpected error in LockWithKey(id1,key1)")
+
+	err = cm.PatchKeyLocked(false, id1, key1, "val1")
+	require.NoError(t, err, "Unexpected error in Patch")
+
+	time.Sleep(testLockTTL + 1500*time.Millisecond)
+
+	err = cm.PatchKeyLocked(false, id1, key1, "val2")
+	require.NoError(t, err, "Unexpected error in Patch")
+
+	err = cm.UnlockWithKey(key1)
+	require.NoError(t, err, "Unexpected error in UnlockWithKey(key1)")
+
+	resultMap, err := cm.Get()
+	require.NoError(t, err, "Unexpected error in Get")
+	t.Log(resultMap)
+	require.Contains(t, resultMap, key1)
+	require.Equal(t, "val2", resultMap[key1])
+
+	err = cm.Delete()
+	require.NoError(t, err, "Unexpected error on Delete")
+}
+
 func TestCMLockLostV2(t *testing.T) {
 	fakeClient := fakek8sclient.NewSimpleClientset()
 	coreops.SetInstance(coreops.New(fakeClient))
@@ -192,8 +227,8 @@ func TestCMLockLostV2(t *testing.T) {
 
 	cm := cmIntf.(*configMap)
 
-	id1 := "id1"
-	key1 := "key1"
+	id1 := "lock-lost-id1"
+	key1 := "lock-lost-key1"
 
 	err = cm.LockWithKey(id1, key1)
 	require.NoError(t, err, "Unexpected error in LockWithKey(id1,key1)")
@@ -253,8 +288,8 @@ func TestDeleteKeyLockedV2(t *testing.T) {
 
 	cm := cmIntf.(*configMap)
 
-	id1 := "id1"
-	key1 := "key1"
+	id1 := "delete-lock-id1"
+	key1 := "delete-lock-key1"
 
 	err = cm.LockWithKey(id1, key1)
 	require.NoError(t, err, "Unexpected error in LockWithKey(id1,key1)")

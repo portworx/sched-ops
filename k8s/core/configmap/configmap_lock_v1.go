@@ -16,9 +16,6 @@ func (c *configMap) Lock(id string) error {
 func (c *configMap) LockWithParams(id string, holdTimeout time.Duration, numAttempts uint) error {
 	fn := "LockWithParams"
 
-	// wait for any previous refreshLockV1 goroutine to exit
-	c.kLockV1.wg.Wait()
-
 	if numAttempts == 0 {
 		// This is the same no. of times (300) we try while acquiring a kvdb lock
 		numAttempts = c.lockAttempts
@@ -47,13 +44,10 @@ func (c *configMap) LockWithParams(id string, holdTimeout time.Duration, numAtte
 	c.lockHoldTimeoutV1 = holdTimeout
 	c.kLockV1.id = id
 	c.kLockV1.unlocked = false
+	c.kLockV1.v1LockGen = c.kLockV1.v1LockGen + 1
 	c.kLockV1.done = make(chan struct{})
 
-	c.kLockV1.wg.Add(1)
-	go func() {
-		c.refreshLockV1(id)
-		c.kLockV1.wg.Done()
-	}()
+	go c.refreshLockV1(id, c.kLockV1.v1LockGen)
 	return nil
 }
 
@@ -163,7 +157,7 @@ func (c *configMap) tryLockV1(id string, refresh bool) (string, error) {
 	return id, nil
 }
 
-func (c *configMap) refreshLockV1(id string) {
+func (c *configMap) refreshLockV1(id string, lockGen uint64) {
 	fn := "refreshLockV1"
 	refresh := time.NewTicker(v1DefaultK8sLockRefreshDuration)
 	var (
@@ -177,6 +171,13 @@ func (c *configMap) refreshLockV1(id string) {
 		select {
 		case <-refresh.C:
 			c.kLockV1.Lock()
+			if c.kLockV1.v1LockGen != lockGen {
+				configMapLog(fn, c.name, id, "", nil).Infof(
+					"Lock generation has changed from %d to %d. Exiting from this refresh lock goroutine...",
+					lockGen, c.kLockV1.v1LockGen)
+				c.kLockV1.Unlock()
+				return
+			}
 			for !c.kLockV1.unlocked {
 				c.checkLockTimeout(c.lockHoldTimeoutV1, startTime, id)
 				currentRefresh = time.Now()

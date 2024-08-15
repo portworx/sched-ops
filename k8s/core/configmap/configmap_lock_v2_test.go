@@ -2,6 +2,8 @@ package configmap
 
 import (
 	"fmt"
+	"math/rand"
+	"sync"
 	"testing"
 	"time"
 
@@ -187,7 +189,7 @@ func TestLockHoldTimeout(t *testing.T) {
 func TestCMLockRefreshV2(t *testing.T) {
 	fakeClient := fakek8sclient.NewSimpleClientset()
 	coreops.SetInstance(coreops.New(fakeClient))
-	cmIntf, err := New("px-configmaps-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
+	cmIntf, err := New("px-configmaps-test", nil, 2*time.Minute, 10000, testLockRefreshDuration, testLockTTL)
 	require.NoError(t, err, "Unexpected error on New")
 
 	cm := cmIntf.(*configMap)
@@ -214,6 +216,23 @@ func TestCMLockRefreshV2(t *testing.T) {
 	t.Log(resultMap)
 	require.Contains(t, resultMap, key1)
 	require.Equal(t, "val2", resultMap[key1])
+
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err = cm.LockWithKey(id1, key1)
+			require.NoError(t, err, "Unexpected error in LockWithKey(id1,key1)")
+
+			// give some time for the refreshLock goroutine to start
+			time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
+
+			err = cm.UnlockWithKey(key1)
+			require.NoError(t, err, "Unexpected error in UnlockWithKey(key1)")
+		}()
+	}
+	wg.Wait()
 
 	err = cm.Delete()
 	require.NoError(t, err, "Unexpected error on Delete")

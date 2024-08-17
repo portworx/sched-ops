@@ -2,17 +2,19 @@ package configmap
 
 import (
 	"fmt"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	coreops "github.com/portworx/sched-ops/k8s/core"
-	fakek8sclient "k8s.io/client-go/kubernetes/fake"
+	"github.com/portworx/sched-ops/k8s/testutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestGetConfigMap(t *testing.T) {
-	fakeClient := fakek8sclient.NewSimpleClientset()
-	coreops.SetInstance(coreops.New(fakeClient))
+	setUpConfigMapTestCluster(t)
 
 	configData := map[string]string{
 		"key1": "val1",
@@ -27,8 +29,7 @@ func TestGetConfigMap(t *testing.T) {
 }
 
 func TestDeleteConfigMap(t *testing.T) {
-	fakeClient := fakek8sclient.NewSimpleClientset()
-	coreops.SetInstance(coreops.New(fakeClient))
+	setUpConfigMapTestCluster(t)
 
 	configData := map[string]string{
 		"key1": "val1",
@@ -42,8 +43,7 @@ func TestDeleteConfigMap(t *testing.T) {
 }
 
 func TestIncrementGeneration(t *testing.T) {
-	fakeClient := fakek8sclient.NewSimpleClientset()
-	coreops.SetInstance(coreops.New(fakeClient))
+	setUpConfigMapTestCluster(t)
 
 	configData := map[string]string{
 		"key1": "1",
@@ -83,4 +83,26 @@ func TestIncrementGeneration(t *testing.T) {
 
 	err = cm.Delete()
 	require.NoError(t, err, "Unexpected error in delete")
+}
+
+func setUpConfigMapTestCluster(t *testing.T) {
+	os.Setenv("KUBERNETES_OPS_QPS_RATE", "2000")
+	os.Setenv("KUBERNETES_OPS_BURST_RATE", "4000")
+
+	restCfg := testutil.SetUpTestCluster(t, "configmap-test-cluster")
+
+	testClient, err := coreops.NewForConfig(restCfg)
+	require.NoError(t, err)
+
+	coreops.SetInstance(testClient)
+	// delete all the test configmaps
+	result, err := coreops.Instance().ListConfigMap(k8sSystemNamespace, metav1.ListOptions{})
+	require.NoError(t, err)
+	for _, cm := range result.Items {
+		if strings.Contains(cm.Name, "px-configmaps") && strings.Contains(cm.Name, "test") {
+			t.Logf("Deleting configmap: %s/%s", k8sSystemNamespace, cm.Name)
+			err = coreops.Instance().DeleteConfigMap(cm.Name, k8sSystemNamespace)
+			require.NoError(t, err)
+		}
+	}
 }

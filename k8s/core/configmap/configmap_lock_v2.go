@@ -21,13 +21,6 @@ func (c *configMap) LockWithKey(owner, key string) error {
 	fn := "LockWithKey"
 	configMapLog(fn, c.name, owner, key, nil).Debugf("Taking the lock")
 
-	c.kLocksV2Mutex.Lock()
-	lock := c.kLocksV2[key]
-	c.kLocksV2Mutex.Unlock()
-	if lock != nil {
-		// wait for any previous refreshLock goroutine to exit
-		lock.wg.Wait()
-	}
 	count := uint(0)
 	// try acquiring a lock on the ConfigMap
 	newOwner, err := c.tryLock(owner, key, false)
@@ -49,17 +42,30 @@ func (c *configMap) LockWithKey(owner, key string) error {
 			" locking.", count)
 	}
 
-	lock = &k8sLock{done: make(chan struct{}), id: owner}
+	// We have acquired the lock on the configmap. If the previous owner was the same node, old refreshLock
+	// goroutine may still be running since we don't write to the Done chan. Take care of the old lock
+	// so that the old refreshLock goroutine does not interfere with the new lock.
+	c.kLocksV2Mutex.Lock()
+	oldLock := c.kLocksV2[key]
+	c.kLocksV2Mutex.Unlock()
+	if oldLock != nil {
+		oldLock.Lock()
+		if !oldLock.unlocked {
+			configMapLog(fn, c.name, newOwner, key, err).Warn("Found old lock still locked. Unlocking...")
+			close(oldLock.done)
+			oldLock.unlocked = true
+		}
+		oldLock.Unlock()
+	}
+
+	// Create a new lock and store it
+	lock := &k8sLock{done: make(chan struct{}), id: owner}
 	c.kLocksV2Mutex.Lock()
 	c.kLocksV2[key] = lock
 	c.kLocksV2Mutex.Unlock()
 
 	configMapLog(fn, c.name, owner, key, nil).Debugf("Starting lock refresh")
-	lock.wg.Add(1)
-	go func() {
-		c.refreshLock(owner, key)
-		lock.wg.Done()
-	}()
+	go c.refreshLock(owner, key)
 	return nil
 }
 
@@ -83,12 +89,13 @@ func (c *configMap) UnlockWithKey(key string) error {
 	defer lock.Unlock()
 
 	if lock.unlocked {
-		// The lock is already unlocked
+		// The lock is already unlocked. Chan cannot be closed again. Return immediately.
 		return nil
 	}
 	lock.unlocked = true
 	// Don't write to the chan since the refresh goroutine might have exited already if the lock was lost.
-	// If we write to the chan, we may block indefinitely.
+	// If we write to the chan, we may block indefinitely. Note that LockWithKey will also close the old chan if
+	// old lock is not yet unlocked.
 	close(lock.done)
 
 	var (

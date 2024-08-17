@@ -79,10 +79,10 @@ type configMap struct {
 }
 
 type k8sLock struct {
-	wg       sync.WaitGroup
-	done     chan struct{}
-	unlocked bool
-	id       string
+	v1LockGen uint64
+	done      chan struct{}
+	unlocked  bool
+	id        string
 	sync.Mutex
 }
 

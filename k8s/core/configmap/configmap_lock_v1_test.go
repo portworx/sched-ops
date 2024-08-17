@@ -2,18 +2,19 @@ package configmap
 
 import (
 	"fmt"
+	"math/rand"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	coreops "github.com/portworx/sched-ops/k8s/core"
 	"github.com/stretchr/testify/require"
-	fakek8sclient "k8s.io/client-go/kubernetes/fake"
 )
 
 func TestLock(t *testing.T) {
-	fakeClient := fakek8sclient.NewSimpleClientset()
-	coreops.SetInstance(coreops.New(fakeClient))
-	cm, err := New("px-configmaps-test", nil, testLockTimeout, 5, 0, 0)
+	setUpConfigMapTestCluster(t)
+	cm, err := New("px-configmaps-lock-test", nil, testLockTimeout, 5, 0, 0)
 	require.NoError(t, err, "Unexpected error on New")
 	fmt.Println("testLock")
 
@@ -110,9 +111,8 @@ func TestLock(t *testing.T) {
 func TestLockWithHoldTimeout(t *testing.T) {
 	defaultHoldTimeout := 3 * time.Second
 	customHoldTimeout := defaultHoldTimeout + v1DefaultK8sLockRefreshDuration + 10*time.Second
-	fakeClient := fakek8sclient.NewSimpleClientset()
-	coreops.SetInstance(coreops.New(fakeClient))
-	cm, err := New("px-configmaps-test", nil, defaultHoldTimeout, 5, 0, 0)
+	setUpConfigMapTestCluster(t)
+	cm, err := New("px-configmaps-lock-hold-test", nil, defaultHoldTimeout, 5, 0, 0)
 	require.NoError(t, err, "Unexpected error on New")
 	fmt.Println("TestLockWithHoldTimeout")
 
@@ -143,14 +143,13 @@ func TestLockWithHoldTimeout(t *testing.T) {
 }
 
 func TestPatchKeyLockedV1(t *testing.T) {
-	fakeClient := fakek8sclient.NewSimpleClientset()
-	coreops.SetInstance(coreops.New(fakeClient))
+	setUpConfigMapTestCluster(t)
 
 	configData := map[string]string{
 		"key1": "val1",
 	}
 
-	cm, err := New("px-configmaps-test", configData, testLockTimeout, 5, 0, 0)
+	cm, err := New("px-configmaps-patch-key-v1-test", configData, testLockTimeout, 5, 0, 0)
 	require.NoError(t, err, "Unexpected error in creating configmap")
 
 	// case: empty lock owner while CM is not locked
@@ -209,14 +208,13 @@ func TestPatchKeyLockedV1(t *testing.T) {
 }
 
 func TestDeleteKeyLockedV1(t *testing.T) {
-	fakeClient := fakek8sclient.NewSimpleClientset()
-	coreops.SetInstance(coreops.New(fakeClient))
+	setUpConfigMapTestCluster(t)
 
 	configData := map[string]string{
 		"key1": "val1",
 	}
 
-	cm, err := New("px-configmaps-test", configData, testLockTimeout, 5, 0, 0)
+	cm, err := New("px-configmaps-delete-v1-test", configData, testLockTimeout, 5, 0, 0)
 	require.NoError(t, err, "Unexpected error in creating configmap")
 
 	err = cm.Lock("lock-owner")
@@ -247,15 +245,82 @@ func TestDeleteKeyLockedV1(t *testing.T) {
 	require.Equal(t, "2", resultMap[pxGenerationKey])
 }
 
+func TestCMLockRefreshV1(t *testing.T) {
+	setUpConfigMapTestCluster(t)
+	cmIntf, err := New("px-configmaps-v1-refresh-test", nil, 5*time.Minute, 1000, 0, 0)
+	require.NoError(t, err, "Unexpected error on New")
+
+	cm := cmIntf.(*configMap)
+
+	id1 := "lock-refresh-id1"
+	key1 := "lock-refresh-key1"
+
+	err = cm.Lock(id1)
+	require.NoError(t, err, "Unexpected error in Lock(id1)")
+
+	err = cm.PatchKeyLocked(true, id1, key1, "val1")
+	require.NoError(t, err, "Unexpected error in Patch")
+
+	time.Sleep(time.Duration(rand.Intn(int(15 * time.Second))))
+
+	err = cm.PatchKeyLocked(true, id1, key1, "val2")
+	require.NoError(t, err, "Unexpected error in Patch")
+
+	err = cm.Unlock()
+	require.NoError(t, err, "Unexpected error in Unlock(key1)")
+
+	resultMap, err := cm.Get()
+	require.NoError(t, err, "Unexpected error in Get")
+	t.Log(resultMap)
+	require.Contains(t, resultMap, key1)
+	require.Equal(t, "val2", resultMap[key1])
+
+	var reentrantCheck atomic.Bool
+	var wg sync.WaitGroup
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+
+			err = cm.Lock(id1)
+			require.NoError(t, err, "Unexpected error in Lock(id1)")
+
+			require.True(t, reentrantCheck.CompareAndSwap(false, true), "Reentrant lock detected")
+
+			val := fmt.Sprintf("val%d", i)
+			err = cm.PatchKeyLocked(true, id1, key1, val)
+			require.NoError(t, err, "Unexpected error in Patch")
+
+			// give some time for the refreshLock goroutine to start
+			// v1 lock uses a fixed refresh interval of 8 seconds and expiration of 16 seconds
+			time.Sleep(time.Duration(rand.Intn(int(15 * time.Second))))
+
+			resultMap, err := cm.Get()
+			require.NoError(t, err, "Unexpected error in Get")
+			t.Log(resultMap)
+			require.Contains(t, resultMap, key1)
+			require.Equal(t, val, resultMap[key1])
+
+			require.True(t, reentrantCheck.CompareAndSwap(true, false), "Reentrant lock detected")
+
+			err = cm.Unlock()
+			require.NoError(t, err, "Unexpected error in Unlock(key1)")
+		}(i)
+	}
+	wg.Wait()
+
+	err = cm.Delete()
+	require.NoError(t, err, "Unexpected error on Delete")
+}
+
 func TestCMLockLostV1(t *testing.T) {
-	fakeClient := fakek8sclient.NewSimpleClientset()
-	coreops.SetInstance(coreops.New(fakeClient))
+	setUpConfigMapTestCluster(t)
 
 	configData := map[string]string{
 		"key1": "val1",
 	}
-
-	cm, err := New("px-configmaps-test", configData, 0, 0, 0, 0)
+	cmName := "px-configmaps-v1-lock-lost-test"
+	cm, err := New(cmName, configData, 0, 0, 0, 0)
 	require.NoError(t, err, "Unexpected error in creating configmap")
 
 	err = cm.Lock("lock-owner")
@@ -265,7 +330,7 @@ func TestCMLockLostV1(t *testing.T) {
 	require.NoError(t, err, "Unexpected error in Patch")
 
 	// case: lock lost with NO new owner
-	setV1LockOwnerForTesting(t, "px-configmaps-test", "", time.Time{})
+	setV1LockOwnerForTesting(t, cmName, "", time.Time{})
 	err = cm.PatchKeyLocked(true, "lock-owner", "key1", "val3")
 	require.Error(t, err, "Expected error in Patch")
 	require.ErrorContains(t, err, "lock check failed")
@@ -278,7 +343,7 @@ func TestCMLockLostV1(t *testing.T) {
 	require.NoError(t, err, "Unexpected error in Patch")
 
 	// case: lock lost to a new owner
-	setV1LockOwnerForTesting(t, "px-configmaps-test", "new-owner", time.Now().Add(5*time.Minute))
+	setV1LockOwnerForTesting(t, cmName, "new-owner", time.Now().Add(5*time.Minute))
 	err = cm.PatchKeyLocked(true, "lock-owner", "key2", "val2")
 	require.Error(t, err, "Expected error in Patch")
 	require.ErrorContains(t, err, "lock check failed")
@@ -289,7 +354,7 @@ func TestCMLockLostV1(t *testing.T) {
 	require.ErrorContains(t, err, "ConfigMap is locked")
 
 	// case: new owner releases the lock; then we should be able to take the lock
-	setV1LockOwnerForTesting(t, "px-configmaps-test", "", time.Time{})
+	setV1LockOwnerForTesting(t, cmName, "", time.Time{})
 	err = cm.Lock("lock-owner")
 	require.NoError(t, err, "Unexpected error in Lock")
 

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	coreops "github.com/portworx/sched-ops/k8s/core"
 	"github.com/stretchr/testify/require"
-	fakek8sclient "k8s.io/client-go/kubernetes/fake"
 )
 
 const (
@@ -20,9 +20,8 @@ const (
 )
 
 func TestMultilock(t *testing.T) {
-	fakeClient := fakek8sclient.NewSimpleClientset()
-	coreops.SetInstance(coreops.New(fakeClient))
-	cm, err := New("px-configmaps-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
+	setUpConfigMapTestCluster(t)
+	cm, err := New("px-configmaps-multil-lock-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
 	require.NoError(t, err, "Unexpected error on New")
 
 	fmt.Println("testMultilock")
@@ -136,9 +135,8 @@ func TestMultilock(t *testing.T) {
 }
 
 func TestLockHoldTimeout(t *testing.T) {
-	fakeClient := fakek8sclient.NewSimpleClientset()
-	coreops.SetInstance(coreops.New(fakeClient))
-	cm, err := New("px-configmaps-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
+	setUpConfigMapTestCluster(t)
+	cm, err := New("px-configmaps-lock-hold-v2-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
 	require.NoError(t, err, "Unexpected error on New")
 
 	fmt.Println("TestLockHoldTimeout")
@@ -187,9 +185,10 @@ func TestLockHoldTimeout(t *testing.T) {
 }
 
 func TestCMLockRefreshV2(t *testing.T) {
-	fakeClient := fakek8sclient.NewSimpleClientset()
-	coreops.SetInstance(coreops.New(fakeClient))
-	cmIntf, err := New("px-configmaps-test", nil, 2*time.Minute, 10000, testLockRefreshDuration, testLockTTL)
+	setUpConfigMapTestCluster(t)
+
+	expiry := 24 * time.Second
+	cmIntf, err := New("px-configmaps-lock-refresh-v2-test", nil, 5*time.Minute, 1000, expiry/3, expiry)
 	require.NoError(t, err, "Unexpected error on New")
 
 	cm := cmIntf.(*configMap)
@@ -203,7 +202,7 @@ func TestCMLockRefreshV2(t *testing.T) {
 	err = cm.PatchKeyLocked(false, id1, key1, "val1")
 	require.NoError(t, err, "Unexpected error in Patch")
 
-	time.Sleep(testLockTTL + 1500*time.Millisecond)
+	time.Sleep(time.Duration(rand.Intn(int(expiry - time.Second))))
 
 	err = cm.PatchKeyLocked(false, id1, key1, "val2")
 	require.NoError(t, err, "Unexpected error in Patch")
@@ -217,20 +216,35 @@ func TestCMLockRefreshV2(t *testing.T) {
 	require.Contains(t, resultMap, key1)
 	require.Equal(t, "val2", resultMap[key1])
 
+	var reentrantCheck atomic.Bool
 	var wg sync.WaitGroup
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 5; i++ {
 		wg.Add(1)
-		go func() {
+		go func(i int) {
 			defer wg.Done()
 			err = cm.LockWithKey(id1, key1)
 			require.NoError(t, err, "Unexpected error in LockWithKey(id1,key1)")
 
+			require.True(t, reentrantCheck.CompareAndSwap(false, true), "Reentrant lock detected")
+
+			val := fmt.Sprintf("val%d", i)
+			err = cm.PatchKeyLocked(false, id1, key1, val)
+			require.NoError(t, err, "Unexpected error in Patch")
+
 			// give some time for the refreshLock goroutine to start
-			time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
+			time.Sleep(time.Duration(rand.Intn(int(expiry - time.Second))))
+
+			resultMap, err := cm.Get()
+			require.NoError(t, err, "Unexpected error in Get")
+			t.Log(resultMap)
+			require.Contains(t, resultMap, key1)
+			require.Equal(t, val, resultMap[key1])
+
+			require.True(t, reentrantCheck.CompareAndSwap(true, false), "Reentrant lock detected")
 
 			err = cm.UnlockWithKey(key1)
 			require.NoError(t, err, "Unexpected error in UnlockWithKey(key1)")
-		}()
+		}(i)
 	}
 	wg.Wait()
 
@@ -239,9 +253,8 @@ func TestCMLockRefreshV2(t *testing.T) {
 }
 
 func TestCMLockLostV2(t *testing.T) {
-	fakeClient := fakek8sclient.NewSimpleClientset()
-	coreops.SetInstance(coreops.New(fakeClient))
-	cmIntf, err := New("px-configmaps-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
+	setUpConfigMapTestCluster(t)
+	cmIntf, err := New("px-configmaps-lock-lost-v2-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
 	require.NoError(t, err, "Unexpected error on New")
 
 	cm := cmIntf.(*configMap)
@@ -300,9 +313,8 @@ func TestCMLockLostV2(t *testing.T) {
 }
 
 func TestDeleteKeyLockedV2(t *testing.T) {
-	fakeClient := fakek8sclient.NewSimpleClientset()
-	coreops.SetInstance(coreops.New(fakeClient))
-	cmIntf, err := New("px-configmaps-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
+	setUpConfigMapTestCluster(t)
+	cmIntf, err := New("px-configmaps-delete-key-v2-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
 	require.NoError(t, err, "Unexpected error on New")
 
 	cm := cmIntf.(*configMap)

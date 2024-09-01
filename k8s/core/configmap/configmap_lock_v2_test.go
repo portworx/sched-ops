@@ -10,6 +10,7 @@ import (
 
 	coreops "github.com/portworx/sched-ops/k8s/core"
 	"github.com/stretchr/testify/require"
+	mpatch "github.com/undefinedlabs/go-mpatch"
 )
 
 const (
@@ -372,4 +373,32 @@ func setV2LockOwnerForTesting(t *testing.T, cm *configMap, key, owner string, ex
 		_, err = coreops.Instance().UpdateConfigMap(rawCM)
 		return err == nil
 	}, 5*time.Second, 100*time.Millisecond)
+}
+
+func TestCMLockTTL(t *testing.T) {
+	setUpConfigMapTestCluster(t)
+	cmIntf, err := New("px-configmaps-lock-ttl-v2-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
+	require.NoError(t, err, "Unexpected error on New")
+
+	cm := cmIntf.(*configMap)
+
+	currTime := time.Now()
+	myTime := func() time.Time {
+		return currTime
+	}
+	timePatch, err := mpatch.PatchMethod(time.Now, myTime)
+	require.NoError(t, err, "Failed to patch time.Now()")
+	defer timePatch.Unpatch()
+
+	owner := "lock-ttl-id1"
+	key := "lock-ttl-key1"
+	lockOwners := map[string]string{}
+	lockExpirations := map[string]time.Time{}
+
+	gotOwner, err := cm.checkAndTakeLock(owner, key, false, lockOwners, lockExpirations)
+
+	require.NoError(t, err, "Unexpected error in checkAndTakeLock")
+	require.Equal(t, owner, gotOwner, "Unexpected owner in checkAndTakeLock")
+	require.Equal(t, owner, lockOwners[key])
+	require.Equal(t, currTime.Add(testLockTTL), lockExpirations[key])
 }

@@ -28,7 +28,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.1-0.20180719211823-0b96aaa70776+incompatible // indirect
 	github.com/emicklei/go-restful/v3 v3.10.2 // indirect
-	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
@@ -90,6 +89,7 @@ require github.com/golang/glog v1.1.2 // indirect
 require (
 	github.com/kubernetes-csi/external-snapshotter/client/v6 v6.2.0
 	github.com/tektoncd/pipeline v0.56.0
+	github.com/undefinedlabs/go-mpatch v1.0.7
 	google.golang.org/api v0.156.0
 	sigs.k8s.io/cluster-api v0.2.11
 )

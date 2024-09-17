@@ -409,6 +409,11 @@ func TestIsKeyLocked(t *testing.T) {
 	require.NoError(t, err, "Unexpected error on New")
 	cm := cmIntf.(*configMap)
 
+	// patch time.Now()
+	currTime := time.Now()
+	timePatch, err := mpatch.PatchMethod(time.Now, func() time.Time { return currTime })
+	require.NoError(t, err, "Failed to patch time.Now()")
+
 	id1 := "is-key-locked-id1"
 	id2 := "is-key-locked-id2"
 	key := "is-key-locked-key"
@@ -420,22 +425,30 @@ func TestIsKeyLocked(t *testing.T) {
 	// lock the key
 	err = cm.LockWithKey(id1, key)
 	require.NoError(t, err)
-	require.True(t, cm.kLocksV2[key].refreshing)
 
 	// check if locked and owner
 	locked, owner, err := cm.IsKeyLocked(key, id1)
 	require.NoError(t, err)
 	require.True(t, locked)
 	require.Equal(t, id1, owner)
+	require.NoError(t, err)
 	locked, owner, err = cm.IsKeyLocked(key, id2)
 	require.NoError(t, err)
 	require.True(t, locked)
 	require.Equal(t, id1, owner)
 
 	// stop goroutine and make lock expired
+	cm.kLocksV2Mutex.Lock()
 	close(cm.kLocksV2[key].done)
 	cm.kLocksV2[key].unlocked = true
-	time.Sleep(2 * testLockTTL)
+	cm.kLocksV2Mutex.Unlock()
+	timePatch.Unpatch()
+	currTime = time.Now()
+	timePatch, err = mpatch.PatchMethod(time.Now, func() time.Time { return currTime.Add(2 * testLockTTL) })
+	defer timePatch.Unpatch()
+	require.NoError(t, err, "Failed to patch time.Now()")
+
+	// check if locked
 	locked, _, err = cm.IsKeyLocked(key, id1)
 	require.NoError(t, err)
 	require.False(t, locked)
@@ -443,20 +456,15 @@ func TestIsKeyLocked(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, locked)
 
-	// patch time.Now()
-	currTime := time.Now()
-	timePatch, err := mpatch.PatchMethod(time.Now, func() time.Time { return currTime })
-	require.NoError(t, err, "Failed to patch time.Now()")
-	defer timePatch.Unpatch()
-
-	// relock with patched time.Now()
+	// relock
 	err = cm.LockWithKey(id1, key)
 	require.NoError(t, err)
-	require.True(t, cm.kLocksV2[key].refreshing)
 
-	// stop goroutine but lock won't expire due to patched time.Now()
+	// stop goroutine but keep locked unexpired
+	cm.kLocksV2Mutex.Lock()
 	close(cm.kLocksV2[key].done)
 	cm.kLocksV2[key].unlocked = true
+	cm.kLocksV2Mutex.Unlock()
 
 	// check if locked and owner
 	locked, owner, err = cm.IsKeyLocked(key, id1)

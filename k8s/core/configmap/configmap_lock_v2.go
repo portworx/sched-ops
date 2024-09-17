@@ -66,6 +66,7 @@ func (c *configMap) LockWithKey(owner, key string) error {
 
 	configMapLog(fn, c.name, owner, key, nil).Debugf("Starting lock refresh")
 	go c.refreshLock(owner, key)
+	lock.refreshing = true
 	return nil
 }
 
@@ -154,7 +155,7 @@ func (c *configMap) UnlockWithKey(key string) error {
 	return err
 }
 
-func (c *configMap) IsKeyLocked(key string) (bool, string, error) {
+func (c *configMap) IsKeyLocked(key, requester string) (bool, string, error) {
 	// Get the existing ConfigMap
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
@@ -174,13 +175,17 @@ func (c *configMap) IsKeyLocked(key string) (bool, string, error) {
 	}
 
 	if owner, ok := lockIDs[key]; ok {
-		// Someone owns the lock: let's check the expiration and the owner
+		// Existing key is unlocked if
+		//   1. Lock has expired; or
+		//   2. Lock owned by itself but goroutine refreshing expiration time doesn't exist
 		expiration := lockExpirations[key]
 		if time.Now().After(expiration) {
-			// Lock is expired
 			return false, "", nil
 		}
-
+		lock := c.kLocksV2[key]
+		if requester == owner && (lock == nil || !lock.refreshing) {
+			return false, owner, nil
+		}
 		return true, owner, nil
 	}
 
@@ -366,6 +371,7 @@ func (c *configMap) refreshLock(id, key string) {
 	}
 
 	startTime = time.Now()
+	defer func() { lock.refreshing = false }()
 	for {
 		select {
 		case <-refresh.C:

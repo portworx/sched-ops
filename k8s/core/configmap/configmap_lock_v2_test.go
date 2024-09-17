@@ -32,7 +32,7 @@ func TestMultilock(t *testing.T) {
 	key1 := "multi-lock-key1"
 	key2 := "multi-lock-key2"
 
-	locked, _, err := cm.IsKeyLocked(key1)
+	locked, _, err := cm.IsKeyLocked(key1, id1)
 	require.NoError(t, err)
 	require.False(t, locked)
 
@@ -41,7 +41,7 @@ func TestMultilock(t *testing.T) {
 	require.NoError(t, err, "Unexpected error in LockWithKey(id1,key1)")
 	fmt.Println("\tlocked ID 1 key 1")
 
-	locked, owner, err := cm.IsKeyLocked(key1)
+	locked, owner, err := cm.IsKeyLocked(key1, id1)
 	require.NoError(t, err)
 	require.True(t, locked)
 	require.Equal(t, id1, owner)
@@ -51,7 +51,7 @@ func TestMultilock(t *testing.T) {
 	require.NoError(t, err, "Unexpected error in LockWithKey(id2,key2)")
 	fmt.Println("\tlocked ID 2 key 2")
 
-	locked, owner, err = cm.IsKeyLocked(key2)
+	locked, owner, err = cm.IsKeyLocked(key2, id2)
 	require.NoError(t, err)
 	require.True(t, locked)
 	require.Equal(t, id2, owner)
@@ -61,7 +61,7 @@ func TestMultilock(t *testing.T) {
 	require.NoError(t, err, "Unexpected error in UnlockWithKey(id1,key1)")
 	fmt.Println("\tunlocked ID 1 key 1")
 
-	locked, _, err = cm.IsKeyLocked(key1)
+	locked, _, err = cm.IsKeyLocked(key1, id1)
 	require.NoError(t, err)
 	require.False(t, locked)
 
@@ -70,7 +70,7 @@ func TestMultilock(t *testing.T) {
 	require.NoError(t, err, "Unexpected error in UnlockWithKey(id1,key1)")
 	fmt.Println("\tunlocked ID 2 key 2")
 
-	locked, _, err = cm.IsKeyLocked(key2)
+	locked, _, err = cm.IsKeyLocked(key2, id2)
 	require.NoError(t, err)
 	require.False(t, locked)
 
@@ -123,11 +123,11 @@ func TestMultilock(t *testing.T) {
 	fmt.Println("\tunlocked ID 2 key 1")
 
 	// all keys should be unlocked now
-	locked, _, err = cm.IsKeyLocked(key1)
+	locked, _, err = cm.IsKeyLocked(key1, id1)
 	require.NoError(t, err)
 	require.False(t, locked)
 
-	locked, _, err = cm.IsKeyLocked(key2)
+	locked, _, err = cm.IsKeyLocked(key2, id2)
 	require.NoError(t, err)
 	require.False(t, locked)
 
@@ -401,4 +401,73 @@ func TestCMLockTTL(t *testing.T) {
 	require.Equal(t, owner, gotOwner, "Unexpected owner in checkAndTakeLock")
 	require.Equal(t, owner, lockOwners[key])
 	require.Equal(t, currTime.Add(testLockTTL), lockExpirations[key])
+}
+
+func TestIsKeyLocked(t *testing.T) {
+	setUpConfigMapTestCluster(t)
+	cmIntf, err := New("px-configmaps-lock-is-key-locked-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
+	require.NoError(t, err, "Unexpected error on New")
+	cm := cmIntf.(*configMap)
+
+	id1 := "is-key-locked-id1"
+	id2 := "is-key-locked-id2"
+	key := "is-key-locked-key"
+
+	locked, _, err := cm.IsKeyLocked(key, id1)
+	require.NoError(t, err)
+	require.False(t, locked)
+
+	// lock the key
+	err = cm.LockWithKey(id1, key)
+	require.NoError(t, err)
+	require.True(t, cm.kLocksV2[key].refreshing)
+
+	// check if locked and owner
+	locked, owner, err := cm.IsKeyLocked(key, id1)
+	require.NoError(t, err)
+	require.True(t, locked)
+	require.Equal(t, id1, owner)
+	locked, owner, err = cm.IsKeyLocked(key, id2)
+	require.NoError(t, err)
+	require.True(t, locked)
+	require.Equal(t, id1, owner)
+
+	// stop goroutine and make lock expired
+	close(cm.kLocksV2[key].done)
+	cm.kLocksV2[key].unlocked = true
+	time.Sleep(2 * testLockTTL)
+	locked, _, err = cm.IsKeyLocked(key, id1)
+	require.NoError(t, err)
+	require.False(t, locked)
+	locked, _, err = cm.IsKeyLocked(key, id2)
+	require.NoError(t, err)
+	require.False(t, locked)
+
+	// patch time.Now()
+	currTime := time.Now()
+	timePatch, err := mpatch.PatchMethod(time.Now, func() time.Time { return currTime })
+	require.NoError(t, err, "Failed to patch time.Now()")
+	defer timePatch.Unpatch()
+
+	// relock with patched time.Now()
+	err = cm.LockWithKey(id1, key)
+	require.NoError(t, err)
+	require.True(t, cm.kLocksV2[key].refreshing)
+
+	// stop goroutine but lock won't expire due to patched time.Now()
+	close(cm.kLocksV2[key].done)
+	cm.kLocksV2[key].unlocked = true
+
+	// check if locked and owner
+	locked, owner, err = cm.IsKeyLocked(key, id1)
+	require.NoError(t, err)
+	require.False(t, locked)
+	require.Equal(t, id1, owner)
+	locked, owner, err = cm.IsKeyLocked(key, id2)
+	require.NoError(t, err)
+	require.True(t, locked)
+	require.Equal(t, id1, owner)
+
+	err = cm.Delete()
+	require.NoError(t, err, "Unexpected error on Delete")
 }

@@ -1,6 +1,7 @@
 module github.com/portworx/sched-ops
 
-go 1.12
+go 1.22.6
+toolchain go1.22.6
 
 require (
 	github.com/coreos/prometheus-operator v0.31.1

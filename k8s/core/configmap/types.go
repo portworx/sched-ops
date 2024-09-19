@@ -79,10 +79,11 @@ type configMap struct {
 }
 
 type k8sLock struct {
-	v1LockGen uint64
-	done      chan struct{}
-	unlocked  bool
-	id        string
+	v1LockGen  uint64
+	done       chan struct{}
+	unlocked   bool
+	refreshing bool
+	id         string
 	sync.Mutex
 }
 
@@ -112,7 +113,7 @@ type ConfigMap interface {
 	// UnlockWithKey unlocks the given key in the configMap.
 	UnlockWithKey(key string) error
 	// IsKeyLocked returns if the given key is locked, and if so, by which owner.
-	IsKeyLocked(key string) (bool, string, error)
+	IsKeyLocked(key, requester string) (bool, string, error)
 
 	// PatchKeyLocked updates the specified key in the configMap. It verifies that
 	// the lock is still held by the specified owner. Lock needs to be held by the lockOwner

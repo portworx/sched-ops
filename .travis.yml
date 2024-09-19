@@ -1,7 +1,16 @@
+sudo: required
+dist: bionic
 language: go
 go:
-  - 1.19.1
+  - "1.22.6"
+before_install:
+  - echo $PATH
+  - which go
+  - ls -al $(which go)
+  - sudo find / -name go
 install:
+  - ls -al $(which go)
+  - $(which go) version
   - make fetch-tools
   - make vendor
 script:

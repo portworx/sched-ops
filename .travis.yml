@@ -1,7 +1,15 @@
+sudo: required
 language: go
 go:
-  - 1.22.1
+  - "1.21.1"
+before_install:
+  - echo $PATH
+  - which go
+  - ls -al $(which go)
+  - sudo find / -name go
 install:
+  - ls -al $(which go)
+  - $(which go) version
   - make fetch-tools
   - make vendor
 script:

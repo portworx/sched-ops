@@ -1,6 +1,6 @@
 module github.com/portworx/sched-ops
 
-go 1.22.6
+go 1.22.3
 toolchain go1.22.6
 
 require (

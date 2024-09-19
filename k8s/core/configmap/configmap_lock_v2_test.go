@@ -10,6 +10,7 @@ import (
 
 	coreops "github.com/portworx/sched-ops/k8s/core"
 	"github.com/stretchr/testify/require"
+	"github.com/undefinedlabs/go-mpatch"
 )
 
 const (
@@ -31,7 +32,7 @@ func TestMultilock(t *testing.T) {
 	key1 := "multi-lock-key1"
 	key2 := "multi-lock-key2"
 
-	locked, _, err := cm.IsKeyLocked(key1)
+	locked, _, err := cm.IsKeyLocked(key1, id1)
 	require.NoError(t, err)
 	require.False(t, locked)
 
@@ -40,7 +41,7 @@ func TestMultilock(t *testing.T) {
 	require.NoError(t, err, "Unexpected error in LockWithKey(id1,key1)")
 	fmt.Println("\tlocked ID 1 key 1")
 
-	locked, owner, err := cm.IsKeyLocked(key1)
+	locked, owner, err := cm.IsKeyLocked(key1, id1)
 	require.NoError(t, err)
 	require.True(t, locked)
 	require.Equal(t, id1, owner)
@@ -50,7 +51,7 @@ func TestMultilock(t *testing.T) {
 	require.NoError(t, err, "Unexpected error in LockWithKey(id2,key2)")
 	fmt.Println("\tlocked ID 2 key 2")
 
-	locked, owner, err = cm.IsKeyLocked(key2)
+	locked, owner, err = cm.IsKeyLocked(key2, id2)
 	require.NoError(t, err)
 	require.True(t, locked)
 	require.Equal(t, id2, owner)
@@ -60,7 +61,7 @@ func TestMultilock(t *testing.T) {
 	require.NoError(t, err, "Unexpected error in UnlockWithKey(id1,key1)")
 	fmt.Println("\tunlocked ID 1 key 1")
 
-	locked, _, err = cm.IsKeyLocked(key1)
+	locked, _, err = cm.IsKeyLocked(key1, id1)
 	require.NoError(t, err)
 	require.False(t, locked)
 
@@ -69,7 +70,7 @@ func TestMultilock(t *testing.T) {
 	require.NoError(t, err, "Unexpected error in UnlockWithKey(id1,key1)")
 	fmt.Println("\tunlocked ID 2 key 2")
 
-	locked, _, err = cm.IsKeyLocked(key2)
+	locked, _, err = cm.IsKeyLocked(key2, id2)
 	require.NoError(t, err)
 	require.False(t, locked)
 
@@ -122,11 +123,11 @@ func TestMultilock(t *testing.T) {
 	fmt.Println("\tunlocked ID 2 key 1")
 
 	// all keys should be unlocked now
-	locked, _, err = cm.IsKeyLocked(key1)
+	locked, _, err = cm.IsKeyLocked(key1, id1)
 	require.NoError(t, err)
 	require.False(t, locked)
 
-	locked, _, err = cm.IsKeyLocked(key2)
+	locked, _, err = cm.IsKeyLocked(key2, id2)
 	require.NoError(t, err)
 	require.False(t, locked)
 
@@ -372,4 +373,109 @@ func setV2LockOwnerForTesting(t *testing.T, cm *configMap, key, owner string, ex
 		_, err = coreops.Instance().UpdateConfigMap(rawCM)
 		return err == nil
 	}, 5*time.Second, 100*time.Millisecond)
+}
+
+func TestCMLockTTL(t *testing.T) {
+	setUpConfigMapTestCluster(t)
+	cmIntf, err := New("px-configmaps-lock-ttl-v2-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
+	require.NoError(t, err, "Unexpected error on New")
+
+	cm := cmIntf.(*configMap)
+
+	currTime := time.Now()
+	myTime := func() time.Time {
+		return currTime
+	}
+	timePatch, err := mpatch.PatchMethod(time.Now, myTime)
+	require.NoError(t, err, "Failed to patch time.Now()")
+	defer timePatch.Unpatch()
+
+	owner := "lock-ttl-id1"
+	key := "lock-ttl-key1"
+	lockOwners := map[string]string{}
+	lockExpirations := map[string]time.Time{}
+
+	gotOwner, err := cm.checkAndTakeLock(owner, key, false, lockOwners, lockExpirations)
+
+	require.NoError(t, err, "Unexpected error in checkAndTakeLock")
+	require.Equal(t, owner, gotOwner, "Unexpected owner in checkAndTakeLock")
+	require.Equal(t, owner, lockOwners[key])
+	require.Equal(t, currTime.Add(testLockTTL), lockExpirations[key])
+}
+
+func TestIsKeyLocked(t *testing.T) {
+	setUpConfigMapTestCluster(t)
+	cmIntf, err := New("px-configmaps-lock-is-key-locked-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
+	require.NoError(t, err, "Unexpected error on New")
+	cm := cmIntf.(*configMap)
+
+	// patch time.Now()
+	currTime := time.Now()
+	timePatch, err := mpatch.PatchMethod(time.Now, func() time.Time { return currTime })
+	require.NoError(t, err, "Failed to patch time.Now()")
+
+	id1 := "is-key-locked-id1"
+	id2 := "is-key-locked-id2"
+	key := "is-key-locked-key"
+
+	locked, _, err := cm.IsKeyLocked(key, id1)
+	require.NoError(t, err)
+	require.False(t, locked)
+
+	// lock the key
+	err = cm.LockWithKey(id1, key)
+	require.NoError(t, err)
+
+	// check if locked and owner
+	locked, owner, err := cm.IsKeyLocked(key, id1)
+	require.NoError(t, err)
+	require.True(t, locked)
+	require.Equal(t, id1, owner)
+	require.NoError(t, err)
+	locked, owner, err = cm.IsKeyLocked(key, id2)
+	require.NoError(t, err)
+	require.True(t, locked)
+	require.Equal(t, id1, owner)
+
+	// stop goroutine and make lock expired
+	cm.kLocksV2Mutex.Lock()
+	close(cm.kLocksV2[key].done)
+	cm.kLocksV2[key].unlocked = true
+	cm.kLocksV2Mutex.Unlock()
+	timePatch.Unpatch()
+	currTime = time.Now()
+	timePatch, err = mpatch.PatchMethod(time.Now, func() time.Time { return currTime.Add(2 * testLockTTL) })
+	defer timePatch.Unpatch()
+	require.NoError(t, err, "Failed to patch time.Now()")
+
+	// check if locked
+	locked, _, err = cm.IsKeyLocked(key, id1)
+	require.NoError(t, err)
+	require.False(t, locked)
+	locked, _, err = cm.IsKeyLocked(key, id2)
+	require.NoError(t, err)
+	require.False(t, locked)
+
+	// relock
+	err = cm.LockWithKey(id1, key)
+	require.NoError(t, err)
+
+	// stop goroutine but keep locked unexpired
+	cm.kLocksV2Mutex.Lock()
+	close(cm.kLocksV2[key].done)
+	cm.kLocksV2[key].unlocked = true
+	cm.kLocksV2Mutex.Unlock()
+
+	// check if locked and owner
+	locked, owner, err = cm.IsKeyLocked(key, id1)
+	require.NoError(t, err)
+	require.False(t, locked)
+	require.Equal(t, id1, owner)
+	locked, owner, err = cm.IsKeyLocked(key, id2)
+	require.NoError(t, err)
+	require.True(t, locked)
+	require.Equal(t, id1, owner)
+
+	err = cm.Delete()
+	require.NoError(t, err, "Unexpected error on Delete")
 }

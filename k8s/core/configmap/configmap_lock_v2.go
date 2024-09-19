@@ -186,6 +186,8 @@ func (c *configMap) IsKeyLocked(key, requester string) (bool, string, error) {
 		c.kLocksV2Mutex.Lock()
 		defer c.kLocksV2Mutex.Unlock()
 		lock := c.kLocksV2[key]
+		lock.Lock()
+		defer lock.Unlock()
 		if requester == owner && (lock == nil || !lock.refreshing) {
 			return false, owner, nil
 		}

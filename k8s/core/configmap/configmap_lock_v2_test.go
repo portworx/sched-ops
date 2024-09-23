@@ -460,11 +460,26 @@ func TestIsKeyLocked(t *testing.T) {
 	err = cm.LockWithKey(id1, key)
 	require.NoError(t, err)
 
-	// stop goroutine but keep locked unexpired
+	// stop goroutine but keep lock unexpired
 	cm.kLocksV2Mutex.Lock()
 	close(cm.kLocksV2[key].done)
 	cm.kLocksV2[key].unlocked = true
 	cm.kLocksV2Mutex.Unlock()
+
+	// check if locked and owner
+	locked, owner, err = cm.IsKeyLocked(key, id1)
+	require.NoError(t, err)
+	require.False(t, locked)
+	require.Equal(t, id1, owner)
+	locked, owner, err = cm.IsKeyLocked(key, id2)
+	require.NoError(t, err)
+	require.True(t, locked)
+	require.Equal(t, id1, owner)
+
+	// simulate restart and keep lock unexpired
+	cmIntf, err = New("px-configmaps-lock-is-key-locked-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
+	require.NoError(t, err, "Unexpected error on New")
+	cm = cmIntf.(*configMap)
 
 	// check if locked and owner
 	locked, owner, err = cm.IsKeyLocked(key, id1)

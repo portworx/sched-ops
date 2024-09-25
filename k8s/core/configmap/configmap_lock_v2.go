@@ -315,6 +315,12 @@ func (c *configMap) checkAndTakeLock(
 		return owner, nil
 	}
 
+	if currentOwner == owner {
+		// If the current owner is the same as the provided owner, refresh the lock
+		lockExpirations[key] = time.Now().Add(k8sTTL)
+		return owner, nil
+	}
+
 	if time.Now().Before(lockExpirations[key]) {
 		return lockOwners[key], ErrConfigMapLocked
 	}

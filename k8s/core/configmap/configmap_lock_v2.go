@@ -183,18 +183,7 @@ func (c *configMap) IsKeyLocked(key, requester string) (bool, string, error) {
 		if time.Now().After(expiration) {
 			return false, "", nil
 		}
-		c.kLocksV2Mutex.Lock()
-		lock := c.kLocksV2[key]
-		c.kLocksV2Mutex.Unlock()
-		if lock == nil {
-			if requester == owner {
-				return false, owner, nil
-			}
-			return true, owner, nil
-		}
-		lock.Lock()
-		defer lock.Unlock()
-		if requester == owner && !lock.refreshing {
+		if c.ifRequesterIsLockOwnerWithoutGoroutine(requester, owner, key) {
 			return false, owner, nil
 		}
 		return true, owner, nil
@@ -315,13 +304,11 @@ func (c *configMap) checkAndTakeLock(
 		return owner, nil
 	}
 
-	if currentOwner == owner {
-		// If the current owner is the same as the provided owner, refresh the lock
-		lockExpirations[key] = time.Now().Add(k8sTTL)
-		return owner, nil
-	}
-
 	if time.Now().Before(lockExpirations[key]) {
+		if c.ifRequesterIsLockOwnerWithoutGoroutine(owner, currentOwner, key) {
+			lockExpirations[key] = time.Now().Add(k8sTTL)
+			return owner, nil
+		}
 		return lockOwners[key], ErrConfigMapLocked
 	}
 
@@ -447,4 +434,21 @@ func (c *configMap) checkLockTimeout(holdTimeout time.Duration, startTime time.T
 			dbg.Panicf(panicMsg)
 		}
 	}
+}
+
+// check whether the requester is the owner of the lock in configmap but has no goroutine
+// to refresh the lock expiration time
+func (c *configMap) ifRequesterIsLockOwnerWithoutGoroutine(requester, owner, key string) bool {
+	c.kLocksV2Mutex.Lock()
+	lock := c.kLocksV2[key]
+	c.kLocksV2Mutex.Unlock()
+	if lock == nil {
+		return requester == owner
+	}
+	lock.Lock()
+	defer lock.Unlock()
+	if requester == owner && !lock.refreshing {
+		return true
+	}
+	return false
 }

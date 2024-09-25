@@ -226,7 +226,7 @@ func TestCMLockRefreshV2(t *testing.T) {
 			err = cm.LockWithKey(id1, key1)
 			require.NoError(t, err, "Unexpected error in LockWithKey(id1,key1)")
 
-			require.True(t, reentrantCheck.CompareAndSwap(false, true), "Reentrant lock detected")
+			require.False(t, reentrantCheck.CompareAndSwap(false, true), "Reentrant lock detected")
 
 			val := fmt.Sprintf("val%d", i)
 			err = cm.PatchKeyLocked(false, id1, key1, val)

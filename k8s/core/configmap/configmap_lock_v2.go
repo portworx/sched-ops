@@ -436,8 +436,9 @@ func (c *configMap) checkLockTimeout(holdTimeout time.Duration, startTime time.T
 	}
 }
 
-// check whether the requester is the owner of the lock in configmap but has no goroutine
-// to refresh the lock expiration time
+// We want to avoid locks being re-entrant AND want the owner to re-aquire the lock if there has been a restart.
+// For that reason we check if the refresh routine is running.
+// On a restart, the routine would have been cancelled.
 func (c *configMap) ifRequesterIsLockOwnerWithoutGoroutine(requester, owner, key string) bool {
 	c.kLocksV2Mutex.Lock()
 	lock := c.kLocksV2[key]
@@ -447,8 +448,5 @@ func (c *configMap) ifRequesterIsLockOwnerWithoutGoroutine(requester, owner, key
 	}
 	lock.Lock()
 	defer lock.Unlock()
-	if requester == owner && !lock.refreshing {
-		return true
-	}
-	return false
+	return requester == owner && !lock.refreshing
 }

@@ -154,7 +154,9 @@ func (c *configMap) UnlockWithKey(key string) error {
 	return err
 }
 
-func (c *configMap) IsKeyLocked(key string) (bool, string, error) {
+// If the lock hasn't expired but the owner doesn't have a refresh goroutine,
+// we return unlocked for the owner but locked for others
+func (c *configMap) IsKeyLocked(key, requester string) (bool, string, error) {
 	// Get the existing ConfigMap
 	cm, err := core.Instance().GetConfigMap(
 		c.name,
@@ -174,13 +176,16 @@ func (c *configMap) IsKeyLocked(key string) (bool, string, error) {
 	}
 
 	if owner, ok := lockIDs[key]; ok {
-		// Someone owns the lock: let's check the expiration and the owner
+		// Existing key is unlocked if
+		//   1. Lock has expired; or
+		//   2. Lock owned by itself but refresh goroutine is not running
 		expiration := lockExpirations[key]
 		if time.Now().After(expiration) {
-			// Lock is expired
 			return false, "", nil
 		}
-
+		if c.ifRequesterIsLockOwnerWithoutGoroutine(requester, owner, key) {
+			return false, owner, nil
+		}
 		return true, owner, nil
 	}
 
@@ -300,6 +305,10 @@ func (c *configMap) checkAndTakeLock(
 	}
 
 	if time.Now().Before(lockExpirations[key]) {
+		if c.ifRequesterIsLockOwnerWithoutGoroutine(owner, currentOwner, key) {
+			lockExpirations[key] = time.Now().Add(k8sTTL)
+			return owner, nil
+		}
 		return lockOwners[key], ErrConfigMapLocked
 	}
 
@@ -364,6 +373,14 @@ func (c *configMap) refreshLock(id, key string) {
 		configMapLog(fn, c.name, "", key, nil).Warnf("Lock not found for key %s; refresh goroutine exiting", key)
 		return
 	}
+	defer func() {
+		lock.Lock()
+		lock.refreshing = false
+		lock.Unlock()
+	}()
+	lock.Lock()
+	lock.refreshing = true
+	lock.Unlock()
 
 	startTime = time.Now()
 	for {
@@ -417,4 +434,19 @@ func (c *configMap) checkLockTimeout(holdTimeout time.Duration, startTime time.T
 			dbg.Panicf(panicMsg)
 		}
 	}
+}
+
+// We want to avoid locks being re-entrant AND want the owner to re-aquire the lock if there has been a restart.
+// For that reason we check if the refresh routine is running.
+// On a restart, the routine would have been cancelled.
+func (c *configMap) ifRequesterIsLockOwnerWithoutGoroutine(requester, owner, key string) bool {
+	c.kLocksV2Mutex.Lock()
+	lock := c.kLocksV2[key]
+	c.kLocksV2Mutex.Unlock()
+	if lock == nil {
+		return requester == owner
+	}
+	lock.Lock()
+	defer lock.Unlock()
+	return requester == owner && !lock.refreshing
 }

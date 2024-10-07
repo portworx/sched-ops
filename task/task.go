@@ -17,6 +17,24 @@ type ErrTimedOut struct {
 	Reason string
 }
 
+// ExtraArgs defines a function type that takes a pointer to AdditionalInfo and modifies it.
+// This is used for passing and applying configuration options.
+type ExtraArgs func(*AdditionalInfo)
+
+// AdditionalInfo holds configuration details that can be modified through functional options.
+// Currently, it only holds a TestName, but more fields can be added as needed.
+type AdditionalInfo struct {
+	TestName string // TestName is a descriptor that can be used to identify or describe the test being performed.
+}
+
+// WithAdditionalInfo returns an ExtraArgs function that sets the TestName of an AdditionalInfo.
+// This function is a functional option that allows callers to specify a test name for logging or identification purposes.
+func WithAdditionalInfo(testName string) ExtraArgs {
+	return func(cfg *AdditionalInfo) {
+		cfg.TestName = testName // Sets the TestName field of the AdditionalInfo struct.
+	}
+}
+
 func (e *ErrTimedOut) Error() string {
 	errString := "timed out performing task."
 	if len(e.Reason) > 0 {
@@ -29,7 +47,15 @@ func (e *ErrTimedOut) Error() string {
 // DoRetryWithTimeout performs given task with given timeout and timeBeforeRetry
 // TODO(stgleb): In future I would like to add context as a first param to this function
 // so calling code can cancel task.
-func DoRetryWithTimeout(t func() (interface{}, bool, error), timeout, timeBeforeRetry time.Duration) (interface{}, error) {
+func DoRetryWithTimeout(t func() (interface{}, bool, error), timeout, timeBeforeRetry time.Duration, opts ...ExtraArgs) (interface{}, error) {
+	args := &AdditionalInfo{}
+	for _, opt := range opts {
+		opt(args)
+	}
+	if len(opts) > 0 && args.TestName != "" {
+		log.Printf("In DoRetryWithTimeout method for test case: {%v}", args.TestName)
+	}
+
 	// Use context.Context as a standard go way of timeout and cancellation propagation amount goroutines.
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -53,7 +79,11 @@ func DoRetryWithTimeout(t func() (interface{}, bool, error), timeout, timeBefore
 				if err != nil {
 					if retry {
 						errInRetires = append(errInRetires, err.Error())
-						log.Printf("DoRetryWithTimeout - Error: {%v}, Next try in [%v], timeout [%v]", err, timeBeforeRetry, timeout)
+						if len(opts) > 0 && args.TestName != "" {
+							log.Printf("DoRetryWithTimeout [%s] - Error: {%v}, Next try in [%v], timeout [%v]", args.TestName, err, timeBeforeRetry, timeout)
+						} else {
+							log.Printf("DoRetryWithTimeout - Error: {%v}, Next try in [%v], timeout [%v]", err, timeBeforeRetry, timeout)
+						}
 						time.Sleep(timeBeforeRetry)
 					} else {
 						errChan <- err
@@ -72,8 +102,12 @@ func DoRetryWithTimeout(t func() (interface{}, bool, error), timeout, timeBefore
 		return result, nil
 	case err := <-errChan:
 		if err == context.DeadlineExceeded {
+			timeoutReason := fmt.Sprintf("DoRetryWithTimeout timed out. Errors generated in retries: {%s}", strings.Join(errInRetires, "}\n{"))
+			if len(opts) > 0 && args.TestName != "" {
+				timeoutReason = fmt.Sprintf("DoRetryWithTimeout [%s] timed out. Errors generated in retries: {%s}", args.TestName, strings.Join(errInRetires, "}\n{"))
+			}
 			return nil, &ErrTimedOut{
-				Reason: fmt.Sprintf("DoRetryWithTimeout timed out. Errors generated in retries: {%s}", strings.Join(errInRetires, "}\n{")),
+				Reason: timeoutReason,
 			}
 		}
 

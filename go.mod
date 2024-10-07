@@ -1,6 +1,7 @@
 module github.com/portworx/sched-ops
 
 go 1.22.6
+toolchain go1.22.6
 
 require (
 	github.com/kubernetes-incubator/external-storage v0.20.4-openstorage-rc7
@@ -105,7 +106,6 @@ require (
 	github.com/census-instrumentation/opencensus-proto v0.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/coreos/prometheus-operator v0.38.0 // indirect
-	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-kit/kit v0.9.0 // indirect
 	github.com/go-kit/log v0.2.1 // indirect

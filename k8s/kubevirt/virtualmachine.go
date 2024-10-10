@@ -77,7 +77,7 @@ func (c *Client) ListVirtualMachines(namespace string) (*kubevirtv1.VirtualMachi
 	if err := c.IsKubevirtCRDInstalled(); err != nil {
 		return nil, err
 	}
-	return c.kubevirt.VirtualMachine(namespace).List(&k8smetav1.ListOptions{})
+	return c.kubevirt.VirtualMachine(namespace).List(context.TODO(), k8smetav1.ListOptions{})
 }
 
 // BatchListVirtualMachines List Kubevirt VirtualMachine in given namespace
@@ -90,7 +90,7 @@ func (c *Client) BatchListVirtualMachines(namespace string, listOptions *k8smeta
 		return nil, err
 	}
 
-	return c.kubevirt.VirtualMachine(namespace).List(listOptions)
+	return c.kubevirt.VirtualMachine(namespace).List(context.TODO(), *listOptions)
 }
 
 // CreateVirtualMachine calls VirtualMachine create client method
@@ -101,7 +101,7 @@ func (c *Client) CreateVirtualMachine(vm *kubevirtv1.VirtualMachine) (*kubevirtv
 	if err := c.IsKubevirtCRDInstalled(); err != nil {
 		return nil, err
 	}
-	return c.kubevirt.VirtualMachine(vm.GetNamespace()).Create(vm)
+	return c.kubevirt.VirtualMachine(vm.GetNamespace()).Create(context.TODO(), vm, k8smetav1.CreateOptions{})
 }
 
 // GetVirtualMachine Get updated VirtualMachine from client matching name and namespace
@@ -113,7 +113,7 @@ func (c *Client) GetVirtualMachine(name string, namespace string) (*kubevirtv1.V
 		return nil, err
 	}
 
-	return c.kubevirt.VirtualMachine(namespace).Get(name, &k8smetav1.GetOptions{})
+	return c.kubevirt.VirtualMachine(namespace).Get(context.TODO(), name, k8smetav1.GetOptions{})
 }
 
 // DeleteVirtualMachine Delete VirtualMachine CR
@@ -122,7 +122,7 @@ func (c *Client) DeleteVirtualMachine(name, namespace string) error {
 		return err
 	}
 
-	return c.kubevirt.VirtualMachine(namespace).Delete(name, &k8smetav1.DeleteOptions{})
+	return c.kubevirt.VirtualMachine(namespace).Delete(context.TODO(), name, k8smetav1.DeleteOptions{})
 }
 
 // ValidateVirtualMachineRunning check if VirtualMachine is running, if not
@@ -183,7 +183,7 @@ func (c *Client) StartVirtualMachine(vm *kubevirtv1.VirtualMachine) error {
 		return err
 	}
 
-	return c.kubevirt.VirtualMachine(vm.GetNamespace()).Start(vm.GetName(), &kubevirtv1.StartOptions{})
+	return c.kubevirt.VirtualMachine(vm.GetNamespace()).Start(context.TODO(), vm.GetName(), &kubevirtv1.StartOptions{})
 }
 
 // StopVirtualMachine Stop VirtualMachine
@@ -192,7 +192,7 @@ func (c *Client) StopVirtualMachine(vm *kubevirtv1.VirtualMachine) error {
 		return err
 	}
 
-	return c.kubevirt.VirtualMachine(vm.GetNamespace()).Stop(vm.GetName(), &kubevirtv1.StopOptions{})
+	return c.kubevirt.VirtualMachine(vm.GetNamespace()).Stop(context.TODO(), vm.GetName(), &kubevirtv1.StopOptions{})
 }
 
 // RestartVirtualMachine restarts VirtualMachine
@@ -200,7 +200,7 @@ func (c *Client) RestartVirtualMachine(vm *kubevirtv1.VirtualMachine) error {
 	if err := c.initClient(); err != nil {
 		return err
 	}
-	return c.kubevirt.VirtualMachine(vm.GetNamespace()).Restart(vm.GetName(), &kubevirtv1.RestartOptions{})
+	return c.kubevirt.VirtualMachine(vm.GetNamespace()).Restart(context.TODO(), vm.GetName(), &kubevirtv1.RestartOptions{})
 }
 
 // IsVirtualMachineRunning returns true if virtualMachine is in running state
@@ -307,5 +307,5 @@ func (c *Client) UpdateVirtualMachine(vm *kubevirtv1.VirtualMachine) (*kubevirtv
 		return nil, err
 	}
 
-	return c.kubevirt.VirtualMachine(vm.GetNamespace()).Update(vm)
+	return c.kubevirt.VirtualMachine(vm.GetNamespace()).Update(context.TODO(), vm, k8smetav1.UpdateOptions{})
 }

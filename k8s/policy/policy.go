@@ -18,7 +18,6 @@ var (
 
 // Ops is an interface to perform kubernetes related operations on the policy resources.
 type Ops interface {
-	PodSecurityPolicyOps
 	PodDisruptionBudgetOps
 	PodDisruptionBudgetV1Beta1Ops
 

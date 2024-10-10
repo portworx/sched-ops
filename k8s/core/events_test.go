@@ -138,7 +138,7 @@ func TestRecordEvent(t *testing.T) {
 			require.Equal(t, "pod scheduled on node n1", event.Message)
 			require.Equal(t, "Normal", event.Type)
 			found++
-		case "":
+		case "controller3":
 			require.Equal(t, "Deployment", event.InvolvedObject.Kind)
 			require.Equal(t, testNamespace, event.InvolvedObject.Namespace)
 			require.Equal(t, "dep1", event.InvolvedObject.Name)

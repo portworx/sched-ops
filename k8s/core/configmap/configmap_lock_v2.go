@@ -392,15 +392,15 @@ func (c *configMap) refreshLock(id, key string) {
 				c.checkLockTimeout(c.defaultLockHoldTimeout, startTime, id)
 				currentRefresh = time.Now()
 				if _, err := c.tryLock(id, key, true); err != nil {
+					if k8s_errors.IsConflict(err) {
+						// try refreshing again
+						continue
+					}
 					configMapLog(fn, c.name, "", key, err).Errorf(
 						"Error refreshing lock. [ID %v] [Key %v] [Err: %v]"+
 							" [Current Refresh: %v] [Previous Refresh: %v]",
 						id, key, err, currentRefresh, prevRefresh,
 					)
-					if k8s_errors.IsConflict(err) {
-						// try refreshing again
-						continue
-					}
 					if errors.Is(err, ErrConfigMapLockLost) {
 						// there is no coming back from this
 						lock.unlocked = true

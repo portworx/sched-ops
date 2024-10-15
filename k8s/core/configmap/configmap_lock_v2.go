@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -400,7 +401,8 @@ func (c *configMap) refreshLock(id, key string) {
 									" [ID %v] [Key %v] [Err: %v] [Current Refresh: %v] [Previous Refresh: %v]",
 								isConflictErrCount, id, key, err, currentRefresh, prevRefresh)
 						}
-						// try refreshing again
+						// try refreshing again after a random sleep so nodes wouldn'e entangle for too long
+						time.Sleep(lockSleepDuration + time.Duration(rand.Intn(lockRandomSleepDurationMaxMillisecond))*time.Millisecond)
 						continue
 					}
 					configMapLog(fn, c.name, "", key, err).Errorf(

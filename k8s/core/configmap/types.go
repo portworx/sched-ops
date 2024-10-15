@@ -45,9 +45,10 @@ const (
 	// the configmap data is updated via PatchKeyLocked or DeleteKeyLocked. This is used for diagnostics purposes only.
 	pxGenerationKey = "px-generation"
 
-	lockSleepDuration     = 1 * time.Second
-	configMapUserLabelKey = "user"
-	maxConflictRetries    = 3
+	lockSleepDuration                     = 1 * time.Second
+	lockRandomSleepDurationMaxMillisecond = 1000
+	configMapUserLabelKey                 = "user"
+	maxConflictRetries                    = 3
 )
 
 var (

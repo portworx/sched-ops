@@ -19,7 +19,7 @@ func TestGetConfigMap(t *testing.T) {
 	configData := map[string]string{
 		"key1": "val1",
 	}
-	cm, err := New("px-configmaps-test", configData, testLockTimeout, 5, 0, 0)
+	cm, err := New("px-configmaps-get-test", configData, testLockTimeout, 5, 0, 0)
 	require.NoError(t, err, "Unexpected error in creating configmap")
 
 	resultMap, err := cm.Get()
@@ -35,7 +35,7 @@ func TestDeleteConfigMap(t *testing.T) {
 		"key1": "val1",
 	}
 
-	cm, err := New("px-configmaps-test", configData, testLockTimeout, 5, 0, 0)
+	cm, err := New("px-configmaps-delete-test", configData, testLockTimeout, 5, 0, 0)
 	require.NoError(t, err, "Unexpected error in creating configmap")
 
 	err = cm.Delete()
@@ -48,7 +48,7 @@ func TestIncrementGeneration(t *testing.T) {
 	configData := map[string]string{
 		"key1": "1",
 	}
-	cmIntf, err := New("px-configmaps-test", configData, testLockTimeout, 5, 0, 0)
+	cmIntf, err := New("px-configmaps-increment-generation-test", configData, testLockTimeout, 5, 0, 0)
 	require.NoError(t, err, "Unexpected error in creating configmap")
 
 	cm := cmIntf.(*configMap)

@@ -387,12 +387,19 @@ func (c *configMap) refreshLock(id, key string) {
 		select {
 		case <-refresh.C:
 			lock.Lock()
-
+			isConflictErrCount := 0
 			for !lock.unlocked {
 				c.checkLockTimeout(c.defaultLockHoldTimeout, startTime, id)
 				currentRefresh = time.Now()
 				if _, err := c.tryLock(id, key, true); err != nil {
 					if k8s_errors.IsConflict(err) {
+						isConflictErrCount++
+						if isConflictErrCount%10 == 0 {
+							configMapLog(fn, c.name, "", key, err).Errorf(
+								"Error refreshing lock due to conflict from concurrent configmap updates. retries: %v."+
+									" [ID %v] [Key %v] [Err: %v] [Current Refresh: %v] [Previous Refresh: %v]",
+								isConflictErrCount, id, key, err, currentRefresh, prevRefresh)
+						}
 						// try refreshing again
 						continue
 					}

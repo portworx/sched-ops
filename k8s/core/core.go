@@ -23,9 +23,10 @@ import (
 )
 
 const (
-	masterLabelKey           = "node-role.kubernetes.io/master"
-	pvcStorageProvisionerKey = "volume.beta.kubernetes.io/storage-provisioner"
-	labelUpdateMaxRetries    = 5
+	masterLabelKey                     = "node-role.kubernetes.io/master"
+	pvcStorageProvisionerKeyDeprecated = "volume.beta.kubernetes.io/storage-provisioner"
+	pvcStorageProvisionerKey           = "volume.kubernetes.io/storage-provisioner"
+	labelUpdateMaxRetries              = 5
 )
 
 var (

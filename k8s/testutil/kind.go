@@ -41,7 +41,7 @@ func NewKindUtil() KindUtil {
 	once.Do(func() {
 		kindPath, err := exec.LookPath("kind")
 		if err != nil {
-			logrus.Panicf("failed to locate kind: %v: %s", err, os.Getenv("PATH"))
+			logrus.Panicf("failed to locate kind: %v", err)
 		}
 		kind = &kindUtil{
 			kindPath: kindPath,

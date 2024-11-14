@@ -35,7 +35,7 @@ fmt:
 vet:
 	$(GO) vet ./...
 
-test: $(GOPATH)/bin/kind
+test:
 	$(GO) test ./...
 
 git-validation:
@@ -54,7 +54,3 @@ vendor:
 vendor-tidy:
 	@echo "Removing unused files in vendor tree"
 	go mod tidy
-
-$(GOPATH)/bin/kind:
-	@echo "Installing kind"
-	go install -mod=readonly sigs.k8s.io/kind@v0.16.0

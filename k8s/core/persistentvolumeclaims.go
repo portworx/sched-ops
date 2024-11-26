@@ -22,6 +22,8 @@ type PersistentVolumeClaimOps interface {
 	UpdatePersistentVolumeClaim(*corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error)
 	// DeletePersistentVolumeClaim deletes the given persistent volume claim
 	DeletePersistentVolumeClaim(name, namespace string) error
+	// DeletePersistentVolumeClaimWithForce deletes the given persistent volume claim with force option
+	DeletePersistentVolumeClaimWithForce(name, namespace string) error
 	// ValidatePersistentVolumeClaim validates the given pvc
 	ValidatePersistentVolumeClaim(vv *corev1.PersistentVolumeClaim, timeout, retryInterval time.Duration) error
 	// ValidatePersistentVolumeClaimSize validates the given pvc size
@@ -39,6 +41,8 @@ type PersistentVolumeClaimOps interface {
 	GetPersistentVolume(pvName string) (*corev1.PersistentVolume, error)
 	// DeletePersistentVolume deletes the PV for given name
 	DeletePersistentVolume(pvName string) error
+	// DeletePersistentVolumeWithForce deletes the PV for given name with force option
+	DeletePersistentVolumeWithForce(pvName string) error
 	// GetPersistentVolumes returns all PVs in cluster
 	GetPersistentVolumes() (*corev1.PersistentVolumeList, error)
 	//UpdatePersistentVolume updates PV
@@ -92,6 +96,18 @@ func (c *Client) DeletePersistentVolumeClaim(name, namespace string) error {
 	}
 
 	return c.kubernetes.CoreV1().PersistentVolumeClaims(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+}
+
+// DeletePersistentVolumeClaimWithForce deletes the given persistentvolumeclaim with force option
+func (c *Client) DeletePersistentVolumeClaimWithForce(name, namespace string) error {
+	if err := c.initClient(); err != nil {
+		return err
+	}
+	gracePeriodSec := int64(0)
+	deleteOptions := metav1.DeleteOptions{
+		GracePeriodSeconds: &gracePeriodSec,
+	}
+	return c.kubernetes.CoreV1().PersistentVolumeClaims(namespace).Delete(context.TODO(), name, deleteOptions)
 }
 
 // ValidatePersistentVolumeClaim validates the given pvc
@@ -225,6 +241,18 @@ func (c *Client) DeletePersistentVolume(pvName string) error {
 	return c.kubernetes.CoreV1().PersistentVolumes().Delete(context.TODO(), pvName, metav1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
+}
+
+// DeletePersistentVolumeWithForce deletes the PV for given name with force option
+func (c *Client) DeletePersistentVolumeWithForce(pvName string) error {
+	if err := c.initClient(); err != nil {
+		return err
+	}
+	gracePeriodSec := int64(0)
+	deleteOptions := metav1.DeleteOptions{
+		GracePeriodSeconds: &gracePeriodSec,
+	}
+	return c.kubernetes.CoreV1().PersistentVolumes().Delete(context.TODO(), pvName, deleteOptions)
 }
 
 // GetPersistentVolumes returns all PVs in cluster

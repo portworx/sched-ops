@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
 )
 
@@ -62,8 +63,6 @@ type PodOps interface {
 	DeletePodsByLabels(namespace string, labelSelector map[string]string, timeout time.Duration) error
 	// IsPodRunning checks if all containers in a pod are in running state
 	IsPodRunning(corev1.Pod) bool
-	// IsPodCompleted checks if the pod is in completed state
-	IsPodCompleted(corev1.Pod) bool
 	// IsPodReady checks if all containers in a pod are ready (passed readiness probe)
 	IsPodReady(corev1.Pod) bool
 	// IsPodBeingManaged returns true if the pod is being managed by a controller
@@ -80,6 +79,8 @@ type PodOps interface {
 	WatchPods(namespace string, fn WatchFunc, listOptions metav1.ListOptions) error
 	// GetPodLogs returns the logs of a POD as a string
 	GetPodLog(podName string, namespace string, podLogOptions *corev1.PodLogOptions) (string, error)
+	// GetPodLogRequest constructs a request for getting the logs for a pod
+	GetPodLogRequest(podName string, namespace string, podLogOptions *corev1.PodLogOptions) (*restclient.Request, error)
 }
 
 // RunCommandInPodExRequest is a request structure for the RunCommandInPodEx func
@@ -567,6 +568,15 @@ func (c *Client) GetPodLog(podName string, ns string, podLogOptions *corev1.PodL
 	str := buf.String()
 
 	return str, err
+}
+
+// GetPodLogRequest constructs a request for getting the logs for a pod
+func (c *Client) GetPodLogRequest(podName string, namespace string, podLogOptions *corev1.PodLogOptions) (*restclient.Request, error) {
+	if err := c.initClient(); err != nil {
+		return nil, err
+	}
+
+	return c.kubernetes.CoreV1().Pods(namespace).GetLogs(podName, podLogOptions), nil
 }
 
 // isAnyVolumeUsingVolumePlugin returns true if any of the given volumes is using a storage class for the given plugin

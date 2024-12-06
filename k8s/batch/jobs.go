@@ -18,6 +18,8 @@ type JobOps interface {
 	GetJob(name, namespace string) (*batchv1.Job, error)
 	// DeleteJob deletes the job with given namespace and name
 	DeleteJob(name, namespace string) error
+	// UpdateJob updates the given job
+	UpdateJob(job *batchv1.Job) (*batchv1.Job, error)
 	// DeleteJobWithForce deletes the job with given namespace and name
 	DeleteJobWithForce(name, namespace string) error
 	// ValidateJob validates if the job with given namespace and name succeeds.
@@ -54,6 +56,14 @@ func (c *Client) DeleteJob(name, namespace string) error {
 	return c.batch.Jobs(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{
 		PropagationPolicy: &deleteForegroundPolicy,
 	})
+}
+
+// UpdateJob updates the given job.
+func (c *Client) UpdateJob(job *batchv1.Job) (*batchv1.Job, error) {
+	if err := c.initClient(); err != nil {
+		return nil, err
+	}
+	return c.batch.Jobs(job.Namespace).Update(context.TODO(), job, metav1.UpdateOptions{})
 }
 
 // DeleteJobWithForce deletes the job with given namespace and name with force option

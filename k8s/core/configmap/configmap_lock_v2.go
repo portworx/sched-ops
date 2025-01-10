@@ -194,6 +194,56 @@ func (c *configMap) IsKeyLocked(key, requester string) (bool, string, error) {
 	return false, "", nil
 }
 
+// DeprecateKeyInV2Lock sets the expiration of a key in a V2 lock to 100 years from now for the purpose of deprecation.
+func (c *configMap) DeprecateKeyInV2Lock(key string) error {
+	fn := "DeprecateKeyInV2Lock"
+	var err error
+	isConflictErrCount := 0
+	for count := uint(0); count < c.lockAttempts; count++ {
+		cm, err := core.Instance().GetConfigMap(
+			c.name,
+			k8sSystemNamespace,
+		)
+		if err != nil {
+			// A ConfigMap should always be created.
+			return err
+		}
+
+		if cm.Data == nil {
+			cm.Data = make(map[string]string)
+		}
+
+		lockIDs, lockExpirations, err := c.parseLocks(cm)
+		if err != nil {
+			return fmt.Errorf("failed to get locks from configmap: %v", err)
+		}
+		if _, ok := lockIDs[key]; !ok {
+			// Key does not exist in the lock. Nothing to deprecate
+			return nil
+		}
+		lockExpirations[key] = time.Now().Add(24 * time.Hour * 365 * 100)
+		err = c.generateConfigMapData(cm, lockIDs, lockExpirations)
+		if err != nil {
+			return err
+		}
+		if _, err = c.updateConfigMap(cm); err != nil {
+			if k8s_errors.IsConflict(err) {
+				isConflictErrCount++
+				if isConflictErrCount%10 == 0 {
+					configMapLog(fn, c.name, "", key, err).Errorf(
+						"Error deprecating key in the cm v2 lock due to conflict from concurrent configmap updates. retries: %v."+
+							" [Key %v] [Err: %v]", isConflictErrCount, key, err)
+				}
+			} else {
+				configMapLog(fn, c.name, "", key, err).Errorf(
+					"Error deprecating key in the cm v2 lock. [Key %v] [Err: %v]. retries: %v", key, err, count)
+			}
+			time.Sleep(lockSleepDuration + time.Duration(rand.Intn(lockRandomSleepDurationMaxMillisecond))*time.Millisecond)
+		}
+	}
+	return err
+}
+
 func (c *configMap) tryLock(owner string, key string, refresh bool) (string, error) {
 	// Get the existing ConfigMap
 	cm, err := core.Instance().GetConfigMap(

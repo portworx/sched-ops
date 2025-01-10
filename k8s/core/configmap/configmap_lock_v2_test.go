@@ -494,3 +494,46 @@ func TestIsKeyLocked(t *testing.T) {
 	err = cm.Delete()
 	require.NoError(t, err, "Unexpected error on Delete")
 }
+
+func TestDeprecateKeyInV2Lock(t *testing.T) {
+	setUpConfigMapTestCluster(t)
+	cmIntf, err := New("px-configmaps-lock-deprecate-key-in-v2-lock-test", nil, testLockTimeout, testLockAttempts, testLockRefreshDuration, testLockTTL)
+	require.NoError(t, err, "Unexpected error on New")
+	cm := cmIntf.(*configMap)
+
+	// Brand new cluster with no existing lock
+	err = cm.DeprecateKeyInV2Lock("key1")
+	require.NoError(t, err, "Unexpected error in DeprecateKeyInV2Lock")
+	rawCm, err := coreops.Instance().GetConfigMap(cm.name, k8sSystemNamespace)
+	require.NoError(t, err)
+	keyIDs, keyExpirations, err := cm.parseLocks(rawCm)
+	require.NoError(t, err)
+	require.Equal(t, 0, len(keyIDs))
+	require.Equal(t, 0, len(keyExpirations))
+
+	// Deprecate an existing key
+	// patch time.Now()
+	curTime := time.Now().UTC()
+	timePatch, err := mpatch.PatchMethod(time.Now, func() time.Time { return curTime })
+	require.NoError(t, err, "Failed to patch time.Now()")
+	defer timePatch.Unpatch()
+
+	id := "deprecate-key-id"
+	key := "deprecate-key-key"
+	err = cm.LockWithKey(id, key)
+	require.NoError(t, err)
+
+	err = cm.DeprecateKeyInV2Lock(key)
+	require.NoError(t, err)
+	rawCm, err = coreops.Instance().GetConfigMap(cm.name, k8sSystemNamespace)
+	require.NoError(t, err)
+	keyIDs, keyExpirations, err = cm.parseLocks(rawCm)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(keyIDs))
+	require.Equal(t, 1, len(keyExpirations))
+	require.Equal(t, id, keyIDs[key])
+	require.Equal(t, curTime.Add(24*time.Hour*365*100), keyExpirations[key])
+
+	err = cm.Delete()
+	require.NoError(t, err, "Unexpected error on Delete")
+}

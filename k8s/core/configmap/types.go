@@ -128,6 +128,9 @@ type ConfigMap interface {
 	Get() (map[string]string, error)
 	// Delete deletes the configMap
 	Delete() error
+
+	// DeprecateV2Lock deprecates a key in a V2 lock
+	DeprecateKeyInV2Lock(key string) error
 }
 
 // lockData structs are serialized into JSON and stored as a list inside a ConfigMap.

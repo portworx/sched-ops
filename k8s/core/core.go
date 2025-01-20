@@ -55,6 +55,7 @@ type Ops interface {
 	LimitRangeOps
 	NetworkPolicyOps
 	CertificateOps
+	ResourceQuotaOps
 
 	// SetConfig sets the config and resets the client
 	SetConfig(config *rest.Config)

@@ -2,6 +2,7 @@ package kubevirt
 
 import (
 	"context"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubevirtv1 "kubevirt.io/api/core/v1"
 )
@@ -18,5 +19,5 @@ func (c *Client) GetVirtualMachineInstance(ctx context.Context, name string, nam
 		return nil, err
 	}
 
-	return c.kubevirt.VirtualMachineInstance(namespace).Get(ctx, name, &metav1.GetOptions{})
+	return c.kubevirt.VirtualMachineInstance(namespace).Get(ctx, name, metav1.GetOptions{})
 }

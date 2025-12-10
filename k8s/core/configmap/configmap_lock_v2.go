@@ -440,7 +440,7 @@ func (c *configMap) checkLockTimeout(holdTimeout time.Duration, startTime time.T
 		if fatalCb != nil {
 			fatalCb(panicMsg)
 		} else {
-			dbg.Panicf(panicMsg)
+			dbg.Panicf("%s", panicMsg)
 		}
 	}
 }

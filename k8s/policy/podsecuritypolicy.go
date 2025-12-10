@@ -1,67 +1,59 @@
 package policy
 
 import (
-	"context"
-
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"fmt"
 )
 
 // PodSecurityPolicyOps is an interface to perform k8s Pod Security Policy operations
+// NOTE: PodSecurityPolicy was removed in Kubernetes v1.25 and is no longer supported.
+// These methods are kept for backward compatibility but will return errors.
+// Use Pod Security Admission (PSA) or a policy engine like OPA/Kyverno instead.
 type PodSecurityPolicyOps interface {
 	// CreatePodSecurityPolicy creates the given pod security policy
-	CreatePodSecurityPolicy(policy *policyv1beta1.PodSecurityPolicy) (*policyv1beta1.PodSecurityPolicy, error)
+	// DEPRECATED: PodSecurityPolicy was removed in Kubernetes v1.25
+	CreatePodSecurityPolicy(policy interface{}) (interface{}, error)
 	// GetPodSecurityPolicy gets the given pod security policy
-	GetPodSecurityPolicy(name string) (*policyv1beta1.PodSecurityPolicy, error)
+	// DEPRECATED: PodSecurityPolicy was removed in Kubernetes v1.25
+	GetPodSecurityPolicy(name string) (interface{}, error)
 	// ListPodSecurityPolicies list pods security policies
-	ListPodSecurityPolicies() (*policyv1beta1.PodSecurityPolicyList, error)
+	// DEPRECATED: PodSecurityPolicy was removed in Kubernetes v1.25
+	ListPodSecurityPolicies() (interface{}, error)
 	// UpdatePodSecurityPolicy updates the give pod security policy
-	UpdatePodSecurityPolicy(policy *policyv1beta1.PodSecurityPolicy) (*policyv1beta1.PodSecurityPolicy, error)
+	// DEPRECATED: PodSecurityPolicy was removed in Kubernetes v1.25
+	UpdatePodSecurityPolicy(policy interface{}) (interface{}, error)
 	// DeletePodSecurityPolicy deletes the given pod security policy
+	// DEPRECATED: PodSecurityPolicy was removed in Kubernetes v1.25
 	DeletePodSecurityPolicy(name string) error
 }
 
-// CreatePodSecurityPolicy creates the given pod security policy
-func (c *Client) CreatePodSecurityPolicy(policy *policyv1beta1.PodSecurityPolicy) (*policyv1beta1.PodSecurityPolicy, error) {
-	if err := c.initClient(); err != nil {
-		return nil, err
-	}
+var errPSPRemoved = fmt.Errorf("PodSecurityPolicy was removed in Kubernetes v1.25 and is no longer supported. Use Pod Security Admission (PSA) or a policy engine like OPA/Kyverno instead")
 
-	return c.client.PolicyV1beta1().PodSecurityPolicies().Create(context.TODO(), policy, metav1.CreateOptions{})
+// CreatePodSecurityPolicy creates the given pod security policy
+// DEPRECATED: PodSecurityPolicy was removed in Kubernetes v1.25
+func (c *Client) CreatePodSecurityPolicy(policy interface{}) (interface{}, error) {
+	return nil, errPSPRemoved
 }
 
 // GetPodSecurityPolicy gets the given pod security policy
-func (c *Client) GetPodSecurityPolicy(name string) (*policyv1beta1.PodSecurityPolicy, error) {
-	if err := c.initClient(); err != nil {
-		return nil, err
-	}
-
-	return c.client.PolicyV1beta1().PodSecurityPolicies().Get(context.TODO(), name, metav1.GetOptions{})
+// DEPRECATED: PodSecurityPolicy was removed in Kubernetes v1.25
+func (c *Client) GetPodSecurityPolicy(name string) (interface{}, error) {
+	return nil, errPSPRemoved
 }
 
 // ListPodSecurityPolicies gets the given pod security policy
-func (c *Client) ListPodSecurityPolicies() (*policyv1beta1.PodSecurityPolicyList, error) {
-	if err := c.initClient(); err != nil {
-		return nil, err
-	}
-
-	return c.client.PolicyV1beta1().PodSecurityPolicies().List(context.TODO(), metav1.ListOptions{})
+// DEPRECATED: PodSecurityPolicy was removed in Kubernetes v1.25
+func (c *Client) ListPodSecurityPolicies() (interface{}, error) {
+	return nil, errPSPRemoved
 }
 
 // UpdatePodSecurityPolicy updates the give pod security policy
-func (c *Client) UpdatePodSecurityPolicy(policy *policyv1beta1.PodSecurityPolicy) (*policyv1beta1.PodSecurityPolicy, error) {
-	if err := c.initClient(); err != nil {
-		return nil, err
-	}
-
-	return c.client.PolicyV1beta1().PodSecurityPolicies().Update(context.TODO(), policy, metav1.UpdateOptions{})
+// DEPRECATED: PodSecurityPolicy was removed in Kubernetes v1.25
+func (c *Client) UpdatePodSecurityPolicy(policy interface{}) (interface{}, error) {
+	return nil, errPSPRemoved
 }
 
 // DeletePodSecurityPolicy deletes the given pod security policy
+// DEPRECATED: PodSecurityPolicy was removed in Kubernetes v1.25
 func (c *Client) DeletePodSecurityPolicy(name string) error {
-	if err := c.initClient(); err != nil {
-		return err
-	}
-
-	return c.client.PolicyV1beta1().PodSecurityPolicies().Delete(context.TODO(), name, metav1.DeleteOptions{})
+	return errPSPRemoved
 }
